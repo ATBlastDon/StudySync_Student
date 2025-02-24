@@ -1,0 +1,812 @@
+import 'package:animate_do/animate_do.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:studysync_student/Screens/Authentication/studentlogin.dart';
+
+class StudentProfile extends StatefulWidget {
+  final String studentmail;
+  final String studentyear;
+  final String sem;
+
+  const StudentProfile({
+    super.key,
+    required this.studentmail,
+    required this.studentyear,
+    required this.sem,
+  });
+
+  @override
+  State<StudentProfile> createState() => _StudentProfileState();
+}
+
+class _StudentProfileState extends State<StudentProfile> {
+  Map<String, dynamic>? studentData;
+  bool isLoading = true;
+  bool isEditingRollNo = false;
+  bool isEditingYear = false;
+  bool isEditingSem = false;
+  bool isEditingBatch = false;
+  bool isEditingMentor = false;
+  bool loadingTeachers = false;
+
+  TextEditingController rollNoController = TextEditingController();
+  TextEditingController yearController = TextEditingController();
+  TextEditingController semController = TextEditingController();
+  TextEditingController batchController = TextEditingController();
+  TextEditingController mentorController = TextEditingController();
+
+  List<String> batches = ['B1', 'B2', 'B3', 'B4'];
+  List<String> classes = ['BE', 'TE', 'SE'];
+  // Change teachers type to List<Map<String, String>>
+  List<Map<String, String>> teachers = [];
+  String? selectedBatch;
+  String? selectedYear;
+  Map<String, String>? selectedMentor;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchStudentDetails();
+    fetchTeachers();
+  }
+
+  Future<void> fetchTeachers() async {
+    setState(() => loadingTeachers = true);
+    try {
+      QuerySnapshot querySnapshot =
+      await FirebaseFirestore.instance.collection('teachers').get();
+
+      teachers = querySnapshot.docs.map((doc) {
+        var data = doc.data() as Map<String, dynamic>;
+        return <String, String>{
+          'id': doc.id, // Add document ID to the teacher data
+          'fullName': '${data['fname'] ?? ''} ${data['mname'] ?? ''} ${data['sname'] ?? ''}'
+              .trim()
+              .replaceAll('  ', ' '),
+        };
+      }).toList();
+
+      setState(() => loadingTeachers = false);
+    } catch (e) {
+      setState(() => loadingTeachers = false);
+      Fluttertoast.showToast(msg: "Error fetching teachers: $e");
+    }
+  }
+
+  Future<void> fetchStudentDetails() async {
+    try {
+      QuerySnapshot<Map<String, dynamic>> querySnapshot =
+      await FirebaseFirestore.instance
+          .collection('students')
+          .doc(widget.studentyear)
+          .collection(widget.sem)
+          .where('email', isEqualTo: widget.studentmail)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        final userData = querySnapshot.docs.first.data();
+        setState(() {
+          studentData = userData;
+          isLoading = false;
+        });
+        rollNoController.text = studentData!['rollNo'] ?? 'N/A';
+        yearController.text = widget.studentyear;
+        semController.text = widget.sem;
+        batchController.text = studentData!['batch'] ?? 'N/A';
+        mentorController.text = studentData!['mentor'] ?? 'N/A';
+      } else {
+        setState(() {
+          isLoading = false;
+        });
+        Fluttertoast.showToast(
+          msg: 'User Not Found in Database',
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.CENTER,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+          fontSize: 16.0,
+        );
+      }
+    } catch (error) {
+      setState(() {
+        isLoading = false;
+      });
+      Fluttertoast.showToast(
+        msg: 'Error occurred: $error',
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.CENTER,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+        fontSize: 16.0,
+      );
+    }
+  }
+
+  Future<void> showConfirmationDialog(Function updateFunction) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirm Change',style: TextStyle(fontFamily: "Outfit"),),
+          content: const Text(
+            'Are you sure you want to change your details? If you do, your data will be lost, and the app will reassign your data from the login.',
+            style: TextStyle(fontSize: 14,fontFamily: 'Outfit'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Cancel',style: TextStyle(fontFamily: "Outfit")),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                updateFunction();
+              },
+              child: const Text('Confirm',style: TextStyle(fontFamily: "Outfit")),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> updateRollNo() async {
+    if (rollNoController.text.isEmpty) return;
+
+    // Check if the roll number is already taken
+    final rollNoQuerySnapshot = await FirebaseFirestore.instance
+        .collection('students')
+        .doc(widget.studentyear)
+        .collection(widget.sem)
+        .where('rollNo', isEqualTo: rollNoController.text)
+        .get();
+
+    if (rollNoQuerySnapshot.docs.isNotEmpty) {
+      Fluttertoast.showToast(
+        msg: 'Roll Number is already taken by another student.',
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.CENTER,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+        fontSize: 16.0,
+      );
+      return;
+    }
+
+    showConfirmationDialog(() async {
+      try {
+        DocumentReference newDocRef = FirebaseFirestore.instance
+            .collection('students')
+            .doc(widget.studentyear)
+            .collection(widget.sem)
+            .doc(rollNoController.text);
+
+        await newDocRef.set(studentData!);
+
+        await FirebaseFirestore.instance
+            .collection('students')
+            .doc(widget.studentyear)
+            .collection(widget.sem)
+            .doc(studentData!['rollNo'])
+            .delete();
+
+        setState(() {
+          studentData!['rollNo'] = rollNoController.text;
+          isEditingRollNo = false;
+        });
+
+        await newDocRef.update({
+          'rollNo': rollNoController.text,
+        });
+
+        Fluttertoast.showToast(
+          msg: 'Roll Number updated successfully',
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.CENTER,
+          backgroundColor: Colors.green,
+          textColor: Colors.white,
+          fontSize: 16.0,
+        );
+      } catch (error) {
+        Fluttertoast.showToast(
+          msg: 'Error updating Roll Number: $error',
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.CENTER,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+          fontSize: 16.0,
+        );
+      }
+    });
+  }
+
+  Future<void> updateBatch() async {
+    if (batchController.text.isEmpty) return;
+
+    showConfirmationDialog(() async {
+      try {
+        DocumentReference studentDocRef = FirebaseFirestore.instance
+            .collection('students')
+            .doc(widget.studentyear)
+            .collection(widget.sem)
+            .doc(rollNoController.text);
+
+        await studentDocRef.update({
+          'batch': batchController.text,
+        });
+
+        setState(() {
+          isEditingBatch = false;
+        });
+
+        Fluttertoast.showToast(
+          msg: 'Batch updated successfully',
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.CENTER,
+          backgroundColor: Colors.green,
+          textColor: Colors.white,
+          fontSize: 16.0,
+        );
+      } catch (error) {
+        Fluttertoast.showToast(
+          msg: 'Error updating batch: $error',
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.CENTER,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+          fontSize: 16.0,
+        );
+      }
+    });
+  }
+
+  Future<void> updateMentor() async {
+    // Proceed with the confirmation dialog and update
+    showConfirmationDialog(() async {
+      try {
+        DocumentReference studentDocRef = FirebaseFirestore.instance
+            .collection('students')
+            .doc(widget.studentyear)
+            .collection(widget.sem)
+            .doc(rollNoController.text);
+
+        await studentDocRef.update({
+          'mentor': selectedMentor!['fullName'],
+        });
+
+        setState(() {
+          isEditingMentor = false;
+        });
+
+        Fluttertoast.showToast(
+          msg: 'Mentor updated successfully',
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.CENTER,
+          backgroundColor: Colors.green,
+          textColor: Colors.white,
+          fontSize: 16.0,
+        );
+      } catch (error) {
+        Fluttertoast.showToast(
+          msg: 'Error updating Mentor: $error',
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.CENTER,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+          fontSize: 16.0,
+        );
+      }
+    });
+  }
+
+  Future<void> updateSem() async {
+    if (semController.text.isEmpty) return;
+
+    showConfirmationDialog(() async {
+      try {
+        DocumentReference newDocRef = FirebaseFirestore.instance
+            .collection('students')
+            .doc(studentData!['year'])
+            .collection(semController.text)
+            .doc(studentData!['rollNo']);
+
+        await newDocRef.set(studentData!);
+
+        await FirebaseFirestore.instance
+            .collection('students')
+            .doc(widget.studentyear)
+            .collection(widget.sem)
+            .doc(studentData!['rollNo'])
+            .delete();
+
+        setState(() {
+          studentData!['semester'] = semController.text;
+          isEditingSem = false;
+        });
+
+        await newDocRef.update({
+          'semester': semController.text,
+        });
+
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.clear();
+
+        Fluttertoast.showToast(
+          msg: 'Semester updated successfully',
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.CENTER,
+          backgroundColor: Colors.green,
+          textColor: Colors.white,
+          fontSize: 16.0,
+        );
+
+        if (!mounted) return;
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => StudentLogin()),
+              (route) => false,
+        );
+      } catch (error) {
+        Fluttertoast.showToast(
+          msg: 'Error updating Semester: $error',
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.CENTER,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+          fontSize: 16.0,
+        );
+      }
+    });
+  }
+
+  Future<void> updateYear() async {
+    if (yearController.text.isEmpty) return;
+
+    showConfirmationDialog(() async {
+      try {
+        DocumentReference newDocRef = FirebaseFirestore.instance
+            .collection('students')
+            .doc(yearController.text)
+            .collection(widget.sem)
+            .doc(studentData!['rollNo']);
+
+        await newDocRef.set(studentData!);
+
+        await FirebaseFirestore.instance
+            .collection('students')
+            .doc(widget.studentyear)
+            .collection(widget.sem)
+            .doc(studentData!['rollNo'])
+            .delete();
+
+        setState(() {
+          studentData!['year'] = yearController.text;
+          studentData!['class'] = yearController.text;
+          isEditingYear = false;
+        });
+
+        await newDocRef.update({
+          'class': yearController.text,
+        });
+
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.clear();
+
+        Fluttertoast.showToast(
+          msg: 'Year and Class updated successfully. Please log in again.',
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.CENTER,
+          backgroundColor: Colors.green,
+          textColor: Colors.white,
+          fontSize: 16.0,
+        );
+
+        if (!mounted) return;
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => StudentLogin()),
+              (route) => false,
+        );
+      } catch (error) {
+        Fluttertoast.showToast(
+          msg: 'Error updating Year: $error',
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.CENTER,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+          fontSize: 16.0,
+        );
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        centerTitle: true,
+        title: FadeInDown(
+          duration: const Duration(milliseconds: 500),
+          child: const Text(
+            'P R O F I L E',
+            style: TextStyle(
+              fontFamily: 'Outfit',
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ),
+      body: SingleChildScrollView(
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.teal.shade200, Colors.greenAccent.shade400],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : studentData == null
+              ? const Center(child: Text("No student data available",style: TextStyle(fontFamily: "Outfit")))
+              : Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Card(
+              elevation: 8,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: FadeInUp(
+                        duration: const Duration(milliseconds: 500),
+                        child: CircleAvatar(
+                          radius: 70,
+                          backgroundImage: studentData!['profilePhotoUrl'] != null
+                              ? CachedNetworkImageProvider(studentData!['profilePhotoUrl'])
+                              : null,
+                          child: studentData!['profilePhotoUrl'] == null
+                              ? const Icon(Icons.person, size: 50, color: Colors.greenAccent)
+                              : null,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+                    FadeInUp(
+                      duration: const Duration(milliseconds: 600),
+                      child: TextField(
+                        readOnly: true,
+                        style: TextStyle(fontFamily: 'Outfit'),
+                        decoration: InputDecoration(
+                          labelText: "Name",labelStyle: TextStyle(fontFamily: "Outfit"),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                        ),
+                        controller: TextEditingController(
+                          text: "${studentData!['fname'] ?? ''} ${studentData!['mname'] ?? ''} ${studentData!['sname'] ?? ''}",
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    FadeInUp(
+                      duration: const Duration(milliseconds: 700),
+                      child: TextField(
+                        readOnly: !isEditingRollNo,
+                        style: TextStyle(fontFamily: 'Outfit'),
+                        controller: rollNoController,
+                        decoration: InputDecoration(
+                          labelText: "Roll Number",labelStyle: TextStyle(fontFamily: "Outfit"),
+                          suffixIcon: IconButton(
+                            icon: Icon(isEditingRollNo ? Icons.save : Icons.edit, color: Colors.teal),
+                            onPressed: () {
+                              if (isEditingRollNo) {
+                                updateRollNo();
+                              } else {
+                                setState(() {
+                                  isEditingRollNo = true;
+                                });
+                              }
+                            },
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    FadeInUp(
+                      duration: const Duration(milliseconds: 800),
+                      child: isEditingYear
+                          ? Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              value: selectedYear ?? yearController.text,
+                              decoration: InputDecoration(
+                                labelText: "Class",labelStyle: TextStyle(fontFamily: "Outfit"),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              items: classes.map((String value) {
+                                return DropdownMenuItem<String>(
+                                  value: value,
+                                  child: Text(value,style: TextStyle(fontFamily: 'Outfit'),
+                                ),
+                                );
+                              }).toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  selectedYear = value;
+                                  yearController.text = value!;
+                                });
+                              },
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.save, color: Colors.teal),
+                            onPressed: () {
+                              updateYear();
+                              setState(() {
+                                isEditingYear = false;
+                              });
+                            },
+                          ),
+                        ],
+                      )
+                          : TextField(
+                        readOnly: true,
+                        style: TextStyle(fontFamily: 'Outfit'),
+                        controller: yearController,
+                        decoration: InputDecoration(
+                          labelText: "Class",labelStyle: TextStyle(fontFamily: "Outfit"),
+                          suffixIcon: IconButton(
+                            icon: const Icon(Icons.edit, color: Colors.teal),
+                            onPressed: () => setState(() => isEditingYear = true),
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    FadeInUp(
+                      duration: const Duration(milliseconds: 800),
+                      child: TextField(
+                        readOnly: !isEditingSem,
+                        style: TextStyle(fontFamily: 'Outfit'),
+                        controller: semController,
+                        decoration: InputDecoration(
+                          labelText: "Semester",labelStyle: TextStyle(fontFamily: "Outfit"),
+                          suffixIcon: IconButton(
+                            icon: Icon(isEditingSem ? Icons.save : Icons.edit, color: Colors.teal),
+                            onPressed: () {
+                              if (isEditingSem) {
+                                updateSem();
+                              } else {
+                                setState(() {
+                                  isEditingSem = true;
+                                });
+                              }
+                            },
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    FadeInUp(
+                      duration: const Duration(milliseconds: 800),
+                      child: isEditingBatch
+                          ? Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              value: batches.contains(selectedBatch ?? batchController.text)
+                                  ? selectedBatch ?? batchController.text
+                                  : null,
+                              decoration: InputDecoration(
+                                labelText: "Batch",
+                                labelStyle: TextStyle(fontFamily: "Outfit"),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              items: [
+                                // Add a disabled default item
+                                DropdownMenuItem<String>(
+                                  value: null,
+                                  enabled: false,
+                                  child: Text('Select Batch',
+                                      style: TextStyle(
+                                          fontFamily: "Outfit",
+                                          color: Colors.grey)),
+                                ),
+                                ...batches.map((String value) {
+                                  return DropdownMenuItem<String>(
+                                    value: value,
+                                    child: Text(value,
+                                        style: TextStyle(fontFamily: "Outfit")),
+                                  );
+                                }),
+                              ],
+                              onChanged: (value) {
+                                setState(() {
+                                  selectedBatch = value;
+                                  if (value != null) {
+                                    batchController.text = value;
+                                  }
+                                });
+                              },
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.save, color: Colors.teal),
+                            onPressed: () {
+                              if (selectedBatch != null) {
+                                updateBatch();
+                                setState(() {
+                                  isEditingBatch = false;
+                                });
+                              }
+                            },
+                          ),
+                        ],
+                      )
+                          : TextField(
+                        readOnly: true,
+                        style: TextStyle(fontFamily: 'Outfit'),
+                        controller: batchController,
+                        decoration: InputDecoration(
+                          labelText: "Batch",
+                          labelStyle: TextStyle(fontFamily: "Outfit"),
+                          suffixIcon: IconButton(
+                            icon: const Icon(Icons.edit, color: Colors.teal),
+                            onPressed: () => setState(() => isEditingBatch = true),
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    FadeInUp(
+                      duration: const Duration(milliseconds: 800),
+                      child: isEditingMentor
+                          ? loadingTeachers
+                          ? const CircularProgressIndicator()
+                          : teachers.isEmpty
+                          ? const Text("No teachers available",style: TextStyle(fontFamily: "Outfit"))
+                          : Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<Map<String, String>>(
+                              value: teachers.firstWhere(
+                                    (t) => t['fullName'] == mentorController.text,
+                                orElse: () => teachers.first,
+                              ),
+                              decoration: InputDecoration(
+                                labelText: "Mentor",labelStyle: TextStyle(fontFamily: "Outfit"),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              items: teachers.map((teacher) {
+                                return DropdownMenuItem<Map<String, String>>(
+                                  value: teacher,
+                                  child: Text(teacher['fullName']!,style: TextStyle(fontFamily: "Outfit")),
+                                );
+                              }).toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  selectedMentor = value;
+                                  mentorController.text = value?['fullName'] ?? '';
+                                });
+                              },
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.save, color: Colors.teal),
+                            onPressed: () {
+                              if (selectedMentor != null) {
+                                updateMentor();
+                                setState(() => isEditingMentor = false);
+                              }
+                            },
+                          ),
+                        ],
+                      )
+                          : TextField(
+                        readOnly: true,
+                        style: TextStyle(fontFamily: 'Outfit'),
+                        controller: mentorController,
+                        decoration: InputDecoration(
+                          labelText: "Mentor",labelStyle: TextStyle(fontFamily: "Outfit"),
+                          suffixIcon: IconButton(
+                            icon: const Icon(Icons.edit, color: Colors.teal),
+                            onPressed: () => setState(() => isEditingMentor = true),
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    FadeInUp(
+                      duration: const Duration(milliseconds: 1000),
+                      child: TextField(
+                        readOnly: true,
+                        style: TextStyle(fontFamily: 'Outfit'),
+                        decoration: InputDecoration(
+                          labelText: "Email",labelStyle: TextStyle(fontFamily: "Outfit"),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                        ),
+                        controller: TextEditingController(text: studentData!['email']),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    FadeInUp(
+                      duration: const Duration(milliseconds: 1000),
+                      child: TextField(
+                        readOnly: true,
+                        style: TextStyle(fontFamily: 'Outfit'),
+                        decoration: InputDecoration(
+                          labelText: "Phone No",labelStyle: TextStyle(fontFamily: "Outfit"),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                        ),
+                        controller: TextEditingController(text: studentData!['phoneNo']),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    FadeInUp(
+                      duration: const Duration(milliseconds: 1000),
+                      child: TextField(
+                        readOnly: true,
+                        style: TextStyle(fontFamily: 'Outfit'),
+                        decoration: InputDecoration(
+                          labelText: "Registration No.",labelStyle: TextStyle(fontFamily: "Outfit"),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                        ),
+                        controller: TextEditingController(text: studentData!['regNo']),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

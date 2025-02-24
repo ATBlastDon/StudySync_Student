@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "620891604582",
+    "firebase_url": "https://attendance-flutter-9ccae-default-rtdb.firebaseio.com",
+    "project_id": "attendance-flutter-9ccae",
+    "storage_bucket": "attendance-flutter-9ccae.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:620891604582:android:18001cc2c35fdbd71a8fa7",
+        "android_client_info": {
+          "package_name": "com.academy.studysync_student"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDB6I3kPYSUMu0pQspT34nASceLxPGnsbU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

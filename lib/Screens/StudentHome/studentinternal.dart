@@ -1,0 +1,860 @@
+import 'dart:async';
+import 'dart:ui';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:animate_do/animate_do.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:studysync_student/AboutUs/aboutteam.dart';
+import 'package:studysync_student/Screens/AttendanceAnnouncement/announcement.dart';
+import 'package:studysync_student/Screens/AttendanceRecord/attendance_home.dart';
+import 'package:studysync_student/Screens/Chat/searchscreen.dart';
+import 'package:studysync_student/Screens/Forms/leave_forms.dart';
+import 'package:studysync_student/Screens/Forms/forms.dart';
+import 'package:studysync_student/Screens/Lecture/dloc.dart';
+import 'package:studysync_student/Screens/Marks/marks_home.dart';
+import 'package:studysync_student/Screens/NoticeBoard/noticeboard.dart';
+import 'package:studysync_student/Screens/Security/privacysecurity.dart';
+import 'package:studysync_student/Screens/StudentHome/student_content.dart';
+import 'package:studysync_student/Screens/StudentHome/studentprofile.dart';
+import 'package:studysync_student/Screens/StudentHome/teacher_content.dart';
+import 'package:studysync_student/Screens/WebView/mywebview.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+
+class StudentInternal extends StatefulWidget {
+  final String year;
+  final String sem;
+  const StudentInternal({super.key, required this.year, required this.sem});
+
+  @override
+  State<StudentInternal> createState() => _StudentInternalState();
+}
+
+class _StudentInternalState extends State<StudentInternal> {
+  String _selectedSection = 'students';
+  String? _userFullName;
+  String? _userEmail;
+  String? _userBatch;
+  String? _userMentor;
+  String _email = '';
+  String? _userRollNo;
+  String? _userProfilePhotoUrl;
+  static const String famt = 'https://famt.akronsystems.com/pLogin.aspx';
+
+  // Connectivity flag and subscription
+  bool _isConnected = true;
+  late StreamSubscription<ConnectivityResult> _connectivitySubscription;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Check initial connectivity
+    Connectivity().checkConnectivity().then((result) {
+      // When running on platforms where result might be a List, handle it:
+      final ConnectivityResult connectivityResult =
+      result.isNotEmpty
+          ? result.first
+          : result as ConnectivityResult;
+      setState(() {
+        _isConnected = (connectivityResult != ConnectivityResult.none);
+      });
+    });
+
+    // Listen for connectivity changes and map to a single ConnectivityResult.
+    _connectivitySubscription = Connectivity()
+        .onConnectivityChanged
+        .map<ConnectivityResult>((result) {
+      // If the result is a List, extract the first element.
+      return result.isNotEmpty ? result.first : ConnectivityResult.none;
+    }).listen((connectivityResult) {
+      setState(() {
+        _isConnected = (connectivityResult != ConnectivityResult.none);
+      });
+    });
+
+    fetchUserData();
+  }
+
+  @override
+  void dispose() {
+    _connectivitySubscription.cancel();
+    super.dispose();
+  }
+
+  Future<void> fetchUserData() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      setState(() {
+        _email = user.email!;
+      });
+      await fetchUserInfo(user.email!);
+    }
+  }
+
+  Future<void> fetchUserInfo(String email) async {
+    try {
+      QuerySnapshot<Map<String, dynamic>> querySnapshot =
+      await FirebaseFirestore.instance
+          .collection('students')
+          .doc(widget.year)
+          .collection(widget.sem)
+          .where('email', isEqualTo: email)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        final userData = querySnapshot.docs.first.data();
+        setState(() {
+          _userFullName =
+          '${userData['fname']} ${userData['mname'] ?? ''} ${userData['sname'] ?? ''}';
+          _userProfilePhotoUrl = userData['profilePhotoUrl'];
+          _userEmail = userData['email'];
+          _userRollNo = userData['rollNo'];
+          _userBatch = userData['batch'];
+          _userMentor = userData['mentor'];
+        });
+
+        if (_userBatch == "none") {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _showBatchRequiredDialog(context);
+          });
+        }
+
+        if (_userMentor == "none") {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _showMentorDialog(context);
+          });
+        }
+
+        if (_userRollNo != null && widget.year != "SE") {
+          fetchDLOCInfo();
+        }
+
+        if (_userRollNo != null) {
+          fetchAttendanceInfo();
+        }
+      } else {
+        Fluttertoast.showToast(
+          msg: 'User Not Found in Database',
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.CENTER,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+          fontSize: 16.0,
+        );
+      }
+    } catch (error) {
+      Fluttertoast.showToast(
+        msg: 'Error occurred: $error',
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.CENTER,
+        timeInSecForIosWeb: 1,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+        fontSize: 16.0,
+      );
+    }
+  }
+
+  Future<void> fetchDLOCInfo() async {
+    try {
+      DocumentSnapshot<Map<String, dynamic>> documentSnapshot =
+      await FirebaseFirestore.instance
+          .collection('students')
+          .doc(widget.year)
+          .collection(widget.sem)
+          .doc(_userRollNo!)
+          .collection("optional_subjects")
+          .doc(widget.sem)
+          .get();
+
+      if (!documentSnapshot.exists ||
+          documentSnapshot.data() == null ||
+          documentSnapshot.data()!.isEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _showDLOCRequiredDialog(context);
+        });
+      }
+    } catch (e) {
+      Fluttertoast.showToast(
+        msg: 'Error occurred: $e',
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.CENTER,
+        timeInSecForIosWeb: 1,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+        fontSize: 16.0,
+      );
+    }
+  }
+
+  Future<void> fetchAttendanceInfo() async {
+    try {
+      // First, check the global notification setting from Firestore.
+      DocumentSnapshot<Map<String, dynamic>> notificationSnapshot =
+      await FirebaseFirestore.instance
+          .collection('students')
+          .doc("notification")
+          .get();
+      bool notificationEnabled = notificationSnapshot.data()?['value'] ?? false;
+
+      // If notifications are not enabled, do nothing.
+      if (!notificationEnabled) return;
+
+      // Now fetch the student's attendance record.
+      DocumentSnapshot<Map<String, dynamic>> documentSnapshot =
+      await FirebaseFirestore.instance
+          .collection('students')
+          .doc(widget.year)
+          .collection(widget.sem)
+          .doc("records")
+          .collection("rollno")
+          .doc(_userRollNo!)
+          .get();
+
+      final userData = documentSnapshot.data()!;
+      final overall = userData['overall'] ?? 0.0;
+
+      // If overall attendance is less than 75.0, show the dialog.
+      if (overall < 75.0) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _showAttendanceRequiredDialog(context, overall);
+        });
+      }
+    } catch (e) {
+      Fluttertoast.showToast(
+        msg:
+        "No Attendance Record Found. Update Attendance Record from Attendance Record-Cumulative Attendance Page.",
+      );
+    }
+  }
+
+  void _showDLOCRequiredDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text(
+            "Optional Subject Required",
+            style: TextStyle(fontFamily: 'Outfit'),
+          ),
+          content: const Text(
+            "Please fill in your Optional Subject information in your profile.",
+            style: TextStyle(fontFamily: 'Outfit'),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text(
+                "Go to Fill the Information",
+                style: TextStyle(fontFamily: 'Outfit'),
+              ),
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SelectionSubjects(
+                      year: widget.year,
+                      sem: widget.sem,
+                      rollNo: _userRollNo!,
+                      batch: _userBatch!,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showAttendanceRequiredDialog(BuildContext context, double overall) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Low Attendance',
+              style: TextStyle(fontFamily: 'Outfit')),
+          content: Text(
+            'Your overall attendance is ${overall.toStringAsFixed(1)}% which is below 75%.',
+            style: const TextStyle(fontFamily: 'Outfit'),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child:
+              const Text('OK', style: TextStyle(fontFamily: 'Outfit')),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showMentorDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text(
+            "Mentor Selection Required",
+            style: TextStyle(fontFamily: 'Outfit'),
+          ),
+          content: const Text(
+            "Please fill in your Mentor information in your profile.",
+            style: TextStyle(fontFamily: 'Outfit'),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text(
+                "Go to Fill the Information",
+                style: TextStyle(fontFamily: 'Outfit'),
+              ),
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => StudentProfile(
+                      studentmail: _email,
+                      studentyear: widget.year,
+                      sem: widget.sem,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showBatchRequiredDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text(
+            "Batch Information Required",
+            style: TextStyle(fontFamily: 'Outfit'),
+          ),
+          content: const Text(
+            "Please fill in your batch information in your profile.",
+            style: TextStyle(fontFamily: 'Outfit'),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text(
+                "Go to Profile",
+                style: TextStyle(fontFamily: 'Outfit'),
+              ),
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => StudentProfile(
+                      studentmail: _email,
+                      studentyear: widget.year,
+                      sem: widget.sem,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        centerTitle: true,
+        title: FadeInDown(
+          duration: const Duration(milliseconds: 500),
+          // Conditionally show text or a loading indicator based on connectivity
+          child: _isConnected
+              ? const Text(
+            'S T U D Y  S Y N C',
+            style: TextStyle(
+              fontFamily: 'Outfit',
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+          )
+              : const SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(
+              color: Colors.black, strokeWidth: 3.0,
+            ),
+          ),
+        ),
+        actions: [
+          FadeInRight(
+            duration: const Duration(milliseconds: 600),
+            child: IconButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SearchScreen(
+                      currentUserEmail: _email,
+                      year: widget.year,
+                      sem: widget.sem,
+                    ),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.search),
+              iconSize: 30,
+            ),
+          ),
+        ],
+      ),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: <Widget>[
+            UserAccountsDrawerHeader(
+              accountName: FadeInLeft(
+                duration: const Duration(milliseconds: 500),
+                child: Text(
+                  _userFullName ?? 'Username',
+                  style: const TextStyle(fontFamily: 'Outfit'),
+                ),
+              ),
+              accountEmail: FadeInLeft(
+                duration: const Duration(milliseconds: 600),
+                child: Text(
+                  _userEmail ?? 'user@example.com',
+                  style: const TextStyle(fontFamily: 'Outfit'),
+                ),
+              ),
+              currentAccountPicture: FadeInUp(
+                duration: const Duration(milliseconds: 700),
+                child: GestureDetector(
+                  onTap: () => _showZoomedProfile(context),
+                  child: CircleAvatar(
+                    backgroundColor: Colors.white,
+                    backgroundImage: _userProfilePhotoUrl != null
+                        ? CachedNetworkImageProvider(_userProfilePhotoUrl!)
+                        : null,
+                  ),
+                ),
+              ),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.teal, Colors.greenAccent],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+            ),
+            FadeInLeft(
+              duration: const Duration(milliseconds: 500),
+              child: ListTile(
+                title: const Text(
+                  'Your Profile',
+                  style: TextStyle(fontFamily: 'Outfit'),
+                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => StudentProfile(
+                        studentmail: _email,
+                        studentyear: widget.year,
+                        sem: widget.sem,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            FadeInLeft(
+              duration: const Duration(milliseconds: 600),
+              child: ListTile(
+                title: const Text(
+                  'Attendance Records',
+                  style: TextStyle(fontFamily: 'Outfit'),
+                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AttendanceHome(
+                        year: widget.year,
+                        sem: widget.sem,
+                        rollNo: _userRollNo!,
+                        batch: _userBatch!,
+                        fullName: _userFullName!,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            FadeInLeft(
+              duration: const Duration(milliseconds: 600),
+              child: ListTile(
+                title: const Text(
+                  'Fill the marks',
+                  style: TextStyle(fontFamily: 'Outfit'),
+                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => MarksHome(
+                        year: widget.year,
+                        sem: widget.sem,
+                        rollNo: _userRollNo!,
+                        batch: _userBatch!,
+                        fullName: _userFullName!,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            FadeInLeft(
+              duration: const Duration(milliseconds: 600),
+              child: ListTile(
+                title: const Text(
+                  'Subject Selection',
+                  style: TextStyle(fontFamily: 'Outfit'),
+                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SelectionSubjects(
+                        year: widget.year,
+                        sem: widget.sem,
+                        rollNo: _userRollNo!,
+                        batch: _userBatch!,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            FadeInLeft(
+              duration: const Duration(milliseconds: 800),
+              child: ListTile(
+                title: const Text(
+                  'FAMT Login',
+                  style: TextStyle(fontFamily: 'Outfit'),
+                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const MyWebView(url: famt),
+                    ),
+                  );
+                },
+              ),
+            ),
+            FadeInLeft(
+              duration: const Duration(milliseconds: 900),
+              child: ListTile(
+                title: const Text(
+                  'Compensation Request',
+                  style: TextStyle(fontFamily: 'Outfit'),
+                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => LeaveForms(
+                        year: widget.year,
+                        sem: widget.sem,
+                        rollNo: _userRollNo!,
+                        name: _userFullName!,
+                        mentor: _userMentor!,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            FadeInLeft(
+              duration: const Duration(milliseconds: 1000),
+              child: ListTile(
+                title: const Text(
+                  'Submitted Requests',
+                  style: TextStyle(fontFamily: 'Outfit'),
+                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => Forms(
+                        year: widget.year,
+                        rollNo: _userRollNo!,
+                        sem: widget.sem,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            FadeInLeft(
+              duration: const Duration(milliseconds: 1100),
+              child: ListTile(
+                title: const Text(
+                  'Privacy & Security',
+                  style: TextStyle(fontFamily: 'Outfit'),
+                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PrivacySettingsScreen(),
+                    ),
+                  );
+                },
+              ),
+            ),
+            FadeInLeft(
+              duration: const Duration(milliseconds: 1200),
+              child: ListTile(
+                title: const Text(
+                  'About Team',
+                  style: TextStyle(fontFamily: 'Outfit'),
+                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const AboutTeam()),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.5),
+                  spreadRadius: 1,
+                  blurRadius: 5,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(0),
+                border: Border.all(color: Colors.black),
+              ),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.greenAccent, Colors.teal],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    FadeInLeft(
+                      duration: const Duration(milliseconds: 500),
+                      child: TextButton(
+                        onPressed: () {
+                          setState(() => _selectedSection = 'students');
+                        },
+                        style: TextButton.styleFrom(
+                          foregroundColor: _selectedSection == 'students'
+                              ? Colors.black
+                              : Colors.white,
+                        ),
+                        child: const Text(
+                          'Students',
+                          style: TextStyle(
+                              fontFamily: 'Outfit', fontSize: 17),
+                        ),
+                      ),
+                    ),
+                    FadeInRight(
+                      duration: const Duration(milliseconds: 500),
+                      child: TextButton(
+                        onPressed: () {
+                          setState(() => _selectedSection = 'teachers');
+                        },
+                        style: TextButton.styleFrom(
+                          foregroundColor: _selectedSection == 'teachers'
+                              ? Colors.black
+                              : Colors.white,
+                        ),
+                        child: const Text(
+                          'Teachers',
+                          style: TextStyle(
+                              fontFamily: 'Outfit', fontSize: 17),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: _selectedSection == 'students'
+                  ? FadeIn(
+                duration: const Duration(milliseconds: 500),
+                child: StudentsContent(_email, widget.year, sem: widget.sem),
+              )
+                  : FadeIn(
+                duration: const Duration(milliseconds: 500),
+                child: TeachersContent(_email, widget.year, sem: widget.sem),
+              ),
+            ),
+          ),
+        ],
+      ),
+      floatingActionButton: Stack(
+        children: [
+          Positioned(
+            bottom: 10,
+            left: 36,
+            child: BounceInUp(
+              key: const ValueKey('fab1'),
+              duration: const Duration(milliseconds: 500),
+              child: Container(
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [Colors.greenAccent, Colors.teal],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: FloatingActionButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => NoticeBoard(year: widget.year),
+                      ),
+                    );
+                  },
+                  tooltip: 'Notice Board',
+                  backgroundColor: Colors.transparent,
+                  elevation: 5,
+                  shape: const CircleBorder(),
+                  child: const Icon(Icons.feed, color: Colors.white),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 10,
+            right: 10,
+            child: BounceInUp(
+              key: const ValueKey('fab2'),
+              duration: const Duration(milliseconds: 500),
+              child: Container(
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [Colors.greenAccent, Colors.teal],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: FloatingActionButton(
+                  onPressed: () => _openAttendanceAnnouncement(
+                      context,
+                      widget.year,
+                      _userRollNo!,
+                      widget.sem,
+                      _userBatch!,
+                      _userFullName!),
+                  tooltip: 'Scan QR Code',
+                  backgroundColor: Colors.transparent,
+                  elevation: 5,
+                  shape: const CircleBorder(),
+                  child: const Icon(Icons.announcement_outlined, color: Colors.white),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showZoomedProfile(BuildContext context) async {
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                child: Container(color: Colors.black.withOpacity(0.0)),
+              ),
+              FadeInUp(
+                duration: const Duration(milliseconds: 500),
+                child: CircleAvatar(
+                  radius: 150,
+                  backgroundColor: Colors.white,
+                  backgroundImage: _userProfilePhotoUrl != null
+                      ? CachedNetworkImageProvider(_userProfilePhotoUrl!)
+                      : null,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+void _openAttendanceAnnouncement(BuildContext context, String year,
+    String rollNo, String sem, String batch, String fullName) {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => AttendanceAnnouncement(
+        classYear: year,
+        rollNo: rollNo,
+        sem: sem,
+        batch: batch,
+        fullName: fullName,
+      ),
+    ),
+  );
+}
