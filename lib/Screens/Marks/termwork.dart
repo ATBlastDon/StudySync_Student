@@ -262,56 +262,109 @@ class _StudentTermWorkState extends State<StudentTermWork> {
       Function(String key, int value) onUpdate,
       ) {
     final sortedKeys = _getSortedKeys(marks);
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 10),
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.2),
+            spreadRadius: 3,
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(12.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontFamily: "Outfit",
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Colors.greenAccent, Colors.teal],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontFamily: "Outfit",
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const Divider(thickness: 1.5),
+            const SizedBox(height: 16),
             ...sortedKeys.map((key) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
+              padding: const EdgeInsets.symmetric(vertical: 8),
               child: Row(
                 children: [
                   Expanded(
                     flex: 2,
                     child: Text(
                       key,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontFamily: "Outfit",
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey[800],
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 16),
                   Expanded(
                     flex: 1,
-                    child: TextFormField(
-                      style: const TextStyle(fontFamily: "Outfit"),
-                      initialValue: marks[key].toString(),
-                      keyboardType: TextInputType.number,
-                      // If marks have been uploaded, lock field if the original firebase value is non-zero.
-                      readOnly: marksUploaded ? (originalMarks[key] != 0) : false,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 8),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: marksUploaded && originalMarks[key] != 0
+                            ? Colors.grey[100]
+                            : Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Colors.grey[300]!,
+                          width: 1,
+                        ),
                       ),
-                      onChanged: (value) {
-                        int parsedValue = int.tryParse(value) ?? 0;
-                        onUpdate(key, parsedValue);
-                      },
+                      child: TextFormField(
+                        style: const TextStyle(
+                          fontFamily: "Outfit",
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        textAlign: TextAlign.center,
+                        initialValue: marks[key].toString(),
+                        keyboardType: TextInputType.number,
+                        readOnly: marksUploaded
+                            ? (originalMarks[key] != 0)
+                            : false,
+                        decoration: InputDecoration(
+                          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                          border: InputBorder.none,
+                          suffixIcon: marksUploaded && originalMarks[key] != 0
+                              ? const Padding(
+                            padding: EdgeInsets.only(right: 8),
+                            child: Icon(Icons.lock_outline,
+                                size: 18,
+                                color: Colors.grey),
+                          )
+                              : null,
+                        ),
+                        onChanged: (value) {
+                          int parsedValue = int.tryParse(value) ?? 0;
+                          onUpdate(key, parsedValue);
+                        },
+                      ),
                     ),
                   ),
                 ],
@@ -323,54 +376,70 @@ class _StudentTermWorkState extends State<StudentTermWork> {
     );
   }
 
-  // Build a dropdown to select the subject.
   Widget _buildSubjectDropdown() {
-    return Card(
-      elevation: 2,
-      margin: const EdgeInsets.symmetric(vertical: 10),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        child: Row(
-          children: [
-            const Text(
-              "Select Subject:",
-              style: TextStyle(
-                fontFamily: "Outfit",
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
-              ),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 2,
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "SELECT SUBJECT",
+            style: TextStyle(
+              fontFamily: "Outfit",
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey.shade800,
+              letterSpacing: 1.2,
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.teal),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: selectedSubject,
-                    isExpanded: true,
-                    items: configuredSubjects
-                        .map((s) => DropdownMenuItem(
-                      value: s,
-                      child: Text(s, style: const TextStyle(fontFamily: "Outfit")),
-                    ))
-                        .toList(),
-                    onChanged: (v) {
-                      setState(() {
-                        selectedSubject = v;
-                      });
-                      _loadConfiguration();
-                    },
+          ),
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[200]!),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: DropdownButton<String>(
+                value: selectedSubject,
+                isExpanded: true,
+                underline: const SizedBox(),
+                icon: const Icon(Icons.arrow_drop_down_rounded,
+                    color: Colors.grey),
+                items: configuredSubjects
+                    .map((s) => DropdownMenuItem(
+                  value: s,
+                  child: Text(s,
+                    style: const TextStyle(
+                        fontFamily: "Outfit",
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.black87),
                   ),
-                ),
+                ))
+                    .toList(),
+                onChanged: (v) {
+                  setState(() => selectedSubject = v);
+                  _loadConfiguration();
+                },
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -392,20 +461,17 @@ class _StudentTermWorkState extends State<StudentTermWork> {
         ),
       );
     }
+
     return Scaffold(
       appBar: AppBar(
-        elevation: 3,
         centerTitle: true,
-        title: FadeInDown(
-          duration: const Duration(milliseconds: 500),
-          child: const Text(
-            'T E R M   W O R K',
-            style: TextStyle(
-              fontFamily: 'Outfit',
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
-            ),
+        title: const Text(
+          'T E R M  W O R K',
+          style: TextStyle(
+            fontFamily: 'Outfit',
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: Colors.black,
           ),
         ),
         flexibleSpace: Container(
@@ -417,94 +483,119 @@ class _StudentTermWorkState extends State<StudentTermWork> {
             ),
           ),
         ),
-        backgroundColor: Colors.grey[100],
       ),
       body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.only(left: 16, right: 16, top: 20, bottom: 30),
+          padding: const EdgeInsets.all(16.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildSubjectDropdown(),
-              const SizedBox(height: 10,),
-              if (selectedSubject != null) // Only show the note after subject selection
-                FadeInUp(
-                  duration: const Duration(milliseconds: 800),
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 16.0),
-                    child: Center( // Center the RichText
-                      child: Text.rich(
-                        TextSpan(
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontFamily: 'Outfit',
-                            fontSize: 14, // Slightly smaller font size
+
+              // Enhanced Note Section
+              FadeInUp(
+                duration: const Duration(milliseconds: 800),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.blue[100]!),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.info_outline_rounded,
+                          color: Colors.blue, size: 20),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text.rich(
+                          TextSpan(
+                            children: [
+                              TextSpan(
+                                text: "Important Notes:\n",
+                                style: TextStyle(
+                                  fontFamily: 'Outfit',
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.blue[800],
+                                  height: 1.4,
+                                ),
+                              ),
+                              TextSpan(
+                                text: "• Once saved, marks cannot be edited\n"
+                                    "• DLOC/ILOC subjects require admin contact\n"
+                                    "• All fields are mandatory",
+                                style: TextStyle(
+                                  fontFamily: 'Outfit',
+                                  fontSize: 13,
+                                  color: Colors.blue[700],
+                                  height: 1.6,
+                                ),
+                              ),
+                            ],
                           ),
-                          children: <TextSpan>[
-                            const TextSpan(
-                              text: "Note: ",
-                              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
-                            ),
-                            const TextSpan(
-                              text:
-                              "Once marks are filled and saved, they are not editable. Contact your respective teacher for any corrections.\n",
-                            ),
-                            const TextSpan(
-                              text: "For DLOC/ILOC subjects, if the subject is not listed, please contact the admin.",
-                            )
-                          ],
                         ),
-                        textAlign: TextAlign.center,
                       ),
-                    ),
+                    ],
                   ),
                 ),
+              ),
+              const SizedBox(height: 20),
               if (selectedSubject != null) ...[
-                Center(
+                // Subject Title
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                  decoration: BoxDecoration(
+                    color: Colors.green[50],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                   child: Text(
-                    "Subject: $selectedSubject",
+                    selectedSubject!,
                     style: const TextStyle(
                       fontFamily: "Outfit",
-                      fontSize: 24,
-                      fontWeight: FontWeight.w500,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.teal,
+                      letterSpacing: 0.5,
                     ),
                   ),
                 ),
-                const SizedBox(height: 10),
-                if (experimentsCount > 0)
-                  _buildEditableMarksSection(
-                    "Experiments",
-                    experimentMarks,
-                    originalExperimentMarks,
-                        (key, value) {
-                      setState(() {
-                        experimentMarks = {...experimentMarks}..[key] = value;
-                      });
-                    },
-                  ),
-                if (assignmentsCount > 0)
-                  _buildEditableMarksSection(
-                    "Assignments",
-                    assignmentMarks,
-                    originalAssignmentMarks,
-                        (key, value) {
-                      setState(() {
-                        assignmentMarks = {...assignmentMarks}..[key] = value;
-                      });
-                    },
-                  ),
-                if (crosswordCount > 0)
-                  _buildEditableMarksSection(
-                    "Crossword",
-                    crosswordMarks,
-                    originalCrosswordMarks,
-                        (key, value) {
-                      setState(() {
-                        crosswordMarks = {...crosswordMarks}..[key] = value;
-                      });
-                    },
-                  ),
                 const SizedBox(height: 20),
+                if (experimentsCount > 0) _buildEditableMarksSection(
+                  "Experiments",
+                  experimentMarks,
+                  originalExperimentMarks,
+                      (key, value) {
+                    setState(() {
+                      experimentMarks[key] = value;
+                    });
+                  },
+                ),
+
+                if (assignmentsCount > 0) _buildEditableMarksSection(
+                  "Assignments",
+                  assignmentMarks,
+                  originalAssignmentMarks,
+                      (key, value) {
+                    setState(() {
+                      assignmentMarks[key] = value;
+                    });
+                  },
+                ),
+
+                if (crosswordCount > 0) _buildEditableMarksSection(
+                  "Crossword",
+                  crosswordMarks,
+                  originalCrosswordMarks,
+                      (key, value) {
+                    setState(() {
+                      crosswordMarks[key] = value;
+                    });
+                  },
+                ),
+
+                // Save Button
                 Center(
                   child: FadeInUp(
                     duration: const Duration(milliseconds: 1000),
@@ -556,6 +647,7 @@ class _StudentTermWorkState extends State<StudentTermWork> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 30,)
               ],
             ],
           ),

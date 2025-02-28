@@ -24,7 +24,6 @@ class _StudentRegisterState extends State<StudentRegister> {
   final TextEditingController _mnameController = TextEditingController();
   final TextEditingController _snameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _semController = TextEditingController();
   final TextEditingController _rollNoController = TextEditingController();
   final TextEditingController _regNoController = TextEditingController();
   final TextEditingController _phoneNoController = TextEditingController();
@@ -32,7 +31,15 @@ class _StudentRegisterState extends State<StudentRegister> {
   final TextEditingController _confirmPasswordController = TextEditingController();
 
   String? _selectedYear;
+  String? _selectedSemester;
   File? _selectedImage;
+
+  // Map for semester options based on year
+  final Map<String, List<String>> semesterOptions = {
+    "BE": ["7", "8"],
+    "TE": ["5", "6"],
+    "SE": ["3", "4"],
+  };
 
   // TextStyle with 'Outfit' font family
   final TextStyle _outfitTextStyle = const TextStyle(
@@ -138,24 +145,25 @@ class _StudentRegisterState extends State<StudentRegister> {
                               FadeInUp(
                                 duration: const Duration(milliseconds: 1000),
                                 child: makeInput(
-                                    label: "Email",
-                                    controller: _emailController,
-                                    hintText: "abc123@gmail.com",
+                                  label: "Email",
+                                  controller: _emailController,
+                                  hintText: "abc123@gmail.com",
                                 ),
                               ),
-
+                              // Year Dropdown
                               FadeInUp(
                                 duration: const Duration(milliseconds: 1000),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      "Year", // Explicit label
+                                      "Year",
                                       style: _outfitTextStyle,
                                     ),
                                     const SizedBox(height: 5),
                                     DropdownButtonFormField<String>(
-                                      value: _selectedYear, // Ensure this variable is defined in your state
+                                      value: _selectedYear,
+                                      style: TextStyle(fontFamily: "Outfit",color: Colors.black),
                                       decoration: InputDecoration(
                                         contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
                                         enabledBorder: OutlineInputBorder(
@@ -165,16 +173,56 @@ class _StudentRegisterState extends State<StudentRegister> {
                                           borderSide: BorderSide(color: Colors.grey.shade400),
                                         ),
                                       ),
-                                      hint: Text("BE / TE / SE",style: TextStyle(fontFamily: "Outfit")), // Display hint text
+                                      hint: Text("BE / TE / SE", style: TextStyle(fontFamily: "Outfit")),
                                       onChanged: (String? newValue) {
                                         setState(() {
-                                          _selectedYear = newValue!;
+                                          _selectedYear = newValue;
+                                          // Reset semester when year changes
+                                          _selectedSemester = null;
                                         });
                                       },
                                       items: ["BE", "TE", "SE"].map((String year) {
                                         return DropdownMenuItem<String>(
                                           value: year,
-                                          child: Text(year,style: TextStyle(fontFamily: "Outfit")),
+                                          child: Text(year, style: TextStyle(fontFamily: "Outfit")),
+                                        );
+                                      }).toList(),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              // Semester Dropdown (dependent on Year)
+                              FadeInUp(
+                                duration: const Duration(milliseconds: 1000),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text("Semester", style: _outfitTextStyle),
+                                    const SizedBox(height: 5),
+                                    DropdownButtonFormField<String>(
+                                      value: _selectedSemester,
+                                      style: TextStyle(fontFamily: "Outfit",color: Colors.black),
+                                      decoration: InputDecoration(
+                                        contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderSide: BorderSide(color: Colors.grey.shade400),
+                                        ),
+                                        border: OutlineInputBorder(
+                                          borderSide: BorderSide(color: Colors.grey.shade400),
+                                        ),
+                                      ),
+                                      hint: Text("3/4/5/6/7/8", style: TextStyle(fontFamily: "Outfit")),
+                                      onChanged: (String? newValue) {
+                                        setState(() {
+                                          _selectedSemester = newValue;
+                                        });
+                                      },
+                                      items: _selectedYear == null
+                                          ? []
+                                          : semesterOptions[_selectedYear]!.map((String sem) {
+                                        return DropdownMenuItem<String>(
+                                          value: sem,
+                                          child: Text(sem, style: TextStyle(fontFamily: "Outfit")),
                                         );
                                       }).toList(),
                                     ),
@@ -184,35 +232,30 @@ class _StudentRegisterState extends State<StudentRegister> {
                               FadeInUp(
                                 duration: const Duration(milliseconds: 1000),
                                 child: makeInput(
-                                    label: "Semester",
-                                    controller: _semController,
-                                  hintText: "8 / 7 / 6 / 5 etc.",),
+                                  label: "Roll No",
+                                  controller: _rollNoController,
+                                  hintText: "Enter your class Roll Number - 23",
+                                ),
                               ),
                               FadeInUp(
                                 duration: const Duration(milliseconds: 1000),
                                 child: makeInput(
-                                    label: "Roll No",
-                                    controller: _rollNoController,
-                                    hintText: "Enter your class Roll Number - 23",),
+                                  label: "Registration No",
+                                  controller: _regNoController,
+                                  hintText: "A-21-0030",
+                                ),
                               ),
                               FadeInUp(
                                 duration: const Duration(milliseconds: 1000),
                                 child: makeInput(
-                                    label: "Registration No",
-                                    controller: _regNoController,
-                                    hintText: "A-21-0030",),
+                                  label: "Mobile No",
+                                  controller: _phoneNoController,
+                                  hintText: "1234567890",
+                                ),
                               ),
                               FadeInUp(
                                 duration: const Duration(milliseconds: 1000),
-                                child: makeInput(
-                                    label: "Mobile No",
-                                    controller: _phoneNoController,
-                                    hintText: "1234567890",),
-                              ),
-                              FadeInUp(
-                                duration: const Duration(milliseconds: 1000),
-                                child: PasswordField(
-                                    controller: _passwordController),
+                                child: PasswordField(controller: _passwordController),
                               ),
                               FadeInUp(
                                 duration: const Duration(milliseconds: 1000),
@@ -225,8 +268,7 @@ class _StudentRegisterState extends State<StudentRegister> {
                               FadeInUp(
                                 duration: const Duration(milliseconds: 1000),
                                 child: Container(
-                                  padding:
-                                  const EdgeInsets.only(top: 3, left: 3),
+                                  padding: const EdgeInsets.only(top: 3, left: 3),
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(50),
                                     border: const Border(
@@ -269,14 +311,14 @@ class _StudentRegisterState extends State<StudentRegister> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: <Widget>[
                                   Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 10), // Adjust as needed
+                                    padding: const EdgeInsets.symmetric(vertical: 10),
                                     child: Text(
                                       "Already Have An Account?",
                                       style: _outfitTextStyle,
                                     ),
                                   ),
                                   Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 10), // Adjust as needed
+                                    padding: const EdgeInsets.symmetric(vertical: 10),
                                     child: TextButton(
                                       onPressed: () {
                                         Navigator.push(
@@ -321,7 +363,7 @@ class _StudentRegisterState extends State<StudentRegister> {
                                     title: const Text('Take a photo'),
                                     onTap: () async {
                                       await _getImageFromCamera();
-                                      if(context.mounted){
+                                      if (context.mounted) {
                                         Navigator.pop(context);
                                       }
                                     },
@@ -331,7 +373,7 @@ class _StudentRegisterState extends State<StudentRegister> {
                                     title: const Text('Choose from gallery'),
                                     onTap: () async {
                                       await _getImageFromGallery();
-                                      if(context.mounted){
+                                      if (context.mounted) {
                                         Navigator.pop(context);
                                       }
                                     },
@@ -372,6 +414,7 @@ class _StudentRegisterState extends State<StudentRegister> {
     );
   }
 
+
   Widget makeInput(
       {required String label,
         bool obscureText = false,
@@ -389,6 +432,7 @@ class _StudentRegisterState extends State<StudentRegister> {
           obscureText: obscureText,
           decoration: InputDecoration(
             hintText: hintText, // Display the hint text here
+            hintStyle: TextStyle(fontFamily: "Outfit"),
             contentPadding:
             const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
             enabledBorder: OutlineInputBorder(
@@ -422,7 +466,7 @@ class _StudentRegisterState extends State<StudentRegister> {
               children: [
                 CircularProgressIndicator(),
                 SizedBox(height: 20.0),
-                Text("Registering..."),
+                Text("Registering...",style: TextStyle(fontFamily: "Outfit"),),
               ],
             ),
           ),
@@ -436,7 +480,7 @@ class _StudentRegisterState extends State<StudentRegister> {
       String sname = _snameController.text.trim();
       String email = _emailController.text.trim();
       String year = _selectedYear!;
-      String sem = _semController.text.trim();
+      String sem = _selectedSemester!;
       String rollNo = _rollNoController.text.trim();
       String regNo = _regNoController.text.trim();
       String phoneNo = _phoneNoController.text.trim();
@@ -506,7 +550,7 @@ class _StudentRegisterState extends State<StudentRegister> {
             context: context,
             builder: (BuildContext context) {
               return AlertDialog(
-                title: const Text("Registration Successful"),
+                title: const Text("Registration Successful",style: TextStyle(fontFamily: "Outfit"),),
                 content:
                 const Icon(Icons.check_circle, color: Colors.green, size: 50),
                 actions: [
@@ -518,7 +562,7 @@ class _StudentRegisterState extends State<StudentRegister> {
                         MaterialPageRoute(builder: (context) => const StudentLogin()),
                       );
                     },
-                    child: const Text("OK"),
+                    child: const Text("OK",style: TextStyle(fontFamily: "Outfit"),),
                   ),
                 ],
               );
@@ -540,7 +584,7 @@ class _StudentRegisterState extends State<StudentRegister> {
     String sname = _snameController.text.trim();
     String email = _emailController.text.trim();
     String year = _selectedYear!;
-    String sem = _semController.text.trim();
+    String sem = _selectedSemester!;
     String rollNo = _rollNoController.text.trim();
     String regNo = _regNoController.text.trim();
     String phoneNo = _phoneNoController.text.trim();

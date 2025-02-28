@@ -92,39 +92,37 @@ class _ChatScreenState extends State<ChatScreen> {
     final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
 
     if (pickedFile != null) {
-      setState(() {
-        _imageFile = File(pickedFile.path);
-      });
+      File imageFile = File(pickedFile.path);
 
-      // Show preview of the selected image
-      if(!mounted) return;
+      if (!mounted) return;
+
       showDialog(
         context: context,
+        barrierDismissible: false,
         builder: (BuildContext context) {
           return AlertDialog(
-            title: const Text("Preview", style: TextStyle(
-              fontFamily: "Outfit",
-              fontSize: 15,
-            ),),
-            content: Image.file(_imageFile!), // Display the selected image
+            title: const Text("Preview",
+                style: TextStyle(fontFamily: "Outfit", fontSize: 18)),
+            content: Image.file(imageFile),
             actions: <Widget>[
-              FloatingActionButton(
+              TextButton.icon( // Use TextButton.icon
                 onPressed: () {
-                  Navigator.of(context).pop(); // Close the preview dialog
+                  Navigator.of(context).pop();
                 },
-                backgroundColor: const Color(0xFFFF0000),
-                child: const Icon(Icons.close),
+                icon: const Icon(Icons.cancel, color: Colors.red), // Add icon
+                label: const Text("Cancel", style: TextStyle(fontFamily: "Outfit", color: Colors.red)), // Text with icon
               ),
-
-              FloatingActionButton(
+              ElevatedButton.icon( // Use ElevatedButton.icon
                 onPressed: () {
-                  Navigator.of(context).pop(); // Close the preview dialog
-                  _sendImageMessage(_imageFile!); // Send the selected image
+                  Navigator.of(context).pop();
+                  _sendImageMessage(imageFile);
                 },
-                backgroundColor: const Color(0xFF69F0AE),
-                child: const Icon(Icons.send),
+                icon: const Icon(Icons.send, color: Colors.white), // Add icon
+                label: const Text("Send", style: TextStyle(fontFamily: "Outfit", color: Colors.white)), // Text with icon
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                ),
               ),
-
             ],
           );
         },
@@ -137,23 +135,49 @@ class _ChatScreenState extends State<ChatScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Confirm Clear Chat',style: TextStyle(fontFamily: "Outfit",),),
-          content: const Text('Are you sure you want to clear this chat?\nClearChat Clears the Chats from Both end!!!',style: TextStyle(fontFamily: "Outfit",)),
+          title: Row(
+            children: const [
+              Icon(Icons.warning_rounded, color: Colors.amber, size: 32),
+              SizedBox(width: 12),
+              Text('Clear Chat??', style: TextStyle(fontFamily: "Outfit", fontWeight: FontWeight.w600)),
+            ],
+          ),
+          content: const Padding(
+            padding: EdgeInsets.only(top: 8.0), // Add padding here
+            child: Text(
+              'Are you sure you want to clear this chat?\nClearChat Clears the Chats from Both end!!!',
+              style: TextStyle(fontFamily: "Outfit"),
+            ),
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.0),
+          ),
           actions: <Widget>[
-            TextButton(
+            TextButton.icon(
               onPressed: () {
-                Navigator.of(context).pop(false); // No, do not clear
+                Navigator.of(context).pop(false);
               },
-              child: const Text('No',style: TextStyle(fontFamily: "Outfit",)),
+              icon: const Icon(Icons.cancel_outlined, color: Colors.grey),
+              label: const Text('No', style: TextStyle(fontFamily: "Outfit", color: Colors.grey)),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.grey, // Text color
+              ),
             ),
-            TextButton(
+            ElevatedButton.icon(
               onPressed: () {
-                Navigator.of(context).pop(true); // Yes, clear the chat
+                Navigator.of(context).pop(true);
               },
-              child: const Text('Yes',style: TextStyle(fontFamily: "Outfit",)),
+              icon: const Icon(Icons.delete_forever, color: Colors.white),
+              label: const Text('Yes', style: TextStyle(fontFamily: "Outfit", color: Colors.white)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red, // Background color
+                textStyle: const TextStyle(fontFamily: "Outfit"),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+              ),
             ),
-          ],
-        );
+          ],);
       },
     );
 
@@ -178,7 +202,7 @@ class _ChatScreenState extends State<ChatScreen> {
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.CENTER,
           timeInSecForIosWeb: 1,
-          backgroundColor: Colors.green,
+          backgroundColor: Colors.lightBlueAccent,
           textColor: Colors.white,
           fontSize: 16.0,
         );
@@ -196,7 +220,6 @@ class _ChatScreenState extends State<ChatScreen> {
       }
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -246,14 +269,16 @@ class _ChatScreenState extends State<ChatScreen> {
       body: SafeArea(
         child: Container(
           decoration: BoxDecoration(
-            // Set background color or background image based on the selected background
             image: backgroundImageUrl != null
                 ? DecorationImage(
               image: AssetImage(backgroundImageUrl!),
               fit: BoxFit.cover,
             )
-                : null, // No background image
-            color: backgroundImageUrl == null ? Colors.white : null, // Default white background if no image selected
+                : const DecorationImage( // Use const for AssetImage
+              image: AssetImage('assets/wallpaper/default.jpg'), // Path to your default image
+              fit: BoxFit.cover,
+            ),
+            // No need for the color property if you always have an image
           ),
           child: Column(
             children: [
@@ -273,7 +298,8 @@ class _ChatScreenState extends State<ChatScreen> {
                     if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                       return const Center(child: Text('No messages yet',style: TextStyle(
                         fontFamily: "Outfit",
-                        color: Colors.greenAccent
+                        color: Colors.black,
+                        fontSize: 16,
                       ),));
                     }
                     return ListView.builder(
@@ -299,40 +325,44 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildInput() {
     return Container(
       margin: const EdgeInsets.all(8.0),
+      padding: const EdgeInsets.symmetric(horizontal: 8), // Add horizontal padding
+      decoration: BoxDecoration(
+        color: Colors.white, // Background color for the input area
+        borderRadius: BorderRadius.circular(12.0), // Rounded corners for the whole input area
+        boxShadow: [ // Add a subtle shadow
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.3),
+            spreadRadius: 1,
+            blurRadius: 3,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.image,color: Colors.greenAccent),
+            icon: const Icon(Icons.image, color: Colors.green),
             onPressed: () {
               _getImage();
             },
           ),
           Expanded(
             child: TextField(
+              style: TextStyle(fontFamily: "Outfit"),
               controller: _textEditingController,
               decoration: InputDecoration(
                 hintText: 'Type a message...',
-                hintStyle: TextStyle(fontFamily: 'Outfit'),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30.0),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: Colors.white, // Set the background color to white
+                hintStyle: const TextStyle(fontFamily: 'Outfit', color: Colors.grey), // Style the hint text
+                border: InputBorder.none, // Remove the border from the TextField
+                contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16), // Adjust padding inside TextField
               ),
             ),
           ),
-          const SizedBox(width: 8),
-          SizedBox(
-            width: 50, // Adjust width as needed
-            height: 50, // Adjust height as needed
-            child: FloatingActionButton(
-              onPressed: () {
-                _sendMessage(0);
-              },
-              backgroundColor: Colors.greenAccent,
-              child: const Icon(Icons.send, color: Colors.white, size: 20),
-            ),
+          IconButton( // Use IconButton instead of FloatingActionButton for consistency
+            icon: const Icon(Icons.send_rounded, color: Colors.green), // Use a rounded send icon
+            onPressed: () {
+              _sendMessage(0);
+            },
           ),
         ],
       ),
@@ -485,98 +515,248 @@ class _ChatScreenState extends State<ChatScreen> {
     String content = document['content'];
     bool isSent = document['idFrom'] == widget.currentUseremail;
     DateTime timestamp = (document['timestamp'] as Timestamp).toDate();
+    Widget messageWidget;
 
     switch (messageType) {
-      case 0:
-      // Text message
-        return Column(
+      case 0: // Text message
+        messageWidget = Column(
           crossAxisAlignment: isSent ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
             Row(
               mainAxisAlignment: isSent ? MainAxisAlignment.end : MainAxisAlignment.start,
               children: [
-                Container(
-                  margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: isSent ? Colors.greenAccent : Colors.grey[300],
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(isSent ? 12 : 0),
-                      topRight: Radius.circular(isSent ? 0 : 12),
-                      bottomLeft: const Radius.circular(12),
-                      bottomRight: const Radius.circular(12),
+                Flexible(
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                    child: LayoutBuilder(
+                      builder: (BuildContext context, BoxConstraints constraints) {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: isSent
+                                  ? [Colors.greenAccent, Colors.teal]
+                                  : [Colors.lightBlueAccent, Colors.blue],
+                            ),
+                            borderRadius: BorderRadius.only(
+                              topLeft: const Radius.circular(20),
+                              topRight: const Radius.circular(20),
+                              bottomLeft: isSent ? const Radius.circular(20) : Radius.zero,
+                              bottomRight: isSent ? Radius.zero : const Radius.circular(20),
+                            ),
+                          ),
+                          constraints: BoxConstraints(maxWidth: constraints.maxWidth * 0.8),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                content,
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontFamily: "Outfit",
+                                  fontSize: 16,
+                                ),
+                                softWrap: true,
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    DateFormat('hh:mm').format(timestamp),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.black.withOpacity(0.6),
+                                      fontFamily: "Outfit",
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    DateFormat('a').format(timestamp).toLowerCase(),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.black.withOpacity(0.6),
+                                      fontFamily: "Outfit",
+                                    ),
+                                  ),
+                                  if (isSent) ...[
+                                    const SizedBox(width: 4),
+                                    document['status'] == 'read'
+                                        ? const Icon(Icons.done_all, size: 14, color: Colors.white)
+                                        : const Icon(Icons.done, size: 14, color: Colors.black),
+                                  ],
+                                ],
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
-                  ),
-                  child: Text(
-                    content,
-                    style: TextStyle(color: isSent ? Colors.black : Colors.black,fontFamily: "Outfit",),
                   ),
                 ),
               ],
             ),
-            Padding(
-              padding: const EdgeInsets.only(left: 8.0, top: 2.0),
-              child: Text(
-                '${timestamp.hour}:${timestamp.minute}',
-                style: const TextStyle(fontSize: 12, color: Colors.grey,fontFamily: 'Outfit'),
-              ),
-            ),
           ],
         );
-      case 1:
-      // Image message
-        return Column(
+        break;
+      case 1: // Image message
+        messageWidget = Column(
           crossAxisAlignment: isSent ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
             GestureDetector(
               onTap: () {
-                // Open the image in full screen
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => FullScreenImage(url: content),
-                  ),
+                  MaterialPageRoute(builder: (context) => FullScreenImage(url: content)),
                 );
               },
-              child: Container(
-                margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                decoration: BoxDecoration(
-                  color: isSent ? Colors.blueAccent : Colors.grey[300],
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(isSent ? 12 : 0),
-                    topRight: Radius.circular(isSent ? 0 : 12),
-                    bottomLeft: const Radius.circular(12),
-                    bottomRight: const Radius.circular(12),
-                  ),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: CachedNetworkImage(
-                    imageUrl: content,
-                    width: 200,
-                    height: 200,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => const SizedBox(
-                      width: 50,
-                      height: 50,
-                      child: CircularProgressIndicator(),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+                child: Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(20),
+                        topRight: Radius.circular(20),
+                        bottomLeft: Radius.circular(isSent ? 20 : 0),
+                        bottomRight: Radius.circular(isSent ? 0 : 20),
+                      ),
+                      child: CachedNetworkImage(
+                        imageUrl: content,
+                        width: 200,
+                        height: 200,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => const Center(
+                          child: SizedBox(
+                            width: 50,
+                            height: 50,
+                            child: CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          ),
+                        ),
+                        errorWidget: (context, url, error) => const Center(
+                          child: Icon(
+                            Icons.error,
+                            color: Colors.white,
+                            size: 40,
+                          ),
+                        ),
+                      ),
                     ),
-                    errorWidget: (context, url, error) => const Icon(Icons.error),
-                  ),
+                    Positioned(
+                      bottom: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.transparent,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              DateFormat('hh:mm a').format(timestamp).toLowerCase(),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.black,
+                                fontFamily: "Outfit",
+                              ),
+                            ),
+                            if (isSent) ...[
+                              const SizedBox(width: 4),
+                              document['status'] == 'read'
+                                  ? const Icon(Icons.done_all, size: 12, color: Colors.white)
+                                  : const Icon(Icons.done, size: 12, color: Colors.black),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(left: 8.0, top: 2.0),
-              child: Text(
-                '${timestamp.hour}:${timestamp.minute}',
-                style: const TextStyle(fontSize: 12, color: Colors.grey,fontFamily: 'Outfit'),
               ),
             ),
           ],
         );
+        break;
       default:
-        return const SizedBox.shrink();
+        messageWidget = Container();
+    }
+
+    // Wrap the message widget with a GestureDetector only if the message is sent by the current user.
+    return isSent
+        ? GestureDetector(
+      onLongPress: () {
+        _confirmDeleteMessage(document);
+      },
+      child: messageWidget,
+    )
+        : messageWidget;
+  }
+
+  Future<void> _confirmDeleteMessage(DocumentSnapshot document) async {
+    bool? confirm = await showDialog<bool>( // Specify return type <bool>
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Row(
+            children: const [
+              Icon(Icons.delete_outline, color: Colors.red, size: 28), // Red delete icon
+              SizedBox(width: 12),
+              Text('Delete Message', style: TextStyle(fontFamily: 'Outfit', fontWeight: FontWeight.w600)),
+            ],
+          ),
+          content: const Padding(
+            padding: EdgeInsets.only(top: 8.0),
+            child: Text('Are you sure you want to delete this message?', style: TextStyle(fontFamily: 'Outfit')),
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.0),
+          ),
+          actions: <Widget>[
+            TextButton.icon(
+              onPressed: () => Navigator.of(context).pop(false),
+              icon: const Icon(Icons.cancel_outlined, color: Colors.grey),
+              label: const Text('Cancel', style: TextStyle(fontFamily: 'Outfit', color: Colors.grey)),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.grey,
+              ),
+            ),
+            ElevatedButton.icon(
+              onPressed: () => Navigator.of(context).pop(true),
+              icon: const Icon(Icons.delete_forever, color: Colors.white),
+              label: const Text('Delete', style: TextStyle(fontFamily: 'Outfit', color: Colors.white)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                textStyle: const TextStyle(fontFamily: "Outfit"),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+
+    if (confirm == true) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('messages')
+            .doc(groupChatId)
+            .collection('chats')
+            .doc(document.id)
+            .delete();
+        Fluttertoast.showToast(msg: 'Message deleted successfully');
+      } catch (e) {
+        Fluttertoast.showToast(msg: 'Error deleting message: $e');
+      }
     }
   }
 
@@ -633,39 +813,37 @@ class FullScreenImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: Stack(
-        children: [
-          Center(
-            child: Hero(
-              tag: url,
-              child: CachedNetworkImage(
-                imageUrl: url,
-                fit: BoxFit.contain,
-                placeholder: (context, url) => const SizedBox(
-                  width: 50,
-                  height: 50,
-                  child: CircularProgressIndicator(),
+      backgroundColor: Colors.black87,
+      body: GestureDetector(
+        onTap: () => Navigator.pop(context),
+        child: Stack(
+          children: [
+            InteractiveViewer(
+              panEnabled: true,
+              minScale: 0.5,
+              maxScale: 4.0,
+              child: Center(
+                child: Hero(
+                  tag: url,
+                  child: CachedNetworkImage(
+                    imageUrl: url,
+                    fit: BoxFit.contain,
+                  ),
                 ),
-                errorWidget: (context, url, error) => const Icon(Icons.error),
               ),
             ),
-          ),
-          Positioned(
-            top: 0,
-            right: 0,
-            child: IconButton(
-              icon: const Icon(Icons.download),
-              onPressed: () {
-                _downloadImage(url);
-              },
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 16,
+              right: 16,
+              child: FloatingActionButton(
+                backgroundColor: Colors.black54,
+                mini: true,
+                onPressed: () => _downloadImage(url),
+                child: Icon(Icons.download_rounded, color: Colors.white),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

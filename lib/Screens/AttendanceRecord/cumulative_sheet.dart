@@ -173,7 +173,8 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
         }
       }
     } catch (e) {
-      Fluttertoast.showToast(msg: "Error in _fetchStudentOptionalSelections: $e");
+      Fluttertoast.showToast(
+          msg: "Error in _fetchStudentOptionalSelections: $e");
     }
   }
 
@@ -256,82 +257,6 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
     }
   }
 
-  /// Build transposed DataTable rows.
-  /// Each row has two cells: Field name and its corresponding value.
-  List<DataRow> _buildTransposedRows() {
-    List<DataRow> rows = [];
-
-    // Roll No and Name.
-    rows.add(DataRow(cells: [
-      const DataCell(Text("Roll No", style: TextStyle(fontFamily: 'Outfit'))),
-      DataCell(
-          Text(widget.rollNo, style: const TextStyle(fontFamily: 'Outfit'))),
-    ]));
-    rows.add(DataRow(cells: [
-      const DataCell(Text("Name", style: TextStyle(fontFamily: 'Outfit'))),
-      DataCell(
-          Text(widget.fullName, style: const TextStyle(fontFamily: 'Outfit'))),
-    ]));
-
-    // Build subject rows.
-    List<String> regularSubjectColumns = [];
-    List<String> optionalSubjectColumns = [];
-    List<String> optionalKeys = [];
-    if (dlocOptions[widget.selectedClass] != null &&
-        dlocOptions[widget.selectedClass]![widget.selectedSem] != null) {
-      optionalKeys =
-          dlocOptions[widget.selectedClass]![widget.selectedSem]!.keys.toList();
-    }
-    for (var subject in widget.selectedSubjects) {
-      if (optionalKeys.contains(subject)) {
-        optionalSubjectColumns.add("$subject (Theory)");
-        if (!subject.toUpperCase().startsWith("ILOC") &&
-            !subject.toUpperCase().startsWith("MAJOR PROJECT") &&
-            !subject.toUpperCase().startsWith("MINI PROJECT")) {
-          optionalSubjectColumns.add("$subject (Lab)");
-        }
-      } else {
-        regularSubjectColumns.add("$subject (Theory)");
-        if (!subject.toUpperCase().startsWith("ILOC") &&
-            !subject.toUpperCase().startsWith("MAJOR PROJECT") &&
-            !subject.toUpperCase().startsWith("MINI PROJECT")) {
-          regularSubjectColumns.add("$subject (Lab)");
-        }
-      }
-    }
-    List<String> subjectColumns = [
-      ...regularSubjectColumns,
-      ...optionalSubjectColumns
-    ];
-
-    double sumPercentages = 0.0;
-    int count = 0;
-    for (String subject in subjectColumns) {
-      var data = attendanceData[widget.rollNo]?[subject] ??
-          {'present': 0, 'total': 0};
-      int present = data['present']!;
-      int total = data['total']!;
-      double percentage = total > 0 ? (present / total * 100) : 0;
-      sumPercentages += percentage;
-      count++;
-      rows.add(DataRow(cells: [
-        DataCell(Text(subject, style: const TextStyle(fontFamily: 'Outfit'))),
-        DataCell(Text(
-            "Present: $present, Total: $total, Percentage: ${percentage
-                .toStringAsFixed(1)}%",
-            style: const TextStyle(fontFamily: 'Outfit'))),
-      ]));
-    }
-    double overallPercentage = count > 0 ? (sumPercentages / count) : 0;
-    rows.add(DataRow(cells: [
-      const DataCell(Text(
-          "Overall Total Percentage", style: TextStyle(fontFamily: 'Outfit'))),
-      DataCell(Text("${overallPercentage.toStringAsFixed(1)}%",
-          style: const TextStyle(fontFamily: 'Outfit'))),
-    ]));
-
-    return rows;
-  }
 
   /// Update Firebase with the calculated attendance for this student.
   Future<void> _updateFirebaseRecords() async {
@@ -463,20 +388,31 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final colors = isDark ? [
+      Colors.teal[800]!,
+      Colors.green[900]!
+    ] : [
+      Colors.greenAccent,
+      Colors.teal
+    ];
+
     return Scaffold(
       appBar: AppBar(
         title: Text('${widget.selectedClass} - Sem ${widget.selectedSem}',
-            style: const TextStyle(fontFamily: 'Outfit')),
+            style: const TextStyle(
+                fontFamily: 'Outfit', fontWeight: FontWeight.w600)),
+        centerTitle: true,
         flexibleSpace: Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Colors.greenAccent, Colors.teal],
+              colors: colors,
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
           ),
         ),
-        backgroundColor: Colors.grey[100],
         actions: [
           IconButton(
             icon: const Icon(Icons.upload,color: Colors.black),
@@ -500,32 +436,218 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Card(
-          elevation: 8,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12.0), // Consistent radius
+          : _buildAttendanceBody(theme, isDark),
+    );
+  }
+
+  Widget _buildAttendanceBody(ThemeData theme, bool isDark) {
+    final overallData = _calculateOverallPercentage();
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Overall Performance
+          _buildOverallCard(overallData, theme, isDark),
+          const SizedBox(height: 24),
+
+          // Subjects Header
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text('Subject-wise Performance',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontFamily: 'Outfit',
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[800],
+                )),
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12.0), // Match Card's radius
-            child: SingleChildScrollView(
-              scrollDirection: Axis.vertical,
-              child: DataTable(
-                headingRowColor: WidgetStateProperty.all(
-                    Colors.greenAccent.shade100),
-                columns: const [
-                  DataColumn(label: Text(
-                      "Field", style: TextStyle(fontFamily: 'Outfit'))),
-                  DataColumn(label: Text(
-                      "Value", style: TextStyle(fontFamily: 'Outfit'))),
-                ],
-                rows: _buildTransposedRows(),
-              ),
+          const SizedBox(height: 16),
+
+          // Subjects List
+          ..._buildSubjectCards(theme, isDark),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOverallCard(Map<String, dynamic> data, ThemeData theme,
+      bool isDark) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      color: isDark ? Colors.teal[800] : Colors.green[50],
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Text('Overall Attendance',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontFamily: 'Outfit',
+                  color: Colors.teal[900],
+                  fontWeight: FontWeight.w600,
+                )),
+            const SizedBox(height: 16),
+            Column(
+              mainAxisSize: MainAxisSize.min, // Ensures the Column takes only necessary space
+              children: [
+                // Percentage Text
+                Text(
+                  '${data['percentage'].toStringAsFixed(1)}%',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'Outfit',
+                    color: _getProgressColor(data['percentage'], isDark),
+                  ),
+                ),
+
+                SizedBox(height: 8), // Space between text and progress bar
+
+                // Linear Progress Indicator
+                LinearProgressIndicator(
+                  value: (data['percentage'] / 100).clamp(0.0, 1.0), // Ensures value is between 0 and 1
+                  backgroundColor: Colors.green[100],
+                  color: _getProgressColor(data['percentage'], isDark),
+                  minHeight: 12, // Adjust thickness of progress bar
+                  borderRadius: BorderRadius.circular(8), // Optional: Adds rounded edges
+                ),
+
+                SizedBox(height: 8), // Space between progress bar and class details
+
+                // Class details
+                Text(
+                  '${data['present']}/${data['total']} classes',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontFamily: 'Outfit',
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
             ),
-          ),
+          ],
         ),
       ),
     );
+  }
+
+  List<Widget> _buildSubjectCards(ThemeData theme, bool isDark) {
+    return attendanceData[widget.rollNo]!.entries.map((entry) {
+      final subject = entry.key;
+      final present = entry.value['present']!;
+      final total = entry.value['total']!;
+      final percentage = total > 0 ? (present / total * 100) : 0;
+
+      return Card(
+        elevation: 2,
+        margin: const EdgeInsets.only(bottom: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: Colors.grey, width: 0.2),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Flexible(
+                    child: Text(subject,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontFamily: 'Outfit',
+                          fontWeight: FontWeight.w600,
+                          color: Colors.teal[800],
+                        )),
+                  ),
+                  Chip(
+                    label: Text('${percentage.toStringAsFixed(1)}%',
+                        style: TextStyle(
+                          fontFamily: 'Outfit',
+                          color: _getProgressColor(percentage.toDouble(), isDark),
+                        )),
+                    backgroundColor: _getProgressColor(percentage.toDouble(), isDark).withOpacity(0.1),
+
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              LinearProgressIndicator(
+                value: (percentage / 100).toDouble(),  // Ensure it's a double
+                backgroundColor: Colors.grey[400],
+                color: _getProgressColor(percentage.toDouble(), isDark),
+                minHeight: 8,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildStatItem(
+                      'Present', present, Icons.check_circle, Colors.green,
+                      isDark),
+                  _buildStatItem(
+                      'Total', total, Icons.calendar_today, Colors.blue,
+                      isDark),
+                  _buildStatItem(
+                      'Absent', total - present, Icons.cancel, Colors.red,
+                      isDark),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    }).toList();
+  }
+
+  Color _getProgressColor(double percentage, bool isDark) {
+    if (percentage >= 75) return Colors.green;
+    if (percentage >= 50) return Colors.orange;
+    return Colors.red;
+  }
+
+  Widget _buildStatItem(String label, int value, IconData icon, Color color,
+      bool isDark) {
+    return Column(
+      children: [
+        Icon(icon, color: color, size: 22),
+        const SizedBox(height: 4),
+        Text(value.toString(),
+            style: TextStyle(
+              fontFamily: 'Outfit',
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.black,
+            )),
+        Text(label,
+            style: TextStyle(
+              fontFamily: 'Outfit',
+              fontSize: 12,
+              color: Colors.grey[600],
+            )),
+      ],
+    );
+  }
+
+  Map<String, dynamic> _calculateOverallPercentage() {
+    int totalPresent = 0;
+    int totalClasses = 0;
+
+    for (var data in attendanceData[widget.rollNo]!.values) {
+      totalPresent += data['present']!;
+      totalClasses += data['total']!;
+    }
+
+    final percentage = totalClasses > 0
+        ? (totalPresent / totalClasses * 100)
+        : 0.0;
+
+    return {
+      'present': totalPresent,
+      'total': totalClasses,
+      'percentage': percentage,
+    };
   }
 }

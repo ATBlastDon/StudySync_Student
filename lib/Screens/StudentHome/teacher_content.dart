@@ -39,6 +39,7 @@ class TeachersContent extends StatelessWidget {
 
   const TeachersContent(this._email, this.year, {super.key, required this.sem});
 
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
@@ -75,57 +76,83 @@ class TeachersContent extends StatelessWidget {
               duration: Duration(milliseconds: index * 100),
               child: Column(
                 children: [
-                  GestureDetector(
+                  ListTile(
+                    leading: CircleAvatar(
+                      backgroundImage: profilePhotoUrl != null
+                          ? CachedNetworkImageProvider(profilePhotoUrl)
+                          : const AssetImage('assets/images/default_avatar.png') as ImageProvider,
+                    ),
+                    title: Text(
+                      fullName,
+                      style: const TextStyle(fontSize: 18, fontFamily: 'Outfit'),
+                    ),
+                    subtitle: StreamBuilder<QuerySnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('messages')
+                          .doc(groupChatId)
+                          .collection('chats')
+                          .orderBy('timestamp', descending: true)
+                          .limit(1)
+                          .snapshots(),
+                      builder: (context, recentSnapshot) {
+                        if (recentSnapshot.hasData && recentSnapshot.data!.docs.isNotEmpty) {
+                          final lastMsgDoc = recentSnapshot.data!.docs.first;
+                          final messageType = lastMsgDoc['type'];
+                          String lastMessage = lastMsgDoc['content'] as String;
+                          if (messageType == 1) {
+                            lastMessage = "Image";
+                          }
+                          String prefix = lastMsgDoc['idFrom'] == currentUserEmail ? "You: " : "New Msg: ";
+                          return Text(
+                            "$prefix$lastMessage",
+                            style: const TextStyle(fontSize: 14, color: Colors.grey, fontFamily: 'Outfit'),
+                            overflow: TextOverflow.ellipsis,
+                          );
+                        } else {
+                          return const Text(
+                            "",
+                            style: TextStyle(fontSize: 14, color: Colors.grey, fontFamily: 'Outfit'),
+                          );
+                        }
+                      },
+                    ),
+                    trailing: StreamBuilder<QuerySnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('messages')
+                          .doc(groupChatId)
+                          .collection('chats')
+                          .where('status', isEqualTo: 'unread')
+                          .where('idFrom', isNotEqualTo: currentUserEmail)
+                          .snapshots(),
+                      builder: (context, unreadSnapshot) {
+                        if (unreadSnapshot.hasData && unreadSnapshot.data!.docs.isNotEmpty) {
+                          int unreadCount = unreadSnapshot.data!.docs.length;
+                          return Container(
+                            width: unreadCount > 9 ? 24 : 18,
+                            height: 18,
+                            margin: const EdgeInsets.only(left: 8),
+                            decoration: const BoxDecoration(
+                              color: Colors.blue,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Center(
+                              child: Text(
+                                unreadCount.toString(),
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: unreadCount > 9 ? 10 : 14,
+                                ),
+                              ),
+                            ),
+                          );
+                        } else {
+                          return const SizedBox.shrink();
+                        }
+                      },
+                    ),
                     onTap: () {
                       _openChatScreen(context, teacherDocument.id, _email, peerEmail, fullName, year, sem);
                     },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
-                      decoration: const BoxDecoration(
-                        border: Border(bottom: BorderSide(color: Colors.black26)),
-                      ),
-                      child: Row(
-                        children: [
-                          CircleAvatar(
-                            backgroundImage: profilePhotoUrl != null
-                                ? CachedNetworkImageProvider(profilePhotoUrl)
-                                : const AssetImage('assets/images/default_avatar.png') as ImageProvider,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              fullName,
-                              style: const TextStyle(fontSize: 18, fontFamily: 'Outfit'),
-                            ),
-                          ),
-                          // Unread indicator: blue dot if there are unread messages.
-                          StreamBuilder<QuerySnapshot>(
-                            stream: FirebaseFirestore.instance
-                                .collection('messages')
-                                .doc(groupChatId)
-                                .collection('chats')
-                                .where('status', isEqualTo: 'unread')
-                                .where('idFrom', isNotEqualTo: currentUserEmail)
-                                .snapshots(),
-                            builder: (context, snapshot) {
-                              if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
-                                return Container(
-                                  width: 12,
-                                  height: 12,
-                                  margin: const EdgeInsets.only(left: 8),
-                                  decoration: const BoxDecoration(
-                                    color: Colors.greenAccent,
-                                    shape: BoxShape.circle,
-                                  ),
-                                );
-                              } else {
-                                return const SizedBox.shrink();
-                              }
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
                   ),
                   if (index != snapshot.data!.docs.length - 1)
                     const Divider(color: Colors.black26, height: 0),

@@ -8,6 +8,7 @@ import 'package:animate_do/animate_do.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:studysync_student/AboutUs/aboutteam.dart';
 import 'package:studysync_student/Screens/AttendanceAnnouncement/announcement.dart';
+import 'package:studysync_student/Screens/AttendanceAnnouncement/faceregistration.dart';
 import 'package:studysync_student/Screens/AttendanceRecord/attendance_home.dart';
 import 'package:studysync_student/Screens/Chat/searchscreen.dart';
 import 'package:studysync_student/Screens/Forms/leave_forms.dart';
@@ -49,8 +50,6 @@ class _StudentInternalState extends State<StudentInternal> {
   @override
   void initState() {
     super.initState();
-
-    // Check initial connectivity
     Connectivity().checkConnectivity().then((result) {
       // When running on platforms where result might be a List, handle it:
       final ConnectivityResult connectivityResult =
@@ -61,8 +60,6 @@ class _StudentInternalState extends State<StudentInternal> {
         _isConnected = (connectivityResult != ConnectivityResult.none);
       });
     });
-
-    // Listen for connectivity changes and map to a single ConnectivityResult.
     _connectivitySubscription = Connectivity()
         .onConnectivityChanged
         .map<ConnectivityResult>((result) {
@@ -115,25 +112,25 @@ class _StudentInternalState extends State<StudentInternal> {
           _userMentor = userData['mentor'];
         });
 
-        if (_userBatch == "none") {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _showBatchRequiredDialog(context);
-          });
+        if (_userRollNo != null) {
+          fetchAttendanceInfo();
         }
-
-        if (_userMentor == "none") {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _showMentorDialog(context);
-          });
-        }
-
         if (_userRollNo != null && widget.year != "SE") {
           fetchDLOCInfo();
         }
 
-        if (_userRollNo != null) {
-          fetchAttendanceInfo();
+        if(!mounted) return;
+        if (_userBatch == "none") {
+          _showBatchRequiredDialog(context);
+          await Future.delayed(const Duration(seconds: 1)); // 1 second delay
         }
+
+        if(!mounted) return;
+        if (_userMentor == "none") {
+          _showMentorDialog(context);
+          await Future.delayed(const Duration(seconds: 1)); // 1 second delay
+        }
+
       } else {
         Fluttertoast.showToast(
           msg: 'User Not Found in Database',
@@ -218,10 +215,9 @@ class _StudentInternalState extends State<StudentInternal> {
       final overall = userData['overall'] ?? 0.0;
 
       // If overall attendance is less than 75.0, show the dialog.
+      if(!mounted) return;
       if (overall < 75.0) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _showAttendanceRequiredDialog(context, overall);
-        });
+        _showAttendanceRequiredDialog(context, overall);
       }
     } catch (e) {
       Fluttertoast.showToast(
@@ -231,42 +227,94 @@ class _StudentInternalState extends State<StudentInternal> {
     }
   }
 
-  void _showDLOCRequiredDialog(BuildContext context) {
-    showDialog(
+  Future<void> _showDLOCRequiredDialog(BuildContext context) async {
+    await showDialog(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text(
-            "Optional Subject Required",
-            style: TextStyle(fontFamily: 'Outfit'),
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(25.0),
           ),
-          content: const Text(
-            "Please fill in your Optional Subject information in your profile.",
-            style: TextStyle(fontFamily: 'Outfit'),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text(
-                "Go to Fill the Information",
-                style: TextStyle(fontFamily: 'Outfit'),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              padding: const EdgeInsets.all(25),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(25),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.3),
+                  width: 1.5,
+                ),
               ),
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => SelectionSubjects(
-                      year: widget.year,
-                      sem: widget.sem,
-                      rollNo: _userRollNo!,
-                      batch: _userBatch!,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.menu_book, // Your icon
+                    size: 50,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(height: 15),
+                  const Text(
+                    "Optional Subject Required",
+                    style: TextStyle(
+                      fontFamily: 'Outfit',
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
-                );
-              },
+                  const SizedBox(height: 15),
+                  const Text(
+                    "Please fill in your Optional Subject information in your profile.",
+                    style: TextStyle(
+                      fontFamily: 'Outfit',
+                      fontSize: 16,
+                      color: Colors.white,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 20),
+                  TextButton(
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.white.withOpacity(0.3),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 30, vertical: 12),
+                    ),
+                    child: const Text(
+                      "Go to Fill the Information",
+                      style: TextStyle(
+                        fontFamily: 'Outfit',
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => SelectionSubjects(
+                            year: widget.year,
+                            sem: widget.sem,
+                            rollNo: _userRollNo!,
+                            batch: _userBatch!,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
-          ],
+          ),
         );
       },
     );
@@ -302,76 +350,180 @@ class _StudentInternalState extends State<StudentInternal> {
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text(
-            "Mentor Selection Required",
-            style: TextStyle(fontFamily: 'Outfit'),
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(25.0),
           ),
-          content: const Text(
-            "Please fill in your Mentor information in your profile.",
-            style: TextStyle(fontFamily: 'Outfit'),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text(
-                "Go to Fill the Information",
-                style: TextStyle(fontFamily: 'Outfit'),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              padding: const EdgeInsets.all(25),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(25),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.3),
+                  width: 1.5,
+                ),
               ),
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => StudentProfile(
-                      studentmail: _email,
-                      studentyear: widget.year,
-                      sem: widget.sem,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.assignment_ind,
+                    size: 50,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(height: 15),
+                  const Text(
+                    "Mentor Selection Required",
+                    style: TextStyle(
+                      fontFamily: 'Outfit',
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
-                );
-              },
+                  const SizedBox(height: 15),
+                  const Text(
+                    "Please fill in your Mentor information in your profile.",
+                    style: TextStyle(
+                      fontFamily: 'Outfit',
+                      fontSize: 16,
+                      color: Colors.white,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 20),
+                  TextButton(
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.white.withOpacity(0.3),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 30, vertical: 12),
+                    ),
+                    child: const Text(
+                      "Go to Fill the Information",
+                      style: TextStyle(
+                        fontFamily: 'Outfit',
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => StudentProfile(
+                            studentmail: _email,
+                            studentyear: widget.year,
+                            sem: widget.sem,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
-          ],
+          ),
         );
       },
     );
   }
 
-  void _showBatchRequiredDialog(BuildContext context) {
-    showDialog(
+  Future<void> _showBatchRequiredDialog(BuildContext context) async {
+    await showDialog(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text(
-            "Batch Information Required",
-            style: TextStyle(fontFamily: 'Outfit'),
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(25.0),
           ),
-          content: const Text(
-            "Please fill in your batch information in your profile.",
-            style: TextStyle(fontFamily: 'Outfit'),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text(
-                "Go to Profile",
-                style: TextStyle(fontFamily: 'Outfit'),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              padding: const EdgeInsets.all(25),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(25),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.3),
+                  width: 1.5,
+                ),
               ),
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => StudentProfile(
-                      studentmail: _email,
-                      studentyear: widget.year,
-                      sem: widget.sem,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.group, // Changed icon
+                    size: 50,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(height: 15),
+                  const Text(
+                    "Batch Information Required", // Changed title
+                    style: TextStyle(
+                      fontFamily: 'Outfit',
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
-                );
-              },
+                  const SizedBox(height: 15),
+                  const Text(
+                    "Please fill in your batch information in your profile.", // Changed message
+                    style: TextStyle(
+                      fontFamily: 'Outfit',
+                      fontSize: 16,
+                      color: Colors.white,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 20),
+                  TextButton(
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.white.withOpacity(0.3),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15), // Slightly smaller button radius
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 30, vertical: 12),
+                    ),
+                    child: const Text(
+                      "Go to Fill the Information", // Changed button text
+                      style: TextStyle(
+                        fontFamily: 'Outfit',
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => StudentProfile(
+                            studentmail: _email,
+                            studentyear: widget.year,
+                            sem: widget.sem,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
-          ],
+          ),
         );
       },
     );
@@ -503,6 +655,23 @@ class _StudentInternalState extends State<StudentInternal> {
                         batch: _userBatch!,
                         fullName: _userFullName!,
                       ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            FadeInLeft(
+              duration: const Duration(milliseconds: 600),
+              child: ListTile(
+                title: const Text(
+                  'Face Registration',
+                  style: TextStyle(fontFamily: 'Outfit'),
+                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => FaceRegistrationScreen(),
                     ),
                   );
                 },
@@ -677,7 +846,7 @@ class _StudentInternalState extends State<StudentInternal> {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(0),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,

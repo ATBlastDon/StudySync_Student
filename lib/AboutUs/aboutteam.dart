@@ -14,31 +14,45 @@ class AboutTeam extends StatelessWidget {
       resizeToAvoidBottomInset: false,
       backgroundColor: Colors.white,
       appBar: AppBar(
-        elevation: 0,
+        centerTitle: true,
+        // title: FadeInDown(
+        //   duration: const Duration(milliseconds: 500),
+        //   child: const Text(
+        //     'A B O U T   T E A M',
+        //     style: TextStyle(
+        //       fontFamily: 'Outfit',
+        //       fontSize: 18,
+        //       fontWeight: FontWeight.bold,
+        //       color: Colors.black,
+        //     ),
+        //   ),
+        // ),
+        // flexibleSpace: Container(
+        //   decoration: const BoxDecoration(
+        //     gradient: LinearGradient(
+        //       colors: [Colors.lightBlueAccent, Colors.blue],
+        //       begin: Alignment.topLeft,
+        //       end: Alignment.bottomRight,
+        //     ),
+        //   ),
+        // ),
+        // elevation: 10,
         backgroundColor: Colors.white,
-        leading: IconButton(
-          onPressed: () {
-            Navigator.pop(context);
-          },
-          icon: const Icon(Icons.arrow_back_ios, size: 20, color: Colors.black,),
-        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: <Widget>[
-            Center(
-              child: FadeInDown(
-                duration: const Duration(milliseconds: 1000),
-                child: const Text(
-                  "Our Team",
-                  style: TextStyle(
-                    fontFamily: 'Outfit',
-                    fontSize: 30,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.greenAccent,
-                  ),
+            FadeInDown(
+              duration: const Duration(milliseconds: 800),
+              child: const Text(
+                "Team members",
+                style: TextStyle(
+                  fontFamily: 'Outfit',
+                  fontSize: 30,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.greenAccent,
                 ),
               ),
             ),
@@ -71,34 +85,64 @@ class AboutTeam extends StatelessWidget {
               'ShambhaviProfile',
               'assets/profilephoto/Shambhavi.jpg',
             ),
-            const SizedBox(height: 40),
-            Center(
-              child: FadeInDown(
-                duration: const Duration(milliseconds: 1000),
-                child: const Text(
-                  "Our Mission",
-                  style: TextStyle(
-                    fontFamily: 'Outfit',
-                    fontSize: 30,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.greenAccent,
-                  ),
+            const SizedBox(height: 30),
+            FadeInUp(
+              duration: const Duration(milliseconds: 800),
+              child: const Text(
+                "Our Mission",
+                style: TextStyle(
+                  fontFamily: 'Outfit',
+                  fontSize: 30,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.greenAccent,
                 ),
               ),
             ),
             const SizedBox(height: 20),
-            Center(
-              child: FadeInDown(
-                duration: const Duration(milliseconds: 1000),
-                child: const Center(
-                  child: Text(
-                    "At StudySync, \nWe are committed to revolutionizing attendance management through cutting-edge technology. \n\nOur mission is to empower organizations with a seamless, efficient, and secure system that leverages QR codes to simplify attendance tracking, ensuring accuracy and convenience for all stakeholders. \n\nOur system offers real-time monitoring of attendance data, comprehensive reporting features, and integration capabilities with existing organizational systems. \n\nWith our user-friendly interface and robust security measures, we aim to provide a reliable solution for attendance management, freeing up valuable time and resources for organizations to focus on their core objectives. \n\nJoin us on this journey to transform the way attendance is managed and make a positive impact on organizations worldwide.",
-                    style: TextStyle(
-                      fontFamily: 'Outfit',
-                      fontSize: 16,
-                    ),
-                    textAlign: TextAlign.center, // Center the text horizontally
+            FadeInUp(
+              duration: const Duration(milliseconds: 1000),
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.greenAccent.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: Colors.greenAccent.withOpacity(0.3),
+                    width: 1,
                   ),
+                ),
+                child: const Column(
+                  children: [
+                    Text(
+                      "At StudySync, we are on a mission to revolutionize attendance management through innovative technology. Our goal is to empower organizations with a seamless, efficient, and secure system that leverages QR codes to simplify attendance tracking, ensuring accuracy and convenience for all stakeholders.",
+                      style: TextStyle(
+                        fontFamily: 'Outfit',
+                        fontSize: 16,
+                        color: Colors.black87,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: 20),
+                    Text(
+                      "Our system offers real-time monitoring of attendance data, comprehensive reporting features, and seamless integration with existing organizational systems. With a user-friendly interface and robust security measures, we aim to provide a reliable solution for attendance management, freeing up valuable time and resources for organizations to focus on their core objectives.",
+                      style: TextStyle(
+                        fontFamily: 'Outfit',
+                        fontSize: 16,
+                        color: Colors.black87,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: 20),
+                    Text(
+                      "Join us on this journey to transform the way attendance is managed and make a positive impact on organizations worldwide. Together, we can create a future where attendance tracking is effortless, accurate, and efficient.",
+                      style: TextStyle(
+                        fontFamily: 'Outfit',
+                        fontSize: 16,
+                        color: Colors.black87,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -109,81 +153,85 @@ class AboutTeam extends StatelessWidget {
   }
 
   Widget _buildMemberTile(BuildContext context, String name, String role, String routeName, String imagePath) {
-    return FadeInDown(
-      duration: const Duration(milliseconds: 1000),
-      child: TeamMemberTile(
-        image: AssetImage(imagePath),
-        name: name,
-        role: role,
+    return FadeInLeft(
+      duration: const Duration(milliseconds: 800),
+      child: GestureDetector(
         onTap: () {
           switch (routeName) {
             case 'MayankProfile':
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const MayankProfile()),
-              );
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const MayankProfile()));
               break;
             case 'AtharvProfile':
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const AtharvProfile()),
-              );
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const AtharvProfile()));
               break;
             case 'ShambhaviProfile':
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const ShambhaviProfile()),
-              );
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const ShambhaviProfile()));
               break;
             case 'AnujaProfile':
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const AnujaProfile()),
-              );
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const AnujaProfile()));
               break;
-            default:
-            // Handle default case or do nothing
           }
         },
-      ),
-    );
-  }
-
-}
-
-class TeamMemberTile extends StatelessWidget {
-  final ImageProvider image;
-  final String name;
-  final String role;
-  final Function()? onTap;
-
-  const TeamMemberTile({
-    super.key,
-    required this.image,
-    required this.name,
-    required this.role,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      onTap: onTap,
-      leading: CircleAvatar(
-        radius: 30,
-        backgroundImage: image,
-      ),
-      title: Text(
-        name,
-        style: const TextStyle(
-          fontFamily: 'Outfit',
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      subtitle: Text(
-        role,
-        style: const TextStyle(
-          fontFamily: 'Outfit',
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 15),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(15),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.greenAccent.withOpacity(0.5),
+                      blurRadius: 10,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: CircleAvatar(
+                  radius: 30,
+                  backgroundImage: AssetImage(imagePath),
+                ),
+              ),
+              const SizedBox(width: 15),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: const TextStyle(
+                        fontFamily: 'Outfit',
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      role,
+                      style: TextStyle(
+                        fontFamily: 'Outfit',
+                        color: Colors.black.withOpacity(0.7),
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.black54),
+            ],
+          ),
         ),
       ),
     );

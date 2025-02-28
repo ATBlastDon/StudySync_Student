@@ -223,12 +223,24 @@ class _AttendanceAnnouncementState extends State<AttendanceAnnouncement> {
       // Remove duplicates if any.
       announcements = announcements.toSet().toList();
 
-      if(!mounted) return;
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => ListOfAttendance(announcements: announcements),
-        ),
-      );
+      if (announcements.isEmpty) {
+        // Show toast if no announcements found
+        if(!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            backgroundColor: Colors.red,
+            content: Text("No Announcements found.", style: TextStyle(fontFamily: "Outfit")),
+            duration: Duration(seconds: 3), // Adjust duration as needed
+          ),
+        );
+      } else {
+        if(!mounted) return;
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => ListOfAttendance(announcements: announcements),
+          ),
+        );
+      }
 
 
     } finally {
@@ -266,6 +278,7 @@ class _AttendanceAnnouncementState extends State<AttendanceAnnouncement> {
         ),
         backgroundColor: Colors.grey[100],
       ),
+      backgroundColor: Colors.white,
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 40),

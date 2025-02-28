@@ -460,6 +460,7 @@ class _StudentProfileState extends State<StudentProfile> {
             padding: const EdgeInsets.all(16.0),
             child: Card(
               elevation: 8,
+              color: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),

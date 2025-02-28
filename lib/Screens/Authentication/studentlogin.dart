@@ -18,8 +18,18 @@ class StudentLogin extends StatefulWidget {
 class _StudentLoginState extends State<StudentLogin> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _yearController = TextEditingController();
-  final TextEditingController _semController = TextEditingController();
+  // Removed _yearController and _semController
+
+  // New state variables for dropdowns
+  String? _selectedYear;
+  String? _selectedSemester;
+
+  // Map for semester options based on year
+  final Map<String, List<String>> semesterOptions = {
+    "BE": ["7", "8"],
+    "TE": ["5", "6"],
+    "SE": ["3", "4"],
+  };
 
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   late SharedPreferences _prefs;
@@ -41,7 +51,6 @@ class _StudentLoginState extends State<StudentLogin> {
         // If user is already logged in, navigate to the student internal page
         if (!mounted) return;
         _navigateToStudentInternal(context, year, sem);
-      } else {
       }
     }
   }
@@ -127,20 +136,101 @@ class _StudentLoginState extends State<StudentLogin> {
               padding: const EdgeInsets.symmetric(horizontal: 40),
               child: Column(
                 children: <Widget>[
+                  // Year Dropdown
                   FadeInUp(
                     duration: const Duration(milliseconds: 1000),
-                    child: makeInput(
-                      label: "Year",
-                      controller: _yearController,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Year",
+                          style: TextStyle(
+                            fontFamily: 'Outfit',
+                            fontSize: 15,
+                            fontWeight: FontWeight.w400,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        DropdownButtonFormField<String>(
+                          value: _selectedYear,
+                          style: TextStyle(fontFamily: "Outfit",color: Colors.black),
+                          decoration: InputDecoration(
+                            contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
+                            enabledBorder: OutlineInputBorder(
+                              borderSide: BorderSide(color: Colors.grey.shade400),
+                            ),
+                            border: OutlineInputBorder(
+                              borderSide: BorderSide(color: Colors.grey.shade400),
+                            ),
+                          ),
+                          hint: const Text("Select Year", style: TextStyle(fontFamily: "Outfit")),
+                          onChanged: (String? newValue) {
+                            setState(() {
+                              _selectedYear = newValue;
+                              // Reset semester when year changes
+                              _selectedSemester = null;
+                            });
+                          },
+                          items: ["BE", "TE", "SE"].map((String year) {
+                            return DropdownMenuItem<String>(
+                              value: year,
+                              child: Text(year, style: const TextStyle(fontFamily: "Outfit")),
+                            );
+                          }).toList(),
+                        ),
+                      ],
                     ),
                   ),
+                  const SizedBox(height: 20,),
+
+                  // Semester Dropdown (dependent on Year)
                   FadeInUp(
                     duration: const Duration(milliseconds: 1000),
-                    child: makeInput(
-                      label: "Semester",
-                      controller: _semController,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Semester",
+                          style: TextStyle(
+                            fontFamily: 'Outfit',
+                            fontSize: 15,
+                            fontWeight: FontWeight.w400,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        DropdownButtonFormField<String>(
+                          value: _selectedSemester,
+                          style: TextStyle(fontFamily: "Outfit",color: Colors.black),
+                          decoration: InputDecoration(
+                            contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
+                            enabledBorder: OutlineInputBorder(
+                              borderSide: BorderSide(color: Colors.grey.shade400),
+                            ),
+                            border: OutlineInputBorder(
+                              borderSide: BorderSide(color: Colors.grey.shade400),
+                            ),
+                          ),
+                          hint: const Text("Select Semester", style: TextStyle(fontFamily: "Outfit")),
+                          onChanged: (String? newValue) {
+                            setState(() {
+                              _selectedSemester = newValue;
+                            });
+                          },
+                          items: _selectedYear == null
+                              ? []
+                              : semesterOptions[_selectedYear]!.map((String sem) {
+                            return DropdownMenuItem<String>(
+                              value: sem,
+                              child: Text(sem, style: const TextStyle(fontFamily: "Outfit")),
+                            );
+                          }).toList(),
+                        ),
+                      ],
                     ),
                   ),
+                  const SizedBox(height: 20,),
                   FadeInUp(
                     duration: const Duration(milliseconds: 1000),
                     child: makeInput(
@@ -206,8 +296,7 @@ class _StudentLoginState extends State<StudentLogin> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
                     Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 15), // Add vertical padding
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                       child: TextButton(
                         onPressed: () {
                           Navigator.push(
@@ -275,10 +364,7 @@ class _StudentLoginState extends State<StudentLogin> {
     );
   }
 
-
-
-  Widget makeInput(
-      {required String label, required TextEditingController controller}) {
+  Widget makeInput({required String label, required TextEditingController controller}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -291,13 +377,12 @@ class _StudentLoginState extends State<StudentLogin> {
             color: Colors.black87,
           ),
         ),
-        const SizedBox(height: 5,),
+        const SizedBox(height: 5),
         TextField(
           controller: controller,
           obscureText: label == "Password" ? true : false,
           decoration: InputDecoration(
-            contentPadding: const EdgeInsets.symmetric(
-                vertical: 0, horizontal: 10),
+            contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
             enabledBorder: OutlineInputBorder(
               borderSide: BorderSide(color: Colors.grey.shade400),
             ),
@@ -312,13 +397,14 @@ class _StudentLoginState extends State<StudentLogin> {
   }
 
   void signInStudent() async {
-    final String year = _yearController.text.trim();
+    // Retrieve year and semester from dropdown selections
+    final String? year = _selectedYear;
+    final String? sem = _selectedSemester;
     final String email = _emailController.text.trim();
     final String password = _passwordController.text.trim();
-    final String sem = _semController.text.trim();
 
-    if (email.isEmpty || password.isEmpty) {
-      showMessage('Please fill all fields');
+    if (year == null || sem == null || email.isEmpty || password.isEmpty) {
+      showMessage('Please fill all fields and select Year & Semester');
       return;
     }
 
@@ -333,10 +419,12 @@ class _StudentLoginState extends State<StudentLogin> {
     );
 
     try {
-      CollectionReference studentsRef = FirebaseFirestore.instance.collection(
-          "students").doc(year).collection(sem);
-      QuerySnapshot querySnapshot = await studentsRef.where(
-          "email", isEqualTo: email).get();
+      CollectionReference studentsRef = FirebaseFirestore.instance
+          .collection("students")
+          .doc(year)
+          .collection(sem);
+      QuerySnapshot querySnapshot =
+      await studentsRef.where("email", isEqualTo: email).get();
 
       if (querySnapshot.docs.isEmpty) {
         if (!mounted) return;
@@ -346,21 +434,17 @@ class _StudentLoginState extends State<StudentLogin> {
       }
 
       UserCredential userCredential = await _firebaseAuth
-          .signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+          .signInWithEmailAndPassword(email: email, password: password);
 
       if (userCredential.user != null) {
         bool isApproved = await checkApprovalStatus(email);
-
         if (isApproved) {
           await _saveLoginStatus(true);
           await _prefs.setString('year', year);
-          await _prefs.setString('sem', sem); // Save year to SharedPreferences\
+          await _prefs.setString('sem', sem);
           if (!mounted) return;
           Navigator.pop(context); // Dismiss the progress indicator
-          _navigateToStudentInternal(context,year,sem);
+          _navigateToStudentInternal(context, year, sem);
         } else {
           if (!mounted) return;
           Navigator.pop(context); // Dismiss the progress indicator
@@ -376,12 +460,12 @@ class _StudentLoginState extends State<StudentLogin> {
   }
 
   Future<bool> checkApprovalStatus(String email) async {
-    final String year = _yearController.text.trim();
-    final String sem = _semController.text.trim();
-    CollectionReference studentsRef = FirebaseFirestore.instance.collection(
-        "students").doc(year).collection(sem);
-    QuerySnapshot querySnapshot = await studentsRef.where(
-        "email", isEqualTo: email).get();
+    final String year = _selectedYear!;
+    final String sem = _selectedSemester!;
+    CollectionReference studentsRef =
+    FirebaseFirestore.instance.collection("students").doc(year).collection(sem);
+    QuerySnapshot querySnapshot =
+    await studentsRef.where("email", isEqualTo: email).get();
 
     try {
       if (querySnapshot.docs.isNotEmpty) {
@@ -390,7 +474,7 @@ class _StudentLoginState extends State<StudentLogin> {
       }
     } catch (error) {
       Fluttertoast.showToast(
-        msg: 'Error occurred:$error',
+        msg: 'Error occurred: $error',
         toastLength: Toast.LENGTH_SHORT,
         gravity: ToastGravity.CENTER,
         timeInSecForIosWeb: 1,
@@ -405,7 +489,7 @@ class _StudentLoginState extends State<StudentLogin> {
   void _navigateToStudentInternal(BuildContext context, String year, String sem) {
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => StudentInternal(year: year, sem: sem,)),
+      MaterialPageRoute(builder: (context) => StudentInternal(year: year, sem: sem)),
     );
   }
 
@@ -449,8 +533,7 @@ class _PasswordFieldState extends State<PasswordField> {
           controller: widget.controller,
           obscureText: _obscureText,
           decoration: InputDecoration(
-            contentPadding:
-            const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
+            contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
             enabledBorder: OutlineInputBorder(
               borderSide: BorderSide(color: Colors.grey.shade400),
             ),
