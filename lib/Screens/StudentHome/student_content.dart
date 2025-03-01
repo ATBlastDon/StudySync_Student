@@ -143,6 +143,7 @@ class StudentsContent extends StatelessWidget {
                                 unreadCount.toString(),
                                 style: TextStyle(
                                   color: Colors.white,
+                                  fontFamily: "Outfit",
                                   fontSize: unreadCount > 9 ? 10 : 14,
                                 ),
                               ),

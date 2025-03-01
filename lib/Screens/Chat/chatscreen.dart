@@ -585,8 +585,8 @@ class _ChatScreenState extends State<ChatScreen> {
                                   if (isSent) ...[
                                     const SizedBox(width: 4),
                                     document['status'] == 'read'
-                                        ? const Icon(Icons.done_all, size: 14, color: Colors.white)
-                                        : const Icon(Icons.done, size: 14, color: Colors.black),
+                                        ? const Icon(Icons.done_all, size: 16, color: Colors.white)
+                                        : const Icon(Icons.done, size: 16, color: Colors.black),
                                   ],
                                 ],
                               ),
@@ -670,8 +670,8 @@ class _ChatScreenState extends State<ChatScreen> {
                             if (isSent) ...[
                               const SizedBox(width: 4),
                               document['status'] == 'read'
-                                  ? const Icon(Icons.done_all, size: 12, color: Colors.white)
-                                  : const Icon(Icons.done, size: 12, color: Colors.black),
+                                  ? const Icon(Icons.done_all, size: 16, color: Colors.white)
+                                  : const Icon(Icons.done, size: 16, color: Colors.black),
                             ],
                           ],
                         ),

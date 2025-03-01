@@ -102,7 +102,7 @@ class TeachersContent extends StatelessWidget {
                           if (messageType == 1) {
                             lastMessage = "Image";
                           }
-                          String prefix = lastMsgDoc['idFrom'] == currentUserEmail ? "You: " : "New Msg: ";
+                          String prefix = lastMsgDoc['idFrom'] == currentUserEmail ? "You: " : "New: ";
                           return Text(
                             "$prefix$lastMessage",
                             style: const TextStyle(fontSize: 14, color: Colors.grey, fontFamily: 'Outfit'),
@@ -140,6 +140,7 @@ class TeachersContent extends StatelessWidget {
                                 unreadCount.toString(),
                                 style: TextStyle(
                                   color: Colors.white,
+                                  fontFamily: "Outfit",
                                   fontSize: unreadCount > 9 ? 10 : 14,
                                 ),
                               ),
