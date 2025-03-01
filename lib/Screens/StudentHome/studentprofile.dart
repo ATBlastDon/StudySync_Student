@@ -1,10 +1,13 @@
+import 'dart:io';
 import 'package:animate_do/animate_do.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
+import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:studysync_student/Screens/Authentication/studentlogin.dart';
+import 'package:image_picker/image_picker.dart';
 
 class StudentProfile extends StatefulWidget {
   final String studentmail;
@@ -31,6 +34,8 @@ class _StudentProfileState extends State<StudentProfile> {
   bool isEditingBatch = false;
   bool isEditingMentor = false;
   bool loadingTeachers = false;
+  bool isUpdatingPhoto = false;
+
 
   TextEditingController rollNoController = TextEditingController();
   TextEditingController yearController = TextEditingController();
@@ -40,7 +45,6 @@ class _StudentProfileState extends State<StudentProfile> {
 
   List<String> batches = ['B1', 'B2', 'B3', 'B4'];
   List<String> classes = ['BE', 'TE', 'SE'];
-  // Change teachers type to List<Map<String, String>>
   List<Map<String, String>> teachers = [];
   String? selectedBatch;
   String? selectedYear;
@@ -62,7 +66,7 @@ class _StudentProfileState extends State<StudentProfile> {
       teachers = querySnapshot.docs.map((doc) {
         var data = doc.data() as Map<String, dynamic>;
         return <String, String>{
-          'id': doc.id, // Add document ID to the teacher data
+          'id': doc.id,
           'fullName': '${data['fname'] ?? ''} ${data['mname'] ?? ''} ${data['sname'] ?? ''}'
               .trim()
               .replaceAll('  ', ' '),
@@ -131,24 +135,33 @@ class _StudentProfileState extends State<StudentProfile> {
       barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Confirm Change',style: TextStyle(fontFamily: "Outfit"),),
+          title: const Text(
+            'Confirm Change',
+            style: TextStyle(fontFamily: "Outfit"),
+          ),
           content: const Text(
             'Are you sure you want to change your details? If you do, your data will be lost, and the app will reassign your data from the login.',
-            style: TextStyle(fontSize: 14,fontFamily: 'Outfit'),
+            style: TextStyle(fontSize: 14, fontFamily: 'Outfit'),
           ),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: const Text('Cancel',style: TextStyle(fontFamily: "Outfit")),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(fontFamily: "Outfit"),
+              ),
             ),
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
                 updateFunction();
               },
-              child: const Text('Confirm',style: TextStyle(fontFamily: "Outfit")),
+              child: const Text(
+                'Confirm',
+                style: TextStyle(fontFamily: "Outfit"),
+              ),
             ),
           ],
         );
@@ -159,7 +172,6 @@ class _StudentProfileState extends State<StudentProfile> {
   Future<void> updateRollNo() async {
     if (rollNoController.text.isEmpty) return;
 
-    // Check if the roll number is already taken
     final rollNoQuerySnapshot = await FirebaseFirestore.instance
         .collection('students')
         .doc(widget.studentyear)
@@ -267,7 +279,6 @@ class _StudentProfileState extends State<StudentProfile> {
   }
 
   Future<void> updateMentor() async {
-    // Proceed with the confirmation dialog and update
     showConfirmationDialog(() async {
       try {
         DocumentReference studentDocRef = FirebaseFirestore.instance
@@ -426,6 +437,52 @@ class _StudentProfileState extends State<StudentProfile> {
     });
   }
 
+  // New method to change profile photo.
+  Future<void> _changeProfilePhoto() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      setState(() {
+        isUpdatingPhoto = true;
+      });
+      try {
+        // Delete previous profile photo if exists.
+        if (studentData!['profilePhotoUrl'] != null &&
+            (studentData!['profilePhotoUrl'] as String).isNotEmpty) {
+          firebase_storage.Reference oldRef =
+          firebase_storage.FirebaseStorage.instance
+              .refFromURL(studentData!['profilePhotoUrl']);
+          await oldRef.delete();
+        }
+        // Prepare new file name and storage path.
+        String fileName = '${studentData!['rollNo']}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        String storagePath = 'Profile_Photos/Student/${widget.studentyear}/$fileName';
+        firebase_storage.Reference ref =
+        firebase_storage.FirebaseStorage.instance.ref().child(storagePath);
+        // Upload the file.
+        await ref.putFile(File(image.path));
+        String newUrl = await ref.getDownloadURL();
+        // Update Firestore record.
+        await FirebaseFirestore.instance
+            .collection('students')
+            .doc(widget.studentyear)
+            .collection(widget.sem)
+            .doc(studentData!['rollNo'])
+            .update({'profilePhotoUrl': newUrl});
+        setState(() {
+          studentData!['profilePhotoUrl'] = newUrl;
+        });
+        Fluttertoast.showToast(msg: 'Profile photo updated successfully');
+      } catch (e) {
+        Fluttertoast.showToast(msg: 'Error updating profile photo: $e');
+      } finally {
+        setState(() {
+          isUpdatingPhoto = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -455,7 +512,7 @@ class _StudentProfileState extends State<StudentProfile> {
           child: isLoading
               ? const Center(child: CircularProgressIndicator())
               : studentData == null
-              ? const Center(child: Text("No student data available",style: TextStyle(fontFamily: "Outfit")))
+              ? const Center(child: Text("No student data available", style: TextStyle(fontFamily: "Outfit")))
               : Padding(
             padding: const EdgeInsets.all(16.0),
             child: Card(
@@ -469,35 +526,79 @@ class _StudentProfileState extends State<StudentProfile> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Profile photo with pencil icon overlay and circular progress.
                     Center(
-                      child: FadeInUp(
-                        duration: const Duration(milliseconds: 500),
-                        child: CircleAvatar(
-                          radius: 70,
-                          backgroundImage: studentData!['profilePhotoUrl'] != null
-                              ? CachedNetworkImageProvider(studentData!['profilePhotoUrl'])
-                              : null,
-                          child: studentData!['profilePhotoUrl'] == null
-                              ? const Icon(Icons.person, size: 50, color: Colors.greenAccent)
-                              : null,
-                        ),
+                      child: Stack(
+                        alignment: Alignment.bottomRight,
+                        children: [
+                          FadeInUp(
+                            duration: const Duration(milliseconds: 500),
+                            child: CircleAvatar(
+                              radius: 70,
+                              backgroundImage: studentData!['profilePhotoUrl'] != null
+                                  ? CachedNetworkImageProvider(studentData!['profilePhotoUrl'])
+                                  : null,
+                              child: studentData!['profilePhotoUrl'] == null
+                                  ? const Icon(Icons.person, size: 50, color: Colors.greenAccent)
+                                  : null,
+                            ),
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: FadeInUp(
+                              duration: const Duration(milliseconds: 500),
+                              child: GestureDetector(
+                                onTap: _changeProfilePhoto,
+                                child: CircleAvatar(
+                                  radius: 20,
+                                  backgroundColor: Colors.white,
+                                  child: AnimatedSwitcher(
+                                    duration: const Duration(milliseconds: 300),
+                                    transitionBuilder: (child, animation) {
+                                      return ScaleTransition(scale: animation, child: child);
+                                    },
+                                    child: isUpdatingPhoto
+                                        ? const SizedBox(
+                                      key: ValueKey('loading'),
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2.0,
+                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.teal),
+                                      ),
+                                    )
+                                        : const Icon(
+                                      Icons.edit,
+                                      key: ValueKey('icon'),
+                                      color: Colors.teal,
+                                      size: 20,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 30),
                     FadeInUp(
-                      duration: const Duration(milliseconds: 600),
+                      duration: const Duration(milliseconds: 500),
                       child: TextField(
                         readOnly: true,
                         style: TextStyle(fontFamily: 'Outfit'),
                         decoration: InputDecoration(
-                          labelText: "Name",labelStyle: TextStyle(fontFamily: "Outfit"),
+                          labelText: "Name",
+                          labelStyle: TextStyle(fontFamily: "Outfit"),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                           contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
                         ),
                         controller: TextEditingController(
-                          text: "${studentData!['fname'] ?? ''} ${studentData!['mname'] ?? ''} ${studentData!['sname'] ?? ''}",
+                          text:
+                          "${studentData!['fname'] ?? ''} ${studentData!['mname'] ?? ''} ${studentData!['sname'] ?? ''}",
                         ),
                       ),
                     ),
@@ -509,7 +610,8 @@ class _StudentProfileState extends State<StudentProfile> {
                         style: TextStyle(fontFamily: 'Outfit'),
                         controller: rollNoController,
                         decoration: InputDecoration(
-                          labelText: "Roll Number",labelStyle: TextStyle(fontFamily: "Outfit"),
+                          labelText: "Roll Number",
+                          labelStyle: TextStyle(fontFamily: "Outfit"),
                           suffixIcon: IconButton(
                             icon: Icon(isEditingRollNo ? Icons.save : Icons.edit, color: Colors.teal),
                             onPressed: () {
@@ -539,7 +641,8 @@ class _StudentProfileState extends State<StudentProfile> {
                             child: DropdownButtonFormField<String>(
                               value: selectedYear ?? yearController.text,
                               decoration: InputDecoration(
-                                labelText: "Class",labelStyle: TextStyle(fontFamily: "Outfit"),
+                                labelText: "Class",
+                                labelStyle: TextStyle(fontFamily: "Outfit"),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -547,8 +650,10 @@ class _StudentProfileState extends State<StudentProfile> {
                               items: classes.map((String value) {
                                 return DropdownMenuItem<String>(
                                   value: value,
-                                  child: Text(value,style: TextStyle(fontFamily: 'Outfit'),
-                                ),
+                                  child: Text(
+                                    value,
+                                    style: TextStyle(fontFamily: 'Outfit'),
+                                  ),
                                 );
                               }).toList(),
                               onChanged: (value) {
@@ -575,7 +680,8 @@ class _StudentProfileState extends State<StudentProfile> {
                         style: TextStyle(fontFamily: 'Outfit'),
                         controller: yearController,
                         decoration: InputDecoration(
-                          labelText: "Class",labelStyle: TextStyle(fontFamily: "Outfit"),
+                          labelText: "Class",
+                          labelStyle: TextStyle(fontFamily: "Outfit"),
                           suffixIcon: IconButton(
                             icon: const Icon(Icons.edit, color: Colors.teal),
                             onPressed: () => setState(() => isEditingYear = true),
@@ -594,7 +700,8 @@ class _StudentProfileState extends State<StudentProfile> {
                         style: TextStyle(fontFamily: 'Outfit'),
                         controller: semController,
                         decoration: InputDecoration(
-                          labelText: "Semester",labelStyle: TextStyle(fontFamily: "Outfit"),
+                          labelText: "Semester",
+                          labelStyle: TextStyle(fontFamily: "Outfit"),
                           suffixIcon: IconButton(
                             icon: Icon(isEditingSem ? Icons.save : Icons.edit, color: Colors.teal),
                             onPressed: () {
@@ -633,20 +740,16 @@ class _StudentProfileState extends State<StudentProfile> {
                                 ),
                               ),
                               items: [
-                                // Add a disabled default item
                                 DropdownMenuItem<String>(
                                   value: null,
                                   enabled: false,
                                   child: Text('Select Batch',
-                                      style: TextStyle(
-                                          fontFamily: "Outfit",
-                                          color: Colors.grey)),
+                                      style: TextStyle(fontFamily: "Outfit", color: Colors.grey)),
                                 ),
                                 ...batches.map((String value) {
                                   return DropdownMenuItem<String>(
                                     value: value,
-                                    child: Text(value,
-                                        style: TextStyle(fontFamily: "Outfit")),
+                                    child: Text(value, style: TextStyle(fontFamily: "Outfit")),
                                   );
                                 }),
                               ],
@@ -697,7 +800,7 @@ class _StudentProfileState extends State<StudentProfile> {
                           ? loadingTeachers
                           ? const CircularProgressIndicator()
                           : teachers.isEmpty
-                          ? const Text("No teachers available",style: TextStyle(fontFamily: "Outfit"))
+                          ? const Text("No teachers available", style: TextStyle(fontFamily: "Outfit"))
                           : Row(
                         children: [
                           Expanded(
@@ -707,7 +810,8 @@ class _StudentProfileState extends State<StudentProfile> {
                                 orElse: () => teachers.first,
                               ),
                               decoration: InputDecoration(
-                                labelText: "Mentor",labelStyle: TextStyle(fontFamily: "Outfit"),
+                                labelText: "Mentor",
+                                labelStyle: TextStyle(fontFamily: "Outfit"),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -715,7 +819,7 @@ class _StudentProfileState extends State<StudentProfile> {
                               items: teachers.map((teacher) {
                                 return DropdownMenuItem<Map<String, String>>(
                                   value: teacher,
-                                  child: Text(teacher['fullName']!,style: TextStyle(fontFamily: "Outfit")),
+                                  child: Text(teacher['fullName']!, style: TextStyle(fontFamily: "Outfit")),
                                 );
                               }).toList(),
                               onChanged: (value) {
@@ -742,7 +846,8 @@ class _StudentProfileState extends State<StudentProfile> {
                         style: TextStyle(fontFamily: 'Outfit'),
                         controller: mentorController,
                         decoration: InputDecoration(
-                          labelText: "Mentor",labelStyle: TextStyle(fontFamily: "Outfit"),
+                          labelText: "Mentor",
+                          labelStyle: TextStyle(fontFamily: "Outfit"),
                           suffixIcon: IconButton(
                             icon: const Icon(Icons.edit, color: Colors.teal),
                             onPressed: () => setState(() => isEditingMentor = true),
@@ -760,7 +865,8 @@ class _StudentProfileState extends State<StudentProfile> {
                         readOnly: true,
                         style: TextStyle(fontFamily: 'Outfit'),
                         decoration: InputDecoration(
-                          labelText: "Email",labelStyle: TextStyle(fontFamily: "Outfit"),
+                          labelText: "Email",
+                          labelStyle: TextStyle(fontFamily: "Outfit"),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -776,7 +882,8 @@ class _StudentProfileState extends State<StudentProfile> {
                         readOnly: true,
                         style: TextStyle(fontFamily: 'Outfit'),
                         decoration: InputDecoration(
-                          labelText: "Phone No",labelStyle: TextStyle(fontFamily: "Outfit"),
+                          labelText: "Phone No",
+                          labelStyle: TextStyle(fontFamily: "Outfit"),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -792,7 +899,8 @@ class _StudentProfileState extends State<StudentProfile> {
                         readOnly: true,
                         style: TextStyle(fontFamily: 'Outfit'),
                         decoration: InputDecoration(
-                          labelText: "Registration No.",labelStyle: TextStyle(fontFamily: "Outfit"),
+                          labelText: "Registration No.",
+                          labelStyle: TextStyle(fontFamily: "Outfit"),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
