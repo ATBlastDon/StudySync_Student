@@ -323,23 +323,93 @@ class _StudentInternalState extends State<StudentInternal> {
   void _showAttendanceRequiredDialog(BuildContext context, double overall) {
     showDialog(
       context: context,
+      barrierDismissible: false, // Prevent dismissing by tapping outside
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Low Attendance',
-              style: TextStyle(fontFamily: 'Outfit')),
-          content: Text(
-            'Your overall attendance is ${overall.toStringAsFixed(1)}% which is below 75%.',
-            style: const TextStyle(fontFamily: 'Outfit'),
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(25.0),
           ),
-          actions: <Widget>[
-            TextButton(
-              child:
-              const Text('OK', style: TextStyle(fontFamily: 'Outfit')),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              padding: const EdgeInsets.all(25),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(25),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.3),
+                  width: 1.5,
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.warning_amber_rounded, // You can change the icon
+                    size: 50,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(height: 15),
+                  Text(
+                    "Low Attendance Alert!",
+                    style: TextStyle(
+                      fontFamily: 'Outfit',
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+                  RichText(
+                    textAlign: TextAlign.center,
+                    text: TextSpan(
+                      style: const TextStyle(
+                        fontFamily: 'Outfit',
+                        fontSize: 16,
+                        color: Colors.white,
+                      ),
+                      children: [
+                        const TextSpan(
+                          text: "Your overall attendance is ",
+                        ),
+                        TextSpan(
+                          text: "${overall.toStringAsFixed(1)}%",
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const TextSpan(
+                          text: " which is below 75%.",
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  TextButton(
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.white.withOpacity(0.3),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 30, vertical: 12),
+                    ),
+                    child: const Text(
+                      "Okay",
+                      style: TextStyle(
+                        fontFamily: 'Outfit',
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                ],
+              ),
             ),
-          ],
+          ),
         );
       },
     );
