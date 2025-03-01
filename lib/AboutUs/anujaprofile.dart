@@ -45,7 +45,7 @@ class AnujaProfile extends StatelessWidget {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.greenAccent.withOpacity(0.5),
+                    color: Colors.greenAccent.withValues(alpha: 0.5),
                     blurRadius: 10,
                     spreadRadius: 5,
                   ),

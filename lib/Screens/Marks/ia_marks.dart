@@ -339,7 +339,8 @@ class _IaMarksState extends State<IaMarks> {
                         headingRowColor: WidgetStateProperty.all(Colors.greenAccent.shade100),
                         columnSpacing: 40,
                         headingRowHeight: 50,
-                        dataRowHeight: 40,
+                        dataRowMinHeight: 40,
+                        dataRowMaxHeight: 40,
 
                         columns: const [
                           DataColumn(

@@ -331,7 +331,7 @@ class _ChatScreenState extends State<ChatScreen> {
         borderRadius: BorderRadius.circular(12.0), // Rounded corners for the whole input area
         boxShadow: [ // Add a subtle shadow
           BoxShadow(
-            color: Colors.grey.withOpacity(0.3),
+            color: Colors.grey.withValues(alpha: 0.3),
             spreadRadius: 1,
             blurRadius: 3,
             offset: const Offset(0, 2),
@@ -569,7 +569,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                     DateFormat('hh:mm').format(timestamp),
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: Colors.black.withOpacity(0.6),
+                                      color: Colors.black.withValues(alpha: 0.6),
                                       fontFamily: "Outfit",
                                     ),
                                   ),
@@ -578,7 +578,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                     DateFormat('a').format(timestamp).toLowerCase(),
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: Colors.black.withOpacity(0.6),
+                                      color: Colors.black.withValues(alpha: 0.6),
                                       fontFamily: "Outfit",
                                     ),
                                   ),

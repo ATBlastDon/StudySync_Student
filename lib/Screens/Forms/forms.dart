@@ -295,7 +295,7 @@ class _FormsState extends State<Forms> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: statusColor.withOpacity(0.1),
+            color: statusColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: statusColor),
           ),
@@ -508,7 +508,7 @@ class _FormsState extends State<Forms> {
               letterSpacing: 0.8,
             ),
           ),
-          backgroundColor: color.withOpacity(0.1),
+          backgroundColor: color.withValues(alpha: 0.1),
           side: BorderSide(color: color),
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20)),

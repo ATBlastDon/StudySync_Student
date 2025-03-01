@@ -53,7 +53,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
       if (!granted) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Camera permission is required.")),
+          const SnackBar(content: Text("Camera permission is required.",style: TextStyle(fontFamily: "Outfit"),)),
         );
         return;
       }
@@ -82,7 +82,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
       debugPrint('Error initializing camera: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error initializing camera: $e")),
+        SnackBar(content: Text("Error initializing camera: $e",style: TextStyle(fontFamily: "Outfit"))),
       );
     }
   }
@@ -142,7 +142,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
       if (faces.isEmpty) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("No face detected. Please try again.")),
+          const SnackBar(content: Text("No face detected. Please try again.",style: TextStyle(fontFamily: "Outfit"))),
         );
         return;
       }
@@ -192,12 +192,12 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Face registered successfully!")),
+        const SnackBar(content: Text("Face registered successfully!",style: TextStyle(fontFamily: "Outfit"))),
       );
     } catch (e) {
       debugPrint("Error during face registration: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Error during face registration.")),
+        const SnackBar(content: Text("Error during face registration.",style: TextStyle(fontFamily: "Outfit"))),
       );
     }
   }
@@ -245,15 +245,16 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
             ),
             title: const Text(
               "Delete Face Data",
-              style: TextStyle(fontWeight: FontWeight.bold),
+              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: "Outfit"),
             ),
             content: const Text(
               "Are you sure you want to delete the registered face data? This action cannot be undone.",
+               style: TextStyle(fontFamily: "Outfit")
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text("Cancel"),
+                child: const Text("Cancel",style: TextStyle(fontFamily: "Outfit")),
               ),
               ElasticIn(
                 duration: const Duration(milliseconds: 500),
@@ -264,7 +265,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
                   },
                   child: const Text(
                     "Delete",
-                    style: TextStyle(color: Colors.red),
+                    style: TextStyle(color: Colors.red,fontFamily: "Outfit"),
                   ),
                 ),
               ),
@@ -284,24 +285,8 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
     });
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Face embedding deleted.")),
+      const SnackBar(content: Text("Face embedding deleted.",style: TextStyle(fontFamily: "Outfit"))),
     );
-  }
-
-  void _copyEmbeddingToClipboard() {
-    if (_faceEmbeddingStr == null) return;
-    Clipboard.setData(ClipboardData(text: _faceEmbeddingStr!)).then((_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text("Embedding copied to clipboard!"),
-          behavior: SnackBarBehavior.floating,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(10)),
-          ),
-        ),
-      );
-    });
   }
 
   @override
@@ -365,7 +350,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: Colors.black.withValues(alpha: 0.1),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -388,6 +373,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
                 child: const Text(
                   "Face Registered!",
                   style: TextStyle(
+                    fontFamily: "Outfit",
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                   ),
@@ -401,27 +387,6 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
                   decoration: BoxDecoration(
                     color: Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          _faceEmbeddingStr ?? '',
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontFamily: 'RobotoMono',
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                      SlideInRight(
-                        duration: const Duration(milliseconds: 800),
-                        child: IconButton(
-                          icon: const Icon(Icons.copy_rounded),
-                          onPressed: _copyEmbeddingToClipboard,
-                        ),
-                      ),
-                    ],
                   ),
                 ),
               ),
@@ -445,7 +410,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
+                    color: Colors.black.withValues(alpha: 0.2),
                     blurRadius: 20,
                     offset: const Offset(0, 10),
                   ),
@@ -493,6 +458,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
                     child: const Text(
                       "Face scan completed!",
                       style: TextStyle(
+                        fontFamily: "Outfit",
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
                       ),

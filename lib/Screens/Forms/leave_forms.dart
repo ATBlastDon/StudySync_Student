@@ -288,7 +288,7 @@ class _LeaveFormsState extends State<LeaveForms> {
           boxShadow: [
             BoxShadow(
               blurRadius: 4,
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               offset: const Offset(0, 2),
             )
           ],
@@ -439,7 +439,7 @@ class _LeaveFormsState extends State<LeaveForms> {
           boxShadow: [
             BoxShadow(
               blurRadius: 4,
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               offset: const Offset(0, 2),
             )
           ],
@@ -602,7 +602,7 @@ class _LeaveFormsState extends State<LeaveForms> {
           ),
           if (_isLoading)
             Container(
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.black.withValues(alpha: 0.3),
               child: const Center(
                 child: CircularProgressIndicator(
                   valueColor: AlwaysStoppedAnimation<Color>(Colors.green),

@@ -15,28 +15,6 @@ class AboutTeam extends StatelessWidget {
       backgroundColor: Colors.white,
       appBar: AppBar(
         centerTitle: true,
-        // title: FadeInDown(
-        //   duration: const Duration(milliseconds: 500),
-        //   child: const Text(
-        //     'A B O U T   T E A M',
-        //     style: TextStyle(
-        //       fontFamily: 'Outfit',
-        //       fontSize: 18,
-        //       fontWeight: FontWeight.bold,
-        //       color: Colors.black,
-        //     ),
-        //   ),
-        // ),
-        // flexibleSpace: Container(
-        //   decoration: const BoxDecoration(
-        //     gradient: LinearGradient(
-        //       colors: [Colors.lightBlueAccent, Colors.blue],
-        //       begin: Alignment.topLeft,
-        //       end: Alignment.bottomRight,
-        //     ),
-        //   ),
-        // ),
-        // elevation: 10,
         backgroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
@@ -104,10 +82,10 @@ class AboutTeam extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.greenAccent.withOpacity(0.1),
+                  color: Colors.greenAccent.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: Colors.greenAccent.withOpacity(0.3),
+                    color: Colors.greenAccent.withValues(alpha: 0.3),
                     width: 1,
                   ),
                 ),
@@ -180,7 +158,7 @@ class AboutTeam extends StatelessWidget {
             borderRadius: BorderRadius.circular(15),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: Colors.black.withValues(alpha: 0.1),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -193,7 +171,7 @@ class AboutTeam extends StatelessWidget {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.greenAccent.withOpacity(0.5),
+                      color: Colors.greenAccent.withValues(alpha: 0.5),
                       blurRadius: 10,
                       spreadRadius: 2,
                     ),
@@ -222,7 +200,7 @@ class AboutTeam extends StatelessWidget {
                       role,
                       style: TextStyle(
                         fontFamily: 'Outfit',
-                        color: Colors.black.withOpacity(0.7),
+                        color: Colors.black.withValues(alpha: 0.7),
                         fontSize: 14,
                       ),
                     ),

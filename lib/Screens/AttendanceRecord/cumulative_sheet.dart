@@ -567,7 +567,7 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
                           fontFamily: 'Outfit',
                           color: _getProgressColor(percentage.toDouble(), isDark),
                         )),
-                    backgroundColor: _getProgressColor(percentage.toDouble(), isDark).withOpacity(0.1),
+                    backgroundColor: _getProgressColor(percentage.toDouble(), isDark).withValues(alpha: 0.1),
 
                   ),
                 ],

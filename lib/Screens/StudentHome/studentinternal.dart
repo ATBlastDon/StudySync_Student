@@ -243,10 +243,10 @@ class _StudentInternalState extends State<StudentInternal> {
             child: Container(
               padding: const EdgeInsets.all(25),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(25),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.3),
+                  color: Colors.white.withValues(alpha: 0.3),
                   width: 1.5,
                 ),
               ),
@@ -256,7 +256,7 @@ class _StudentInternalState extends State<StudentInternal> {
                   const Icon(
                     Icons.menu_book, // Your icon
                     size: 50,
-                    color: Colors.white,
+                    color: Colors.yellowAccent,
                   ),
                   const SizedBox(height: 15),
                   const Text(
@@ -265,7 +265,7 @@ class _StudentInternalState extends State<StudentInternal> {
                       fontFamily: 'Outfit',
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: Colors.black,
                     ),
                   ),
                   const SizedBox(height: 15),
@@ -274,14 +274,14 @@ class _StudentInternalState extends State<StudentInternal> {
                     style: TextStyle(
                       fontFamily: 'Outfit',
                       fontSize: 16,
-                      color: Colors.white,
+                      color: Colors.black,
                     ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 20),
                   TextButton(
                     style: TextButton.styleFrom(
-                      backgroundColor: Colors.white.withOpacity(0.3),
+                      backgroundColor: Colors.white.withValues(alpha: 0.3),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(15),
                       ),
@@ -292,7 +292,7 @@ class _StudentInternalState extends State<StudentInternal> {
                       "Go to Fill the Information",
                       style: TextStyle(
                         fontFamily: 'Outfit',
-                        color: Colors.white,
+                        color: Colors.black,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -336,10 +336,10 @@ class _StudentInternalState extends State<StudentInternal> {
             child: Container(
               padding: const EdgeInsets.all(25),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(25),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.3),
+                  color: Colors.white.withValues(alpha: 0.3),
                   width: 1.5,
                 ),
               ),
@@ -349,7 +349,7 @@ class _StudentInternalState extends State<StudentInternal> {
                   const Icon(
                     Icons.warning_amber_rounded, // You can change the icon
                     size: 50,
-                    color: Colors.white,
+                    color: Colors.red,
                   ),
                   const SizedBox(height: 15),
                   Text(
@@ -358,7 +358,7 @@ class _StudentInternalState extends State<StudentInternal> {
                       fontFamily: 'Outfit',
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: Colors.black,
                     ),
                   ),
                   const SizedBox(height: 15),
@@ -368,7 +368,7 @@ class _StudentInternalState extends State<StudentInternal> {
                       style: const TextStyle(
                         fontFamily: 'Outfit',
                         fontSize: 16,
-                        color: Colors.white,
+                        color: Colors.black,
                       ),
                       children: [
                         const TextSpan(
@@ -387,7 +387,7 @@ class _StudentInternalState extends State<StudentInternal> {
                   const SizedBox(height: 20),
                   TextButton(
                     style: TextButton.styleFrom(
-                      backgroundColor: Colors.white.withOpacity(0.3),
+                      backgroundColor: Colors.white.withValues(alpha: 0.3),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(15),
                       ),
@@ -398,7 +398,7 @@ class _StudentInternalState extends State<StudentInternal> {
                       "Okay",
                       style: TextStyle(
                         fontFamily: 'Outfit',
-                        color: Colors.white,
+                        color: Colors.black,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -431,10 +431,10 @@ class _StudentInternalState extends State<StudentInternal> {
             child: Container(
               padding: const EdgeInsets.all(25),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(25),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.3),
+                  color: Colors.white.withValues(alpha: 0.3),
                   width: 1.5,
                 ),
               ),
@@ -444,7 +444,7 @@ class _StudentInternalState extends State<StudentInternal> {
                   const Icon(
                     Icons.assignment_ind,
                     size: 50,
-                    color: Colors.white,
+                    color: Colors.yellowAccent,
                   ),
                   const SizedBox(height: 15),
                   const Text(
@@ -453,7 +453,7 @@ class _StudentInternalState extends State<StudentInternal> {
                       fontFamily: 'Outfit',
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: Colors.black,
                     ),
                   ),
                   const SizedBox(height: 15),
@@ -462,14 +462,14 @@ class _StudentInternalState extends State<StudentInternal> {
                     style: TextStyle(
                       fontFamily: 'Outfit',
                       fontSize: 16,
-                      color: Colors.white,
+                      color: Colors.black,
                     ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 20),
                   TextButton(
                     style: TextButton.styleFrom(
-                      backgroundColor: Colors.white.withOpacity(0.3),
+                      backgroundColor: Colors.white.withValues(alpha: 0.3),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(15),
                       ),
@@ -480,7 +480,7 @@ class _StudentInternalState extends State<StudentInternal> {
                       "Go to Fill the Information",
                       style: TextStyle(
                         fontFamily: 'Outfit',
-                        color: Colors.white,
+                        color: Colors.black,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -523,10 +523,10 @@ class _StudentInternalState extends State<StudentInternal> {
             child: Container(
               padding: const EdgeInsets.all(25),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(25),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.3),
+                  color: Colors.white.withValues(alpha: 0.3),
                   width: 1.5,
                 ),
               ),
@@ -536,7 +536,7 @@ class _StudentInternalState extends State<StudentInternal> {
                   const Icon(
                     Icons.group, // Changed icon
                     size: 50,
-                    color: Colors.white,
+                    color: Colors.yellowAccent,
                   ),
                   const SizedBox(height: 15),
                   const Text(
@@ -545,7 +545,7 @@ class _StudentInternalState extends State<StudentInternal> {
                       fontFamily: 'Outfit',
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: Colors.black,
                     ),
                   ),
                   const SizedBox(height: 15),
@@ -554,14 +554,14 @@ class _StudentInternalState extends State<StudentInternal> {
                     style: TextStyle(
                       fontFamily: 'Outfit',
                       fontSize: 16,
-                      color: Colors.white,
+                      color: Colors.black,
                     ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 20),
                   TextButton(
                     style: TextButton.styleFrom(
-                      backgroundColor: Colors.white.withOpacity(0.3),
+                      backgroundColor: Colors.white.withValues(alpha: 0.3),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(15), // Slightly smaller button radius
                       ),
@@ -572,7 +572,7 @@ class _StudentInternalState extends State<StudentInternal> {
                       "Go to Fill the Information", // Changed button text
                       style: TextStyle(
                         fontFamily: 'Outfit',
-                        color: Colors.white,
+                        color: Colors.black,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -896,7 +896,7 @@ class _StudentInternalState extends State<StudentInternal> {
             decoration: BoxDecoration(
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.withOpacity(0.5),
+                  color: Colors.grey.withValues(alpha: 0.5),
                   spreadRadius: 1,
                   blurRadius: 5,
                   offset: const Offset(0, 2),
@@ -1062,7 +1062,7 @@ class _StudentInternalState extends State<StudentInternal> {
             children: [
               BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                child: Container(color: Colors.black.withOpacity(0.0)),
+                child: Container(color: Colors.black.withValues(alpha: 0.0)),
               ),
               FadeInUp(
                 duration: const Duration(milliseconds: 500),
