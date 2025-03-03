@@ -42,15 +42,18 @@ class _FaceScanScreenState extends State<FaceScanScreen> {
       if (!granted) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Camera permission is required.")));
+          const SnackBar(content: Text("Camera permission is required.")),
+        );
         return;
       }
       final cameras = await availableCameras();
       final frontCamera = cameras.firstWhere(
-              (camera) => camera.lensDirection == CameraLensDirection.front,
-          orElse: () => cameras.first);
-      _cameraController =
-          CameraController(frontCamera, ResolutionPreset.medium, enableAudio: false);
+            (camera) => camera.lensDirection == CameraLensDirection.front,
+        orElse: () => cameras.first,
+      );
+      _cameraController = CameraController(
+          frontCamera, ResolutionPreset.medium,
+          enableAudio: false);
       await _cameraController!.initialize();
       setState(() {
         _isCameraInitialized = true;
@@ -59,7 +62,8 @@ class _FaceScanScreenState extends State<FaceScanScreen> {
       if (!mounted) return;
       debugPrint("Error initializing camera: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error initializing camera: $e")));
+        SnackBar(content: Text("Error initializing camera: $e")),
+      );
     }
   }
 
@@ -76,20 +80,6 @@ class _FaceScanScreenState extends State<FaceScanScreen> {
     super.dispose();
   }
 
-  /// Calculate the number of quarter turns needed for the preview.
-  int _getQuarterTurns() {
-    if (_cameraController != null) {
-      final sensorOrientation = _cameraController!.description.sensorOrientation;
-      // For a sensorOrientation of 90 degrees, rotate 1 quarter turn.
-      // For 270 degrees, rotate 3 quarter turns.
-      if (sensorOrientation == 90) {
-        return 1;
-      } else if (sensorOrientation == 270) {
-        return 3;
-      }
-    }
-    return 0;
-  }
 
   Future<void> _captureAndScanFace() async {
     if (_cameraController == null || !_cameraController!.value.isInitialized) return;
@@ -120,7 +110,8 @@ class _FaceScanScreenState extends State<FaceScanScreen> {
         });
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("No face detected. Please try again.")));
+          const SnackBar(content: Text("No face detected. Please try again.")),
+        );
         return;
       }
 
@@ -168,8 +159,9 @@ class _FaceScanScreenState extends State<FaceScanScreen> {
           _isProcessing = false;
         });
         if (!mounted) return;
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text("No registered face found.")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("No registered face found.")),
+        );
         return;
       }
       List<double> storedEmbedding =
@@ -183,8 +175,9 @@ class _FaceScanScreenState extends State<FaceScanScreen> {
           _isProcessing = false;
         });
         if (!mounted) return;
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text("Face does not match. Please try again.")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Face does not match. Please try again.")),
+        );
         return;
       }
 
@@ -198,8 +191,9 @@ class _FaceScanScreenState extends State<FaceScanScreen> {
         _isProcessing = false;
       });
       debugPrint("Error during face scanning: $e");
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("Error during face scanning. Please try again.")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Error during face scanning. Please try again.")),
+      );
     }
   }
 
@@ -303,10 +297,12 @@ class _FaceScanScreenState extends State<FaceScanScreen> {
                       // Mirror preview if needed.
                       child: Transform.scale(
                         scaleX: -1.0,
-                        child: AspectRatio(
-                          aspectRatio: _cameraController!.value.aspectRatio,
-                          child: RotatedBox(
-                            quarterTurns: _getQuarterTurns(),
+                        // Use FittedBox to fill the container in portrait mode.
+                        child: FittedBox(
+                          fit: BoxFit.cover,
+                          child: SizedBox(
+                            width: _cameraController!.value.previewSize!.height,
+                            height: _cameraController!.value.previewSize!.width,
                             child: CameraPreview(_cameraController!),
                           ),
                         ),

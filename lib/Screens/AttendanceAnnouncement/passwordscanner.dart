@@ -208,34 +208,97 @@ class _PasswordscannerState extends State<Passwordscanner> {
   void _showSuccessDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text("Success", style: TextStyle(fontFamily: "Outfit")),
-          content: const Text("Password is matched!", style: TextStyle(fontFamily: "Outfit")),
-          actions: [
-            TextButton(
-              child: const Text("Next", style: TextStyle(fontFamily: "Outfit")),
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => GiveAttendance(
-                      subjectName: widget.subjectName,
-                      type: widget.type,
-                      batch: widget.batch,
-                      rollNo: widget.rollNo,
-                      optionalSubject: widget.optionalSubject,
-                      year: widget.year,
-                      sem: widget.sem,
-                      created: widget.created,
-                      fullName: widget.fullName,
+      builder: (dialogContext) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          elevation: 8,
+          backgroundColor: Colors.white,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(color: Colors.grey.withValues(alpha: 0.2), blurRadius: 12)
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.check_circle_outline_rounded,
+                  size: 56,
+                  color: Colors.green.shade700,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Success!',
+                  style: TextStyle(
+                    fontFamily: 'Outfit',
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.green,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Text(
+                    'Password matched!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'Outfit',
+                      fontSize: 16,
+                      color: Colors.grey,
+                      height: 1.4,
                     ),
                   ),
-                );
-              },
+                ),
+                const SizedBox(height: 32),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green.shade600,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    elevation: 2,
+                    shadowColor: Colors.green.shade100,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Next',
+                    style: TextStyle(
+                      fontFamily: 'Outfit',
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.of(dialogContext, rootNavigator: true).pop();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => GiveAttendance(
+                        subjectName: widget.subjectName,
+                        type: widget.type,
+                        batch: widget.batch,
+                        rollNo: widget.rollNo,
+                        optionalSubject: widget.optionalSubject,
+                        year: widget.year,
+                        sem: widget.sem,
+                        created: widget.created,
+                        fullName: widget.fullName,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
-          ],
+          ),
         );
       },
     );
@@ -244,18 +307,81 @@ class _PasswordscannerState extends State<Passwordscanner> {
   void _showFailureDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text("Failed", style: TextStyle(fontFamily: "Outfit")),
-          content: const Text("Password does not match.", style: TextStyle(fontFamily: "Outfit")),
-          actions: [
-            TextButton(
-              child: const Text("OK", style: TextStyle(fontFamily: "Outfit")),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
+      builder: (dialogContext) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          elevation: 8,
+          backgroundColor: Colors.white,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(color: Colors.grey.withValues(alpha: 0.2), blurRadius: 12)
+              ],
             ),
-          ],
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.error_outline_rounded,
+                  size: 56,
+                  color: Colors.red.shade700,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Failed!',
+                  style: TextStyle(
+                    fontFamily: 'Outfit',
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.red,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Text(
+                    'Password does not match.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'Outfit',
+                      fontSize: 16,
+                      color: Colors.grey,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 32),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red.shade600,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    elevation: 2,
+                    shadowColor: Colors.red.shade100,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'OK',
+                    style: TextStyle(
+                      fontFamily: 'Outfit',
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.of(dialogContext, rootNavigator: true).pop();
+                  },
+                ),
+              ],
+            ),
+          ),
         );
       },
     );

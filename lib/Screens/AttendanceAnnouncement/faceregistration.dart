@@ -100,23 +100,6 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
     super.dispose();
   }
 
-  /// Calculate the number of quarter turns needed for the preview
-  int _getQuarterTurns() {
-    // Use the sensorOrientation provided by the camera's description.
-    // Many front cameras report 270° (which is equivalent to 3 quarter turns)
-    // Adjust this logic based on your testing.
-    if (_cameraController != null) {
-      final sensorOrientation = _cameraController!.description.sensorOrientation;
-      // For a sensorOrientation of 90 degrees, rotate 1 quarter turn.
-      // For 270 degrees, rotate 3 quarter turns.
-      if (sensorOrientation == 90) {
-        return 1;
-      } else if (sensorOrientation == 270) {
-        return 3;
-      }
-    }
-    return 0;
-  }
 
   Future<void> _captureAndRegisterFace() async {
     if (_cameraController == null || !_cameraController!.value.isInitialized) {
@@ -236,45 +219,127 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
   void _showDeleteDialog() {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return FadeInDown(
-          duration: const Duration(milliseconds: 500),
-          child: AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
+      builder: (dialogContext) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          elevation: 8,
+          backgroundColor: Colors.white,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(color: Colors.grey.withValues(alpha: 0.2), blurRadius: 12)
+              ],
             ),
-            title: const Text(
-              "Delete Face Data",
-              style: TextStyle(fontWeight: FontWeight.bold, fontFamily: "Outfit"),
-            ),
-            content: const Text(
-              "Are you sure you want to delete the registered face data? This action cannot be undone.",
-               style: TextStyle(fontFamily: "Outfit")
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text("Cancel",style: TextStyle(fontFamily: "Outfit")),
-              ),
-              ElasticIn(
-                duration: const Duration(milliseconds: 500),
-                child: TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    _deleteFaceEmbedding();
-                  },
-                  child: const Text(
-                    "Delete",
-                    style: TextStyle(color: Colors.red,fontFamily: "Outfit"),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.warning_rounded,
+                  size: 56,
+                  color: Colors.amber.shade700,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Delete Face Data?',
+                  style: TextStyle(
+                    fontFamily: 'Outfit',
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.red,
+                    letterSpacing: 0.5,
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: const Text(
+                    'Are you sure you want to delete the registered face data? This action cannot be undone.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'Outfit',
+                      fontSize: 16,
+                      color: Colors.grey,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 32),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        icon: Icon(
+                          Icons.cancel_outlined,
+                          size: 20,
+                          color: Colors.grey.shade700,
+                        ),
+                        label: Text(
+                          'Cancel',
+                          style: TextStyle(
+                            fontFamily: 'Outfit',
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          side: BorderSide(color: Colors.grey.shade400),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.of(dialogContext, rootNavigator: true).pop();
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        icon: const Icon(
+                          Icons.delete_forever,
+                          size: 20,
+                          color: Colors.white,
+                        ),
+                        label: const Text(
+                          'Delete',
+                          style: TextStyle(
+                            fontFamily: 'Outfit',
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red.shade600,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          elevation: 2,
+                          shadowColor: Colors.red.shade100,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.of(dialogContext, rootNavigator: true).pop();
+                          _deleteFaceEmbedding();
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         );
       },
     );
   }
+
 
   Future<void> _deleteFaceEmbedding() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -371,25 +436,15 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
               SlideInLeft(
                 duration: const Duration(milliseconds: 800),
                 child: const Text(
-                  "Face Registered!",
+                  "Face Registered! 🫡",
                   style: TextStyle(
                     fontFamily: "Outfit",
                     fontSize: 24,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
               const SizedBox(height: 20),
-              FadeInUp(
-                duration: const Duration(milliseconds: 800),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                ),
-              ),
             ],
           ),
         ),
@@ -419,14 +474,11 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(20),
                 child: _isCameraInitialized
-                    ? Transform.scale( // Add Transform.scale here
-                  scaleX: -1.0, // Mirror horizontally
+                    ? Transform.scale(
+                  scaleX: -1.0, // Mirror horizontally for the front camera.
                   child: AspectRatio(
                     aspectRatio: _cameraController!.value.aspectRatio,
-                    child: RotatedBox(
-                      quarterTurns: _getQuarterTurns(),
-                      child: CameraPreview(_cameraController!),
-                    ),
+                    child: CameraPreview(_cameraController!),
                   ),
                 )
                     : const Center(

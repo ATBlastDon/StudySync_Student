@@ -2,9 +2,19 @@ import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:studysync_student/Screens/Security/change_password.dart';
+import 'package:studysync_student/Screens/Security/delete_account.dart';
 
 class PrivacySettingsScreen extends StatefulWidget {
-  const PrivacySettingsScreen({super.key});
+  final String year; // For example: BE, TE, or SE
+  final String rollNo;
+  final String sem;
+
+  const PrivacySettingsScreen({super.key,
+    required this.year,
+    required this.rollNo,
+    required this.sem
+  });
 
   @override
   State<PrivacySettingsScreen> createState() => _PrivacySettingsScreenState();
@@ -82,7 +92,60 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
               secondary: const Icon(Icons.fingerprint),
             ),
           ),
-          const Divider(),        ],
+          const Divider(),
+          FadeInUp(
+            duration: const Duration(milliseconds: 600),
+            child: ListTile(
+              leading: const Icon(Icons.lock, color: Colors.black),
+              title: const Text(
+                'Change Password',
+                style: TextStyle(fontFamily: "Outfit", fontSize: 16),
+              ),
+              subtitle: const Text(
+                'Change your Account Password',
+                style: TextStyle(fontFamily: "Outfit", fontSize: 16),
+              ),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ChangePassword(),
+                  ),
+                );
+              },
+            ),
+          ),
+          const Divider(),
+          FadeInUp(
+            duration: const Duration(milliseconds: 600),
+            child: ListTile(
+              leading: const Icon(Icons.delete_forever_sharp, color: Colors.black),
+              title: const Text(
+                'Delete Account',
+                style: TextStyle(fontFamily: "Outfit", fontSize: 16),
+              ),
+              subtitle: const Text(
+                'Delete your Account Permanently',
+                style: TextStyle(fontFamily: "Outfit", fontSize: 16),
+              ),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => DeleteAccount(
+                      year: widget.year,
+                      sem: widget.sem,
+                      rollNo: widget.rollNo,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          const Divider(),
+        ],
       ),
     );
   }

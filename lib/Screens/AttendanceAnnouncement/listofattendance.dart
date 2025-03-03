@@ -27,7 +27,7 @@ class ListOfAttendance extends StatelessWidget {
         flexibleSpace: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Colors.teal, Colors.greenAccent],
+              colors: [Colors.greenAccent, Colors.teal],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -175,52 +175,73 @@ class ListOfAttendance extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.fingerprint_rounded, size: 20, color: Colors.white,),
-                    label: const Text(
-                      'Give Attendance',
-                      style: TextStyle(
-                        fontFamily: 'Outfit',
-                      ),),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.teal.shade400,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(50),
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Colors.greenAccent, Colors.teal],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
-                      elevation: 5,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      borderRadius: BorderRadius.circular(50),
                     ),
-                    onPressed: () {
-                      DateTime currentTime = DateTime.now();
-                      if (currentTime.isAfter(announcement['expires_at'])) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Time Out!', style: TextStyle(fontFamily: "Outfit")),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                      } else {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => Passwordscanner(
-                              subjectName: announcement['subject'],
-                              type: announcement['type'],
-                              batch: announcement['batch'],
-                              rollNo: announcement['rollNo'],
-                              year: announcement['year'],
-                              optionalSubject: announcement['optional_sub'],
-                              sem: announcement['sem'],
-                              pass: announcement['password'],
-                              created: DateFormat('yyyy-MM-dd HH:mm:ss').format(announcement['created_at']),
-                              fullName: announcement['fullName'],
+                    child: ElevatedButton.icon(
+                      icon: const Icon(
+                        Icons.mobile_friendly,
+                        size: 20,
+                        color: Colors.black,
+                      ),
+                      label: const Text(
+                        'Give Attendance',
+                        style: TextStyle(
+                          fontFamily: 'Outfit',
+                          color: Colors.black
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        // Make the button background transparent so the gradient shows.
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(50),
+                        ),
+                        elevation: 5,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      onPressed: () {
+                        DateTime currentTime = DateTime.now();
+                        if (currentTime.isAfter(announcement['expires_at'])) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Time Out!',
+                                style: TextStyle(fontFamily: "Outfit"),
+                              ),
+                              backgroundColor: Colors.red,
                             ),
-                          ),
-                        );
-                      }
-                    },
-                  ),
+                          );
+                        } else {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => Passwordscanner(
+                                subjectName: announcement['subject'],
+                                type: announcement['type'],
+                                batch: announcement['batch'],
+                                rollNo: announcement['rollNo'],
+                                year: announcement['year'],
+                                optionalSubject: announcement['optional_sub'],
+                                sem: announcement['sem'],
+                                pass: announcement['password'],
+                                created: DateFormat('yyyy-MM-dd HH:mm:ss')
+                                    .format(announcement['created_at']),
+                                fullName: announcement['fullName'],
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  )
                 ],
               ),
             ),

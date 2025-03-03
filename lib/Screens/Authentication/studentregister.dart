@@ -428,6 +428,7 @@ class _StudentRegisterState extends State<StudentRegister> {
         ),
         const SizedBox(height: 5),
         TextField(
+          style: TextStyle(fontFamily: "Outfit"),
           controller: controller,
           obscureText: obscureText,
           decoration: InputDecoration(
@@ -464,7 +465,7 @@ class _StudentRegisterState extends State<StudentRegister> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                CircularProgressIndicator(),
+                CircularProgressIndicator(color: Colors.black,),
                 SizedBox(height: 20.0),
                 Text("Registering...",style: TextStyle(fontFamily: "Outfit"),),
               ],

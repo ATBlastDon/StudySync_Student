@@ -288,7 +288,7 @@ class _GiveAttendanceState extends State<GiveAttendance> {
                   const SizedBox(height: 30),
                   FadeInUp(
                     duration: const Duration(milliseconds: 1000),
-                    child: const Text("Capture Photo!!!", style: TextStyle(fontFamily: 'Outfit', fontSize: 30, fontWeight: FontWeight.w600)),
+                    child: const Text("Face Recognition!!!", style: TextStyle(fontFamily: 'Outfit', fontSize: 30, fontWeight: FontWeight.w600)),
                   ),
                   const SizedBox(height: 30),
                   FadeInUp(
@@ -327,7 +327,7 @@ class _GiveAttendanceState extends State<GiveAttendance> {
                               onPressed: _captureImage,
                               elevation: 0,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
-                              child: const Text("Capture Photo", style: TextStyle(fontFamily: 'Outfit', fontWeight: FontWeight.w600, fontSize: 17, color: Colors.black)),
+                              child: const Text("Start", style: TextStyle(fontFamily: 'Outfit', fontWeight: FontWeight.w600, fontSize: 17, color: Colors.black)),
                             ),
                           ),
                         ),

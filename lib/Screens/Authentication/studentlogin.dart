@@ -379,6 +379,7 @@ class _StudentLoginState extends State<StudentLogin> {
         ),
         const SizedBox(height: 5),
         TextField(
+          style: TextStyle(fontFamily: "Outfit"),
           controller: controller,
           obscureText: label == "Password" ? true : false,
           decoration: InputDecoration(

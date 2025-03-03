@@ -45,7 +45,7 @@ class _MarksHomeState extends State<MarksHome> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
-              const SizedBox(height: 30),
+              const SizedBox(height: 20),
               FadeInUp(
                 duration: const Duration(milliseconds: 1000),
                 child: const Text(
@@ -115,7 +115,7 @@ class _MarksHomeState extends State<MarksHome> {
                   ),
                 ),
               ),
-              const SizedBox(height: 50),
+              const SizedBox(height: 30),
               _buildButton(
                 context,
                 "Termwork",

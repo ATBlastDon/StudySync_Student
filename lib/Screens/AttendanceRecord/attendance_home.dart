@@ -48,7 +48,7 @@ class _AttendanceHomeState extends State<AttendanceHome> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
-              const SizedBox(height: 30),
+              const SizedBox(height: 20),
               FadeInUp(
                 duration: const Duration(milliseconds: 1000),
                 child: const Text(
@@ -119,7 +119,7 @@ class _AttendanceHomeState extends State<AttendanceHome> {
                   textAlign: TextAlign.center,
                 ),
               ),
-              const SizedBox(height: 50),
+              const SizedBox(height: 30),
               FadeInUp(
                 duration: const Duration(milliseconds: 1000),
                 child: Padding(

@@ -864,7 +864,11 @@ class _StudentInternalState extends State<StudentInternal> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const PrivacySettingsScreen(),
+                      builder: (context) => PrivacySettingsScreen(
+                        year: widget.year,
+                        rollNo: _userRollNo!,
+                        sem: widget.sem,
+                      ),
                     ),
                   );
                 },

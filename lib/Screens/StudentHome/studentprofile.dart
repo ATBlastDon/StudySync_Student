@@ -133,37 +133,122 @@ class _StudentProfileState extends State<StudentProfile> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text(
-            'Confirm Change',
-            style: TextStyle(fontFamily: "Outfit"),
+      builder: (dialogContext) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
           ),
-          content: const Text(
-            'Are you sure you want to change your details? If you do, your data will be lost, and the app will reassign your data from the login.',
-            style: TextStyle(fontSize: 14, fontFamily: 'Outfit'),
+          elevation: 8,
+          backgroundColor: Colors.white,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(color: Colors.grey.withValues(alpha: 0.2), blurRadius: 12)
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.warning_rounded,
+                  size: 56,
+                  color: Colors.amber.shade700,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Confirm Change?',
+                  style: TextStyle(
+                    fontFamily: 'Outfit',
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.amber,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Text(
+                    'Are you sure you want to change your details? If you do, your data will be lost, and the app will reassign your data from the login.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'Outfit',
+                      fontSize: 16,
+                      color: Colors.grey,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 32),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        icon: Icon(
+                          Icons.cancel_outlined,
+                          size: 20,
+                          color: Colors.grey.shade700,
+                        ),
+                        label: Text(
+                          'Cancel',
+                          style: TextStyle(
+                            fontFamily: 'Outfit',
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          side: BorderSide(color: Colors.grey.shade400),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.of(dialogContext, rootNavigator: true).pop();
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        icon: const Icon(
+                          Icons.check_circle_rounded,
+                          size: 20,
+                          color: Colors.white,
+                        ),
+                        label: const Text(
+                          'Confirm',
+                          style: TextStyle(
+                            fontFamily: 'Outfit',
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.amber.shade600,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          elevation: 2,
+                          shadowColor: Colors.amber.shade100,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.of(dialogContext, rootNavigator: true).pop();
+                          updateFunction();
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text(
-                'Cancel',
-                style: TextStyle(fontFamily: "Outfit"),
-              ),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                updateFunction();
-              },
-              child: const Text(
-                'Confirm',
-                style: TextStyle(fontFamily: "Outfit"),
-              ),
-            ),
-          ],
         );
       },
     );
@@ -455,7 +540,7 @@ class _StudentProfileState extends State<StudentProfile> {
           await oldRef.delete();
         }
         // Prepare new file name and storage path.
-        String fileName = '${studentData!['rollNo']}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        String fileName = '${studentData!['rollNo']}.jpg';
         String storagePath = 'Profile_Photos/Student/${widget.studentyear}/$fileName';
         firebase_storage.Reference ref =
         firebase_storage.FirebaseStorage.instance.ref().child(storagePath);
