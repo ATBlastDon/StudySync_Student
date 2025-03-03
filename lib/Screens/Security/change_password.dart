@@ -29,6 +29,137 @@ class _ChangePasswordState extends State<ChangePassword> {
     super.dispose();
   }
 
+  void _showConfirm() async {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return FadeInUp(
+          duration: const Duration(milliseconds: 800),
+          child: Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
+            elevation: 8,
+            backgroundColor: Colors.white,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withValues(alpha: 0.2),
+                    blurRadius: 12,
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.warning_rounded,
+                    size: 56,
+                    color: Colors.amber.shade700,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Confirm Password Change?',
+                    style: TextStyle(
+                      fontFamily: 'Outfit',
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.amber,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Text(
+                      'Are you sure you want to change your password?',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: 'Outfit',
+                        fontSize: 16,
+                        color: Colors.grey,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          icon: Icon(
+                            Icons.cancel_outlined,
+                            size: 20,
+                            color: Colors.grey.shade700,
+                          ),
+                          label: Text(
+                            'Cancel',
+                            style: TextStyle(
+                              fontFamily: 'Outfit',
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            side: BorderSide(color: Colors.grey.shade400),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onPressed: () {
+                            Navigator.of(dialogContext, rootNavigator: true).pop();
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          icon: const Icon(
+                            Icons.check_circle_rounded,
+                            size: 20,
+                            color: Colors.white,
+                          ),
+                          label: const Text(
+                            'Yes',
+                            style: TextStyle(
+                              fontFamily: 'Outfit',
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.amber.shade600,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            elevation: 2,
+                            shadowColor: Colors.amber.shade100,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onPressed: () {
+                            Navigator.of(dialogContext, rootNavigator: true).pop();
+                            _changePassword();
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+
   void _changePassword() async {
     if (_formKey.currentState!.validate()) {
       try {
@@ -290,150 +421,36 @@ class _ChangePasswordState extends State<ChangePassword> {
                       padding: const EdgeInsets.only(top: 3, left: 3),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(50),
-                        border: const Border(
-                          bottom: BorderSide(color: Colors.black),
-                          top: BorderSide(color: Colors.black),
-                          left: BorderSide(color: Colors.black),
-                          right: BorderSide(color: Colors.black),
-                        ),
+                        border: Border.all(color: Colors.black), // Consistent border
                       ),
-                      child: MaterialButton(
-                        minWidth: double.infinity,
-                        height: 60,
-                        onPressed: () {
-                          showDialog(
-                            context: context,
-                            builder: (dialogContext) {  // Changed to dialogContext
-                              return Dialog(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(24),
-                                ),
-                                elevation: 8,
-                                backgroundColor: Colors.white,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(24),
-                                    boxShadow: [
-                                      BoxShadow(color: Colors.grey.withValues(alpha: 0.2), blurRadius: 12)
-                                    ],
-                                  ),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        Icons.warning_rounded,
-                                        size: 56,
-                                        color: Colors.amber.shade700,
-                                      ),
-                                      const SizedBox(height: 16),
-                                      const Text(
-                                        'Confirm Password Change?',
-                                        style: TextStyle(
-                                          fontFamily: 'Outfit',
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.w700,
-                                          color: Colors.amber,
-                                          letterSpacing: 0.5,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 16),
-                                      const Padding(
-                                        padding: EdgeInsets.symmetric(horizontal: 8.0),
-                                        child: Text(
-                                          'Are you sure you want to change your password?',
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                            fontFamily: 'Outfit',
-                                            fontSize: 16,
-                                            color: Colors.grey,
-                                            height: 1.4,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 32),
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                        children: [
-                                          Expanded(
-                                            child: OutlinedButton.icon(
-                                              icon: Icon(
-                                                Icons.cancel_outlined,
-                                                size: 20,
-                                                color: Colors.grey.shade700,
-                                              ),
-                                              label: Text(
-                                                'Cancel',
-                                                style: TextStyle(
-                                                  fontFamily: 'Outfit',
-                                                  fontWeight: FontWeight.w600,
-                                                  color: Colors.grey.shade700,
-                                                ),
-                                              ),
-                                              style: OutlinedButton.styleFrom(
-                                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                                side: BorderSide(color: Colors.grey.shade400),
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius: BorderRadius.circular(12),
-                                                ),
-                                              ),
-                                              onPressed: () {
-                                                Navigator.of(dialogContext, rootNavigator: true).pop();
-                                              },
-                                            ),
-                                          ),
-                                          const SizedBox(width: 16),
-                                          Expanded(
-                                            child: ElevatedButton.icon(
-                                              icon: const Icon(
-                                                Icons.check_circle_rounded,
-                                                size: 20,
-                                                color: Colors.white,
-                                              ),
-                                              label: const Text(
-                                                'Yes',
-                                                style: TextStyle(
-                                                  fontFamily: 'Outfit',
-                                                  fontWeight: FontWeight.w600,
-                                                  color: Colors.white,
-                                                ),
-                                              ),
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor: Colors.amber.shade600,
-                                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                                elevation: 2,
-                                                shadowColor: Colors.amber.shade100,
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius: BorderRadius.circular(12),
-                                                ),
-                                              ),
-                                              onPressed: () {
-                                                Navigator.of(dialogContext, rootNavigator: true).pop();
-                                                _changePassword();
-                                              },
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                          );
-                        },
-                        color: Colors.greenAccent,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(50),
-                        ),
-                        child: const Text(
-                          "Save Password",
-                          style: TextStyle(
-                            fontFamily: 'Outfit',
-                            fontWeight: FontWeight.w600,
-                            fontSize: 18,
+                      child: Material(
+                        borderRadius: BorderRadius.circular(50),
+                        child: Ink(
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Colors.greenAccent, Colors.teal], // Gradient colors
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(50),
+                          ),
+                          child: MaterialButton(
+                            minWidth: double.infinity,
+                            height: 60,
+                            onPressed: _showConfirm,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(50),
+                            ),
+                            child: const Text(
+                              "Save Password",
+                              style: TextStyle(
+                                fontFamily: 'Outfit',
+                                fontWeight: FontWeight.w600,
+                                fontSize: 17, // Adjusted font size
+                                color: Colors.black, // Consistent text color
+                              ),
+                            ),
                           ),
                         ),
                       ),
