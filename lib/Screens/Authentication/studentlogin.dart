@@ -236,6 +236,7 @@ class _StudentLoginState extends State<StudentLogin> {
                     child: makeInput(
                       label: "Email",
                       controller: _emailController,
+                      hintText: "Enter Your Email",
                     ),
                   ),
                   FadeInUp(
@@ -364,7 +365,7 @@ class _StudentLoginState extends State<StudentLogin> {
     );
   }
 
-  Widget makeInput({required String label, required TextEditingController controller}) {
+  Widget makeInput({required String label, required TextEditingController controller, required String hintText}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -383,6 +384,8 @@ class _StudentLoginState extends State<StudentLogin> {
           controller: controller,
           obscureText: label == "Password" ? true : false,
           decoration: InputDecoration(
+            hintText: hintText, // Display the hint text here
+            hintStyle: TextStyle(fontFamily: "Outfit"),
             contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
             enabledBorder: OutlineInputBorder(
               borderSide: BorderSide(color: Colors.grey.shade400),
@@ -505,8 +508,9 @@ class _StudentLoginState extends State<StudentLogin> {
 class PasswordField extends StatefulWidget {
   final TextEditingController controller;
   final String labelText;
+  final String hintText;
 
-  const PasswordField({super.key, required this.controller, this.labelText = 'Password'});
+  const PasswordField({super.key, required this.controller, this.labelText = 'Password', this.hintText = 'Enter Your Password'});
 
   @override
   State<PasswordField> createState() => _PasswordFieldState();
@@ -534,6 +538,8 @@ class _PasswordFieldState extends State<PasswordField> {
           controller: widget.controller,
           obscureText: _obscureText,
           decoration: InputDecoration(
+            hintText: widget.hintText, // Display the hint text here
+            hintStyle: TextStyle(fontFamily: "Outfit"),
             contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
             enabledBorder: OutlineInputBorder(
               borderSide: BorderSide(color: Colors.grey.shade400),

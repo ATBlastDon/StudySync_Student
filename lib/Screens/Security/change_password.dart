@@ -1,6 +1,9 @@
 import 'package:animate_do/animate_do.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:studysync_student/Home/homepage.dart';
+
 
 class ChangePassword extends StatefulWidget {
   const ChangePassword({super.key});
@@ -81,7 +84,7 @@ class _ChangePasswordState extends State<ChangePassword> {
                       style: TextStyle(
                         fontFamily: 'Outfit',
                         fontSize: 16,
-                        color: Colors.grey,
+                        color: Colors.black,
                         height: 1.4,
                       ),
                     ),
@@ -102,7 +105,7 @@ class _ChangePasswordState extends State<ChangePassword> {
                             style: TextStyle(
                               fontFamily: 'Outfit',
                               fontWeight: FontWeight.w600,
-                              color: Colors.grey.shade700,
+                              color: Colors.black,
                             ),
                           ),
                           style: OutlinedButton.styleFrom(
@@ -192,18 +195,16 @@ class _ChangePasswordState extends State<ChangePassword> {
         String newPassword = _newPasswordController.text.trim();
         await user.updatePassword(newPassword);
 
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              "Password changed successfully!",
-              style: TextStyle(fontFamily: "Outfit"),
-            ),
-            backgroundColor: Colors.green,
-          ),
-        );
+        // Clear shared preferences.
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.clear();
 
-        Navigator.pop(context);
+        // Navigate to HomePage.
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => HomePage()),
+        );
       } on FirebaseAuthException catch (e) {
         String errorMessage;
         if (e.code == "wrong-password" || e.code == "invalid-credential") {

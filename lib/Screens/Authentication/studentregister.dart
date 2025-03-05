@@ -255,13 +255,13 @@ class _StudentRegisterState extends State<StudentRegister> {
                               ),
                               FadeInUp(
                                 duration: const Duration(milliseconds: 1000),
-                                child: PasswordField(controller: _passwordController),
+                                child: PasswordField(controller: _passwordController, hintText: 'Enter Your Password',),
                               ),
                               FadeInUp(
                                 duration: const Duration(milliseconds: 1000),
                                 child: PasswordField(
                                   controller: _confirmPasswordController,
-                                  labelText: "Confirm Password",
+                                  labelText: "Confirm Password", hintText: 'Confirm Your Password',
                                 ),
                               ),
                               const SizedBox(height: 30),
@@ -721,8 +721,9 @@ class _StudentRegisterState extends State<StudentRegister> {
 class PasswordField extends StatefulWidget {
   final TextEditingController controller;
   final String labelText;
+  final String hintText;
 
-  const PasswordField({super.key, required this.controller, this.labelText = 'Password'});
+  const PasswordField({super.key, required this.controller, this.labelText = 'Password', required this.hintText});
 
   @override
   State<PasswordField> createState() => _PasswordFieldState();
@@ -750,6 +751,8 @@ class _PasswordFieldState extends State<PasswordField> {
           controller: widget.controller,
           obscureText: _obscureText,
           decoration: InputDecoration(
+            hintText: widget.hintText, // Display the hint text here
+            hintStyle: TextStyle(fontFamily: "Outfit"),
             contentPadding:
             const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
             enabledBorder: OutlineInputBorder(

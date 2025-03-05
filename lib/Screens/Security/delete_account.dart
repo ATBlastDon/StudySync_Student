@@ -5,6 +5,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:studysync_student/Home/homepage.dart';
+import 'package:studysync_student/Screens/Security/delete_attendance_record.dart';
 
 class DeleteAccount extends StatefulWidget {
   final String year;
@@ -60,6 +61,9 @@ class _DeleteAccountState extends State<DeleteAccount> {
           .collection(widget.sem)
           .doc(widget.rollNo);
       await studentDocRef.delete();
+
+      await DeleteAttendance.deleteAttendanceRecords(widget.rollNo);
+
 
       // 4. Delete the user account from Firebase Auth.
       User? user = FirebaseAuth.instance.currentUser;
@@ -270,13 +274,21 @@ class _DeleteAccountState extends State<DeleteAccount> {
         child: Scaffold(
           backgroundColor: Colors.transparent,
           appBar: AppBar(
-            backgroundColor: Colors.white,
+            backgroundColor: Colors.transparent, // Set app bar background to transparent
             elevation: 0,
+            flexibleSpace: Container( // Add a container for the gradient
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFFFFF3F3), Color(0xFFFFFFFF)], // Your gradient colors
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+            ),
             leading: FadeInUp(
               duration: const Duration(milliseconds: 800),
               child: IconButton(
-                icon: const Icon(Icons.arrow_back_ios,
-                    color: Colors.black, size: 20),
+                icon: const Icon(Icons.arrow_back_ios, color: Colors.black, size: 20),
                 onPressed: () => Navigator.pop(context),
               ),
             ),
@@ -357,7 +369,7 @@ class _DeleteAccountState extends State<DeleteAccount> {
                           ),
                           SizedBox(height: 8),
                           Text(
-                            '• Profile photo\n• Personal information\n• Academic records\n• Optional subject data',
+                            '• Profile photo\n• Personal information\n• Academic Attendance records\n• Optional subject data',
                             style: TextStyle(
                               fontFamily: 'Outfit',
                               fontSize: 14,
