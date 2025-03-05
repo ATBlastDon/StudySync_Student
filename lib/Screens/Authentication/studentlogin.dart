@@ -537,6 +537,7 @@ class _PasswordFieldState extends State<PasswordField> {
         TextField(
           controller: widget.controller,
           obscureText: _obscureText,
+          style: TextStyle(fontFamily: "Outfit"),
           decoration: InputDecoration(
             hintText: widget.hintText, // Display the hint text here
             hintStyle: TextStyle(fontFamily: "Outfit"),

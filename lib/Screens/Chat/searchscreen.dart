@@ -125,6 +125,7 @@ class _SearchScreenState extends State<SearchScreen> {
         ),
         backgroundColor: Colors.grey[100],
       ),
+      backgroundColor: Colors.white,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -134,6 +135,7 @@ class _SearchScreenState extends State<SearchScreen> {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: TextFormField(
+                style: TextStyle(fontFamily: "Outfit"),
                 controller: _searchController,
                 onChanged: (text) {
                   _search(text); // Automatically search when the text is changed
