@@ -359,7 +359,7 @@ class _CumulativeAttendanceState extends State<CumulativeAttendance> {
                 ),
               ),
               const SizedBox(height: 30),
-              if (isLoading) const CircularProgressIndicator(),
+              if (isLoading) const CircularProgressIndicator(color: Colors.black),
             ],
           ),
         ),

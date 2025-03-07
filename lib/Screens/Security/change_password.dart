@@ -291,6 +291,7 @@ class _ChangePasswordState extends State<ChangePassword> {
                   child: TextFormField(
                     controller: _oldPasswordController,
                     obscureText: _obscureOld,
+                    style: TextStyle(fontFamily: "Outfit"),
                     decoration: InputDecoration(
                       labelText: 'Old Password',
                       labelStyle: const TextStyle(
@@ -333,6 +334,7 @@ class _ChangePasswordState extends State<ChangePassword> {
                   child: TextFormField(
                     controller: _newPasswordController,
                     obscureText: _obscureNew,
+                    style: TextStyle(fontFamily: "Outfit"),
                     decoration: InputDecoration(
                       labelText: 'New Password',
                       labelStyle: const TextStyle(
@@ -375,6 +377,7 @@ class _ChangePasswordState extends State<ChangePassword> {
                   child: TextFormField(
                     controller: _confirmPasswordController,
                     obscureText: _obscureConfirm,
+                    style: TextStyle(fontFamily: "Outfit"),
                     decoration: InputDecoration(
                       labelText: 'Confirm New Password',
                       labelStyle: const TextStyle(

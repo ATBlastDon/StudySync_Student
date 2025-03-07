@@ -5,7 +5,6 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:studysync_student/Home/homepage.dart';
-import 'package:studysync_student/Screens/Security/delete_attendance_record.dart';
 
 class DeleteAccount extends StatefulWidget {
   final String year;
@@ -26,23 +25,221 @@ class DeleteAccount extends StatefulWidget {
 class _DeleteAccountState extends State<DeleteAccount> {
   bool _isDeleting = false;
 
+  // Function to show a dialog and prompt the user for their password.
+  Future<String?> _showPasswordInputDialog(BuildContext context) async {
+    final TextEditingController passwordController = TextEditingController();
+    bool obscureText = true; // State to manage password visibility
+
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          elevation: 8,
+          backgroundColor: Colors.white,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.grey.withValues(alpha: 0.2), blurRadius: 12),
+              ],
+            ),
+            child: StatefulBuilder(
+              builder: (BuildContext context, StateSetter setState) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.lock_rounded,
+                      size: 56,
+                      color: Colors.amber.shade700,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Re-authenticate',
+                      style: TextStyle(
+                        fontFamily: 'Outfit',
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.amber,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8.0),
+                      child: Text(
+                        'Please enter your password to confirm deletion.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontFamily: 'Outfit',
+                          fontSize: 16,
+                          color: Colors.grey,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: passwordController,
+                      obscureText: obscureText,
+                      decoration: InputDecoration(
+                        labelText: "Password",
+                        labelStyle: const TextStyle(fontFamily: 'Outfit'),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        prefixIcon: const Icon(Icons.password_rounded),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            obscureText ? Icons.visibility_off : Icons.visibility,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              obscureText = !obscureText;
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              side: BorderSide(color: Colors.grey.shade400),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onPressed: () {
+                              Navigator.of(dialogContext, rootNavigator: true)
+                                  .pop();
+                            },
+                            child: const Text(
+                              'Cancel',
+                              style: TextStyle(
+                                fontFamily: 'Outfit',
+                                color: Colors.black,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.amber.shade600,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              elevation: 2,
+                              shadowColor: Colors.amber.shade100,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onPressed: () {
+                              Navigator.of(dialogContext, rootNavigator: true)
+                                  .pop(passwordController.text);
+                            },
+                            child: const Text(
+                              'Confirm',
+                              style: TextStyle(
+                                fontFamily: 'Outfit',
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _deleteAccount() async {
     setState(() {
       _isDeleting = true;
     });
+
     try {
-      // 1. Delete profile photo from Firebase Storage.
+      // 1. Get current user.
+      User? user = FirebaseAuth.instance.currentUser;
+      if (!mounted) return;
+      if (user == null) {
+        throw FirebaseAuthException(
+            message: "No user is currently signed in.", code: "no-user");
+      }
+
+      // 2. Prompt for re-authentication.
+      final passwordInput = await _showPasswordInputDialog(context);
+      if (passwordInput == null || passwordInput.isEmpty) {
+        setState(() {
+          _isDeleting = false;
+        });
+        if(!mounted) return;
+        // Show a snack-bar that operation is cancelled.
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              "Operation cancelled.",
+              style: TextStyle(fontFamily: "Outfit"),
+            ),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return; // Cancel deletion if no password is provided.
+      }
+
+      // 3. Attempt re-authentication.
+      AuthCredential credential = EmailAuthProvider.credential(
+        email: user.email!,
+        password: passwordInput,
+      );
+
+      try {
+        await user.reauthenticateWithCredential(credential);
+      } catch (e) {
+        setState(() {
+          _isDeleting = false;
+        });
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              "Re-Authentication failed. Account deletion cancelled.",
+              style: TextStyle(fontFamily: "Outfit"),
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // 4. Proceed with deletion if re-authentication is successful.
+      // Delete profile photo from Firebase Storage.
       final storageRef = FirebaseStorage.instance
           .ref()
           .child('Profile_Photos/Student/${widget.year}/${widget.rollNo}.jpg');
       await storageRef.delete().catchError((error) {
-        // Log error, but continue if the file is missing.
         debugPrint('Error deleting profile photo: $error');
       });
 
-      // 2. Delete the nested optional subjects document.
-      // This assumes the structure is:
-      // students/{year}/{sem}/{rollNo}/optional_subjects/{sem}
+      // Delete the nested optional subjects document.
       final optionalSubjectsDocRef = FirebaseFirestore.instance
           .collection('students')
           .doc(widget.year)
@@ -54,7 +251,7 @@ class _DeleteAccountState extends State<DeleteAccount> {
         debugPrint('Error deleting optional subjects: $error');
       });
 
-      // 3. Delete the student document from Firestore.
+      // Delete the student document from Firestore.
       final studentDocRef = FirebaseFirestore.instance
           .collection('students')
           .doc(widget.year)
@@ -62,30 +259,26 @@ class _DeleteAccountState extends State<DeleteAccount> {
           .doc(widget.rollNo);
       await studentDocRef.delete();
 
-      await DeleteAttendance.deleteAttendanceRecords(widget.rollNo);
-
-
-      // 4. Delete the user account from Firebase Auth.
-      User? user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        // In many cases, reauthentication may be required before deletion.
-        await user.delete();
-      }
+      // Finally, delete the user account.
+      await user.delete();
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Account deleted successfully!",style: TextStyle(fontFamily: "Outfit"),),
+          content: Text(
+            "Account deleted successfully!",
+            style: TextStyle(fontFamily: "Outfit"),
+          ),
           backgroundColor: Colors.green,
         ),
       );
 
-      // Clear SharedPreferences
+      // Clear SharedPreferences.
       final prefs = await SharedPreferences.getInstance();
       await prefs.clear();
 
-      // Navigate to StudentHome screen.
-      if(!mounted) return;
+      // Navigate to the home screen.
+      if (!mounted) return;
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (context) => const HomePage()),
@@ -94,24 +287,30 @@ class _DeleteAccountState extends State<DeleteAccount> {
     } on FirebaseAuthException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(e.message ?? "An error occurred.",style: TextStyle(fontFamily: "Outfit")),
+          content: Text(
+            e.message ?? "An error occurred.",
+            style: const TextStyle(fontFamily: "Outfit"),
+          ),
           backgroundColor: Colors.red,
         ),
       );
     } catch (e) {
-      if(!mounted) return;
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(e.toString(),style: TextStyle(fontFamily: "Outfit")),
+          content: Text(
+            e.toString(),
+            style: const TextStyle(fontFamily: "Outfit"),
+          ),
           backgroundColor: Colors.red,
         ),
       );
     }
+
     setState(() {
       _isDeleting = false;
     });
   }
-
 
   void _confirmDelete() {
     showDialog(
@@ -132,7 +331,8 @@ class _DeleteAccountState extends State<DeleteAccount> {
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                      color: Colors.grey.withValues(alpha: 0.2), blurRadius: 12)
+                      color: Colors.grey.withValues(alpha: 0.2),
+                      blurRadius: 12)
                 ],
               ),
               child: Column(
@@ -185,12 +385,12 @@ class _DeleteAccountState extends State<DeleteAccount> {
                         child: FadeInUp(
                           duration: const Duration(milliseconds: 800),
                           child: OutlinedButton.icon(
-                            icon: Icon(
+                            icon: const Icon(
                               Icons.cancel_outlined,
                               size: 20,
                               color: Colors.black,
                             ),
-                            label: Text(
+                            label: const Text(
                               'Cancel',
                               style: TextStyle(
                                 fontFamily: 'Outfit',
@@ -258,11 +458,10 @@ class _DeleteAccountState extends State<DeleteAccount> {
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Optional: Add a subtle gradient background to the entire screen.
+      // Background with a subtle gradient.
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -274,12 +473,12 @@ class _DeleteAccountState extends State<DeleteAccount> {
         child: Scaffold(
           backgroundColor: Colors.transparent,
           appBar: AppBar(
-            backgroundColor: Colors.transparent, // Set app bar background to transparent
+            backgroundColor: Colors.transparent,
             elevation: 0,
-            flexibleSpace: Container( // Add a container for the gradient
+            flexibleSpace: Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color(0xFFFFF3F3), Color(0xFFFFFFFF)], // Your gradient colors
+                  colors: const [Color(0xFFFFF3F3), Color(0xFFFFFFFF)],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                 ),
@@ -288,7 +487,8 @@ class _DeleteAccountState extends State<DeleteAccount> {
             leading: FadeInUp(
               duration: const Duration(milliseconds: 800),
               child: IconButton(
-                icon: const Icon(Icons.arrow_back_ios, color: Colors.black, size: 20),
+                icon: const Icon(Icons.arrow_back_ios,
+                    color: Colors.black, size: 20),
                 onPressed: () => Navigator.pop(context),
               ),
             ),
@@ -345,7 +545,6 @@ class _DeleteAccountState extends State<DeleteAccount> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  // Additional Information Card
                   FadeInUp(
                     duration: const Duration(milliseconds: 1000),
                     child: Container(
@@ -369,7 +568,7 @@ class _DeleteAccountState extends State<DeleteAccount> {
                           ),
                           SizedBox(height: 8),
                           Text(
-                            '• Profile photo\n• Personal information\n• Academic Attendance records\n• Optional subject data',
+                            '• Profile photo\n• Personal information\n• Optional subject data',
                             style: TextStyle(
                               fontFamily: 'Outfit',
                               fontSize: 14,
@@ -396,7 +595,10 @@ class _DeleteAccountState extends State<DeleteAccount> {
                           child: Ink(
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(
-                                colors: [Colors.redAccent, Colors.red],
+                                colors: [
+                                  Colors.redAccent,
+                                  Colors.red
+                                ],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                               ),

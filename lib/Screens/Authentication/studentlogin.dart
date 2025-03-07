@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:animate_do/animate_do.dart';
@@ -88,280 +89,284 @@ class _StudentLoginState extends State<StudentLogin> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      resizeToAvoidBottomInset: false,
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.white,
-        leading: IconButton(
-          onPressed: () {
-            Navigator.pop(context);
-          },
-          icon: const Icon(Icons.arrow_back_ios, size: 20, color: Colors.black),
-        ),
-      ),
-      body: SingleChildScrollView( // Wrap the entire body with a SingleChildScrollView
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: <Widget>[
-            Column(
+    return KeyboardVisibilityBuilder(
+      builder: (context, isKeyboardVisible) {
+        // You can use the isKeyboardVisible boolean to adjust your UI if needed.
+        return Scaffold(
+          resizeToAvoidBottomInset: false,
+          backgroundColor: Colors.white,
+          appBar: AppBar(
+            elevation: 0,
+            backgroundColor: Colors.white,
+            leading: IconButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              icon: const Icon(Icons.arrow_back_ios, size: 20, color: Colors.black),
+            ),
+          ),
+          body: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: <Widget>[
+                Column(
+                  children: <Widget>[
+                    FadeInUp(
+                      duration: const Duration(milliseconds: 1000),
+                      child: const Text(
+                        "Login",
+                        style: TextStyle(
+                          fontFamily: 'Outfit',
+                          fontSize: 40,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    FadeInUp(
+                      duration: const Duration(milliseconds: 1000),
+                      child: Text(
+                        "Login to your Student account",
+                        style: TextStyle(
+                          fontFamily: 'Outfit',
+                          fontSize: 15,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 40),
+                  child: Column(
+                    children: <Widget>[
+                      // Year Dropdown
+                      FadeInUp(
+                        duration: const Duration(milliseconds: 1000),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "Year",
+                              style: TextStyle(
+                                fontFamily: 'Outfit',
+                                fontSize: 15,
+                                fontWeight: FontWeight.w400,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            DropdownButtonFormField<String>(
+                              value: _selectedYear,
+                              style: const TextStyle(fontFamily: "Outfit", color: Colors.black),
+                              decoration: InputDecoration(
+                                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
+                                enabledBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(color: Colors.grey.shade400),
+                                ),
+                                border: OutlineInputBorder(
+                                  borderSide: BorderSide(color: Colors.grey.shade400),
+                                ),
+                              ),
+                              hint: const Text("Select Year", style: TextStyle(fontFamily: "Outfit")),
+                              onChanged: (String? newValue) {
+                                setState(() {
+                                  _selectedYear = newValue;
+                                  // Reset semester when year changes
+                                  _selectedSemester = null;
+                                });
+                              },
+                              items: ["BE", "TE", "SE"].map((String year) {
+                                return DropdownMenuItem<String>(
+                                  value: year,
+                                  child: Text(year, style: const TextStyle(fontFamily: "Outfit")),
+                                );
+                              }).toList(),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      // Semester Dropdown (dependent on Year)
+                      FadeInUp(
+                        duration: const Duration(milliseconds: 1000),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "Semester",
+                              style: TextStyle(
+                                fontFamily: 'Outfit',
+                                fontSize: 15,
+                                fontWeight: FontWeight.w400,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            DropdownButtonFormField<String>(
+                              value: _selectedSemester,
+                              style: const TextStyle(fontFamily: "Outfit", color: Colors.black),
+                              decoration: InputDecoration(
+                                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
+                                enabledBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(color: Colors.grey.shade400),
+                                ),
+                                border: OutlineInputBorder(
+                                  borderSide: BorderSide(color: Colors.grey.shade400),
+                                ),
+                              ),
+                              hint: const Text("Select Semester", style: TextStyle(fontFamily: "Outfit")),
+                              onChanged: (String? newValue) {
+                                setState(() {
+                                  _selectedSemester = newValue;
+                                });
+                              },
+                              items: _selectedYear == null
+                                  ? []
+                                  : semesterOptions[_selectedYear]!.map((String sem) {
+                                return DropdownMenuItem<String>(
+                                  value: sem,
+                                  child: Text(sem, style: const TextStyle(fontFamily: "Outfit")),
+                                );
+                              }).toList(),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      FadeInUp(
+                        duration: const Duration(milliseconds: 1000),
+                        child: makeInput(
+                          label: "Email",
+                          controller: _emailController,
+                          hintText: "Enter Your Email",
+                        ),
+                      ),
+                      FadeInUp(
+                        duration: const Duration(milliseconds: 1000),
+                        child: PasswordField(
+                          controller: _passwordController,
+                          labelText: "Password",
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
                 FadeInUp(
                   duration: const Duration(milliseconds: 1000),
-                  child: const Text(
-                    "Login",
-                    style: TextStyle(
-                      fontFamily: 'Outfit',
-                      fontSize: 40,
-                      fontWeight: FontWeight.bold,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 40),
+                    child: Container(
+                      padding: const EdgeInsets.only(top: 3, left: 3),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(50),
+                        border: const Border(
+                          bottom: BorderSide(color: Colors.black),
+                          top: BorderSide(color: Colors.black),
+                          left: BorderSide(color: Colors.black),
+                          right: BorderSide(color: Colors.black),
+                        ),
+                      ),
+                      child: MaterialButton(
+                        minWidth: double.infinity,
+                        height: 60,
+                        onPressed: () {
+                          signInStudent();
+                        },
+                        color: Colors.greenAccent,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(50),
+                        ),
+                        child: const Text(
+                          "Login",
+                          style: TextStyle(
+                            fontFamily: 'Outfit',
+                            fontWeight: FontWeight.w600,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 20),
                 FadeInUp(
                   duration: const Duration(milliseconds: 1000),
-                  child: Text(
-                    "Login to your Student account",
-                    style: TextStyle(
-                      fontFamily: 'Outfit',
-                      fontSize: 15,
-                      color: Colors.grey[700],
+                  child: Transform.translate(
+                    offset: const Offset(0, -35),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                          child: TextButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const ForgotPassword(),
+                                ),
+                              );
+                            },
+                            child: const Text(
+                              "Forgot Your Password?",
+                              style: TextStyle(
+                                fontFamily: 'Outfit',
+                                fontWeight: FontWeight.w600,
+                                fontSize: 15,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                FadeInUp(
+                  duration: const Duration(milliseconds: 1000),
+                  child: Transform.translate(
+                    offset: const Offset(0, -36),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 10),
+                          child: Text(
+                            "Don't Have an Account?",
+                            style: TextStyle(
+                              fontFamily: 'Outfit',
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          child: TextButton(
+                            onPressed: () {
+                              _navigateToStudentRegister(context);
+                            },
+                            child: const Text(
+                              " SignUp",
+                              style: TextStyle(
+                                fontFamily: 'Outfit',
+                                fontWeight: FontWeight.w600,
+                                fontSize: 18,
+                                color: Colors.blue,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
               ],
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 40),
-              child: Column(
-                children: <Widget>[
-                  // Year Dropdown
-                  FadeInUp(
-                    duration: const Duration(milliseconds: 1000),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          "Year",
-                          style: TextStyle(
-                            fontFamily: 'Outfit',
-                            fontSize: 15,
-                            fontWeight: FontWeight.w400,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        const SizedBox(height: 5),
-                        DropdownButtonFormField<String>(
-                          value: _selectedYear,
-                          style: TextStyle(fontFamily: "Outfit",color: Colors.black),
-                          decoration: InputDecoration(
-                            contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
-                            enabledBorder: OutlineInputBorder(
-                              borderSide: BorderSide(color: Colors.grey.shade400),
-                            ),
-                            border: OutlineInputBorder(
-                              borderSide: BorderSide(color: Colors.grey.shade400),
-                            ),
-                          ),
-                          hint: const Text("Select Year", style: TextStyle(fontFamily: "Outfit")),
-                          onChanged: (String? newValue) {
-                            setState(() {
-                              _selectedYear = newValue;
-                              // Reset semester when year changes
-                              _selectedSemester = null;
-                            });
-                          },
-                          items: ["BE", "TE", "SE"].map((String year) {
-                            return DropdownMenuItem<String>(
-                              value: year,
-                              child: Text(year, style: const TextStyle(fontFamily: "Outfit")),
-                            );
-                          }).toList(),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20,),
-
-                  // Semester Dropdown (dependent on Year)
-                  FadeInUp(
-                    duration: const Duration(milliseconds: 1000),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          "Semester",
-                          style: TextStyle(
-                            fontFamily: 'Outfit',
-                            fontSize: 15,
-                            fontWeight: FontWeight.w400,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        const SizedBox(height: 5),
-                        DropdownButtonFormField<String>(
-                          value: _selectedSemester,
-                          style: TextStyle(fontFamily: "Outfit",color: Colors.black),
-                          decoration: InputDecoration(
-                            contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
-                            enabledBorder: OutlineInputBorder(
-                              borderSide: BorderSide(color: Colors.grey.shade400),
-                            ),
-                            border: OutlineInputBorder(
-                              borderSide: BorderSide(color: Colors.grey.shade400),
-                            ),
-                          ),
-                          hint: const Text("Select Semester", style: TextStyle(fontFamily: "Outfit")),
-                          onChanged: (String? newValue) {
-                            setState(() {
-                              _selectedSemester = newValue;
-                            });
-                          },
-                          items: _selectedYear == null
-                              ? []
-                              : semesterOptions[_selectedYear]!.map((String sem) {
-                            return DropdownMenuItem<String>(
-                              value: sem,
-                              child: Text(sem, style: const TextStyle(fontFamily: "Outfit")),
-                            );
-                          }).toList(),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20,),
-                  FadeInUp(
-                    duration: const Duration(milliseconds: 1000),
-                    child: makeInput(
-                      label: "Email",
-                      controller: _emailController,
-                      hintText: "Enter Your Email",
-                    ),
-                  ),
-                  FadeInUp(
-                    duration: const Duration(milliseconds: 1000),
-                    child: PasswordField(
-                      controller: _passwordController,
-                      labelText: "Password",
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            FadeInUp(
-              duration: const Duration(milliseconds: 1000),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 40),
-                child: Container(
-                  padding: const EdgeInsets.only(top: 3, left: 3),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(50),
-                    border: const Border(
-                      bottom: BorderSide(color: Colors.black),
-                      top: BorderSide(color: Colors.black),
-                      left: BorderSide(color: Colors.black),
-                      right: BorderSide(color: Colors.black),
-                    ),
-                  ),
-                  child: MaterialButton(
-                    minWidth: double.infinity,
-                    height: 60,
-                    onPressed: () {
-                      signInStudent();
-                    },
-                    color: Colors.greenAccent,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(50),
-                    ),
-                    child: const Text(
-                      "Login",
-                      style: TextStyle(
-                        fontFamily: 'Outfit',
-                        fontWeight: FontWeight.w600,
-                        fontSize: 18,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            FadeInUp(
-              duration: const Duration(milliseconds: 1000),
-              child: Transform.translate(
-                offset: const Offset(0, -35),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                      child: TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const ForgotPassword(),
-                            ),
-                          );
-                        },
-                        child: const Text(
-                          "Forgot Your Password?",
-                          style: TextStyle(
-                            fontFamily: 'Outfit',
-                            fontWeight: FontWeight.w600,
-                            fontSize: 15,
-                            color: Colors.black,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            FadeInUp(
-              duration: const Duration(milliseconds: 1000),
-              child: Transform.translate(
-                offset: const Offset(0, -36),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 10),
-                      child: Text(
-                        "Don't Have an Account?",
-                        style: TextStyle(
-                          fontFamily: 'Outfit',
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      child: TextButton(
-                        onPressed: () {
-                          _navigateToStudentRegister(context);
-                        },
-                        child: const Text(
-                          " SignUp",
-                          style: TextStyle(
-                            fontFamily: 'Outfit',
-                            fontWeight: FontWeight.w600,
-                            fontSize: 18,
-                            color: Colors.blue,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 

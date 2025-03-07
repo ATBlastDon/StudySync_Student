@@ -17,6 +17,7 @@ import 'package:studysync_student/Screens/Lecture/dloc.dart';
 import 'package:studysync_student/Screens/Marks/marks_home.dart';
 import 'package:studysync_student/Screens/NoticeBoard/noticeboard.dart';
 import 'package:studysync_student/Screens/Security/privacysecurity.dart';
+import 'package:studysync_student/Screens/StudentHome/missing_screen.dart';
 import 'package:studysync_student/Screens/StudentHome/student_content.dart';
 import 'package:studysync_student/Screens/StudentHome/studentprofile.dart';
 import 'package:studysync_student/Screens/StudentHome/teacher_content.dart';
@@ -103,8 +104,7 @@ class _StudentInternalState extends State<StudentInternal> {
       if (querySnapshot.docs.isNotEmpty) {
         final userData = querySnapshot.docs.first.data();
         setState(() {
-          _userFullName =
-          '${userData['fname']} ${userData['mname'] ?? ''} ${userData['sname'] ?? ''}';
+          _userFullName = '${userData['fname']} ${userData['mname'] ?? ''} ${userData['sname'] ?? ''}';
           _userProfilePhotoUrl = userData['profilePhotoUrl'];
           _userEmail = userData['email'];
           _userRollNo = userData['rollNo'];
@@ -112,53 +112,53 @@ class _StudentInternalState extends State<StudentInternal> {
           _userMentor = userData['mentor'];
         });
 
+        List<String> missingReq = [];
+        if (_userBatch == "none") missingReq.add('batch');
+        if (_userMentor == "none") missingReq.add('mentor');
+
+        if (widget.year != "SE" && _userRollNo != null) {
+          bool isDLOCFilled = await checkDLOCFilled();
+          if (!isDLOCFilled) {
+            missingReq.add('dloc');
+          }
+        }
+
+        if (missingReq.isNotEmpty && mounted) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => MissingRequirementsScreen(
+                  missingRequirements: missingReq,
+                  year: widget.year,
+                  sem: widget.sem,
+                  rollNo: _userRollNo!,
+                  batch: _userBatch!,
+                  studentEmail: _email,
+                  onRequirementsUpdated: () {
+                    fetchUserData();
+                  },
+                ),
+              ),
+            );
+          });
+        }
+
         if (_userRollNo != null) {
           fetchAttendanceInfo();
         }
-        if (_userRollNo != null && widget.year != "SE") {
-          fetchDLOCInfo();
-        }
-
-        if(!mounted) return;
-        if (_userBatch == "none") {
-          _showBatchRequiredDialog(context);
-          await Future.delayed(const Duration(seconds: 1)); // 1 second delay
-        }
-
-        if(!mounted) return;
-        if (_userMentor == "none") {
-          _showMentorDialog(context);
-          await Future.delayed(const Duration(seconds: 1)); // 1 second delay
-        }
 
       } else {
-        Fluttertoast.showToast(
-          msg: 'User Not Found in Database',
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.CENTER,
-          timeInSecForIosWeb: 1,
-          backgroundColor: Colors.red,
-          textColor: Colors.white,
-          fontSize: 16.0,
-        );
+        Fluttertoast.showToast(msg: 'User Not Found in Database');
       }
     } catch (error) {
-      Fluttertoast.showToast(
-        msg: 'Error occurred: $error',
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.CENTER,
-        timeInSecForIosWeb: 1,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-        fontSize: 16.0,
-      );
+      Fluttertoast.showToast(msg: 'Error occurred: $error');
     }
   }
 
-  Future<void> fetchDLOCInfo() async {
+  Future<bool> checkDLOCFilled() async {
     try {
-      DocumentSnapshot<Map<String, dynamic>> documentSnapshot =
-      await FirebaseFirestore.instance
+      DocumentSnapshot<Map<String, dynamic>> doc = await FirebaseFirestore.instance
           .collection('students')
           .doc(widget.year)
           .collection(widget.sem)
@@ -167,25 +167,12 @@ class _StudentInternalState extends State<StudentInternal> {
           .doc(widget.sem)
           .get();
 
-      if (!documentSnapshot.exists ||
-          documentSnapshot.data() == null ||
-          documentSnapshot.data()!.isEmpty) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _showDLOCRequiredDialog(context);
-        });
-      }
+      return doc.exists && doc.data() != null && doc.data()!.isNotEmpty;
     } catch (e) {
-      Fluttertoast.showToast(
-        msg: 'Error occurred: $e',
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.CENTER,
-        timeInSecForIosWeb: 1,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-        fontSize: 16.0,
-      );
+      return false;
     }
   }
+
 
   Future<void> fetchAttendanceInfo() async {
     try {
@@ -227,377 +214,113 @@ class _StudentInternalState extends State<StudentInternal> {
     }
   }
 
-  Future<void> _showDLOCRequiredDialog(BuildContext context) async {
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(25.0),
-          ),
-          elevation: 0,
-          backgroundColor: Colors.transparent,
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(
-              padding: const EdgeInsets.all(25),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(25),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.3),
-                  width: 1.5,
-                ),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.menu_book, // Your icon
-                    size: 50,
-                    color: Colors.yellowAccent,
-                  ),
-                  const SizedBox(height: 15),
-                  const Text(
-                    "Optional Subject Required",
-                    style: TextStyle(
-                      fontFamily: 'Outfit',
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
-                  ),
-                  const SizedBox(height: 15),
-                  const Text(
-                    "Please fill in your Optional Subject information in your profile.",
-                    style: TextStyle(
-                      fontFamily: 'Outfit',
-                      fontSize: 16,
-                      color: Colors.black,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 20),
-                  TextButton(
-                    style: TextButton.styleFrom(
-                      backgroundColor: Colors.white.withValues(alpha: 0.3),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 30, vertical: 12),
-                    ),
-                    child: const Text(
-                      "Go to Fill the Information",
-                      style: TextStyle(
-                        fontFamily: 'Outfit',
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => SelectionSubjects(
-                            year: widget.year,
-                            sem: widget.sem,
-                            rollNo: _userRollNo!,
-                            batch: _userBatch!,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
 
   void _showAttendanceRequiredDialog(BuildContext context, double overall) {
     showDialog(
       context: context,
-      barrierDismissible: false, // Prevent dismissing by tapping outside
       builder: (BuildContext context) {
-        return Dialog(
+        return AlertDialog(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(25.0),
+            borderRadius: BorderRadius.circular(20.0),
           ),
-          elevation: 0,
-          backgroundColor: Colors.transparent,
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(
-              padding: const EdgeInsets.all(25),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(25),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.3),
-                  width: 1.5,
-                ),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.warning_amber_rounded, // You can change the icon
-                    size: 50,
-                    color: Colors.red,
+          elevation: 10,
+          backgroundColor: Colors.white,
+          icon: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.orange.shade50,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.warning_amber_rounded,
+              size: 50,
+              color: Colors.orange.shade800,
+            ),
+          ),
+          title:  Text('Attendance Alert !',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: 'Outfit',
+                fontWeight: FontWeight.w700,
+                fontSize: 28,
+                color: Colors.red.shade500,
+              )
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              RichText(
+                textAlign: TextAlign.center,
+                text: TextSpan(
+                  style: const TextStyle(
+                    fontFamily: 'Outfit',
+                    fontSize: 16,
+                    color: Colors.black87,
+                    height: 1.4,
                   ),
-                  const SizedBox(height: 15),
-                  Text(
-                    "Low Attendance Alert!",
-                    style: TextStyle(
-                      fontFamily: 'Outfit',
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
+                  children: [
+                    const TextSpan(
+                      text: 'Your current attendance is\n',
                     ),
-                  ),
-                  const SizedBox(height: 15),
-                  RichText(
-                    textAlign: TextAlign.center,
-                    text: TextSpan(
+                    TextSpan(
+                      text: '${overall.toStringAsFixed(1)}%',
                       style: const TextStyle(
-                        fontFamily: 'Outfit',
-                        fontSize: 16,
-                        color: Colors.black,
-                      ),
-                      children: [
-                        const TextSpan(
-                          text: "Your overall attendance is ",
-                        ),
-                        TextSpan(
-                          text: "${overall.toStringAsFixed(1)}%",
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        const TextSpan(
-                          text: " which is below 75%.",
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  TextButton(
-                    style: TextButton.styleFrom(
-                      backgroundColor: Colors.white.withValues(alpha: 0.3),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 30, vertical: 12),
-                    ),
-                    child: const Text(
-                      "Okay",
-                      style: TextStyle(
-                        fontFamily: 'Outfit',
-                        color: Colors.black,
                         fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                        color: Colors.red,
                       ),
                     ),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                  ),
-                ],
+                    const TextSpan(
+                      text: '\nwhich is below the required 75%',
+                    ),
+                  ],
+                ),
               ),
-            ),
+              const SizedBox(height: 15),
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 15),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Text(
+                  'Please improve your attendance',
+                  style: TextStyle(
+                    fontFamily: 'Outfit',
+                    fontWeight: FontWeight.w500,
+                    color: Colors.orange,
+                  ),
+                ),
+              ),
+            ],
           ),
+          actionsAlignment: MainAxisAlignment.center,
+          actions: <Widget>[
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                elevation: 2,
+              ),
+              child: const Text('Understood',
+                  style: TextStyle(
+                    fontFamily: 'Outfit',
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white,
+                  )),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
         );
       },
     );
   }
 
-  void _showMentorDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(25.0),
-          ),
-          elevation: 0,
-          backgroundColor: Colors.transparent,
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(
-              padding: const EdgeInsets.all(25),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(25),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.3),
-                  width: 1.5,
-                ),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.assignment_ind,
-                    size: 50,
-                    color: Colors.yellowAccent,
-                  ),
-                  const SizedBox(height: 15),
-                  const Text(
-                    "Mentor Selection Required",
-                    style: TextStyle(
-                      fontFamily: 'Outfit',
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
-                  ),
-                  const SizedBox(height: 15),
-                  const Text(
-                    "Please fill in your Mentor information in your profile.",
-                    style: TextStyle(
-                      fontFamily: 'Outfit',
-                      fontSize: 16,
-                      color: Colors.black,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 20),
-                  TextButton(
-                    style: TextButton.styleFrom(
-                      backgroundColor: Colors.white.withValues(alpha: 0.3),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 30, vertical: 12),
-                    ),
-                    child: const Text(
-                      "Go to Fill the Information",
-                      style: TextStyle(
-                        fontFamily: 'Outfit',
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => StudentProfile(
-                            studentmail: _email,
-                            studentyear: widget.year,
-                            sem: widget.sem,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _showBatchRequiredDialog(BuildContext context) async {
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(25.0),
-          ),
-          elevation: 0,
-          backgroundColor: Colors.transparent,
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(
-              padding: const EdgeInsets.all(25),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(25),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.3),
-                  width: 1.5,
-                ),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.group, // Changed icon
-                    size: 50,
-                    color: Colors.yellowAccent,
-                  ),
-                  const SizedBox(height: 15),
-                  const Text(
-                    "Batch Information Required", // Changed title
-                    style: TextStyle(
-                      fontFamily: 'Outfit',
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
-                  ),
-                  const SizedBox(height: 15),
-                  const Text(
-                    "Please fill in your batch information in your profile.", // Changed message
-                    style: TextStyle(
-                      fontFamily: 'Outfit',
-                      fontSize: 16,
-                      color: Colors.black,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 20),
-                  TextButton(
-                    style: TextButton.styleFrom(
-                      backgroundColor: Colors.white.withValues(alpha: 0.3),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15), // Slightly smaller button radius
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 30, vertical: 12),
-                    ),
-                    child: const Text(
-                      "Go to Fill the Information", // Changed button text
-                      style: TextStyle(
-                        fontFamily: 'Outfit',
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => StudentProfile(
-                            studentmail: _email,
-                            studentyear: widget.year,
-                            sem: widget.sem,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -867,8 +590,7 @@ class _StudentInternalState extends State<StudentInternal> {
                       builder: (context) => PrivacySettingsScreen(
                         year: widget.year,
                         rollNo: _userRollNo!,
-                        sem: widget.sem,
-                      ),
+                        sem: widget.sem,),
                     ),
                   );
                 },
@@ -920,7 +642,7 @@ class _StudentInternalState extends State<StudentInternal> {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.circular(0),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -1086,8 +808,7 @@ class _StudentInternalState extends State<StudentInternal> {
   }
 }
 
-void _openAttendanceAnnouncement(BuildContext context, String year,
-    String rollNo, String sem, String batch, String fullName) {
+void _openAttendanceAnnouncement(BuildContext context, String year,String rollNo, String sem, String batch, String fullName) {
   Navigator.push(
     context,
     MaterialPageRoute(

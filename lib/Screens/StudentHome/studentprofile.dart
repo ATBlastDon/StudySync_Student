@@ -595,7 +595,7 @@ class _StudentProfileState extends State<StudentProfile> {
             ),
           ),
           child: isLoading
-              ? const Center(child: CircularProgressIndicator())
+              ? const Center(child: CircularProgressIndicator(color: Colors.black))
               : studentData == null
               ? const Center(child: Text("No student data available", style: TextStyle(fontFamily: "Outfit")))
               : Padding(
@@ -817,6 +817,7 @@ class _StudentProfileState extends State<StudentProfile> {
                               value: batches.contains(selectedBatch ?? batchController.text)
                                   ? selectedBatch ?? batchController.text
                                   : null,
+                              hint: const Text("Select Batch", style: TextStyle(fontFamily: "Outfit")),
                               decoration: InputDecoration(
                                 labelText: "Batch",
                                 labelStyle: TextStyle(fontFamily: "Outfit"),
@@ -890,10 +891,8 @@ class _StudentProfileState extends State<StudentProfile> {
                         children: [
                           Expanded(
                             child: DropdownButtonFormField<Map<String, String>>(
-                              value: teachers.firstWhere(
-                                    (t) => t['fullName'] == mentorController.text,
-                                orElse: () => teachers.first,
-                              ),
+                              value: selectedMentor,
+                              hint: const Text("Select Mentor", style: TextStyle(fontFamily: "Outfit")),
                               decoration: InputDecoration(
                                 labelText: "Mentor",
                                 labelStyle: TextStyle(fontFamily: "Outfit"),
