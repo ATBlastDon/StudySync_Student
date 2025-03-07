@@ -113,8 +113,16 @@ class _StudentInternalState extends State<StudentInternal> {
         });
 
         List<String> missingReq = [];
-        if (_userBatch == "none") missingReq.add('batch');
-        if (_userMentor == "none") missingReq.add('mentor');
+        if (userData['batch'] == null ||
+            userData['batch'].toString().trim().isEmpty ||
+            userData['batch'] == "none") {
+          missingReq.add('batch');
+        }
+        if (userData['mentor'] == null ||
+            userData['mentor'].toString().trim().isEmpty ||
+            userData['mentor'] == "none") {
+          missingReq.add('mentor');
+        }
 
         if (widget.year != "SE" && _userRollNo != null) {
           bool isDLOCFilled = await checkDLOCFilled();
@@ -124,6 +132,7 @@ class _StudentInternalState extends State<StudentInternal> {
         }
 
         if (missingReq.isNotEmpty && mounted) {
+          // Missing profile data exists.
           WidgetsBinding.instance.addPostFrameCallback((_) {
             Navigator.push(
               context,
@@ -136,18 +145,24 @@ class _StudentInternalState extends State<StudentInternal> {
                   batch: _userBatch!,
                   studentEmail: _email,
                   onRequirementsUpdated: () {
+                    // Refresh user data after updates.
                     fetchUserData();
                   },
                 ),
               ),
-            );
+            ).then((_) {
+              // Once MissingRequirementsScreen is popped, call fetchAttendanceInfo.
+              if (_userRollNo != null) {
+                fetchAttendanceInfo();
+              }
+            });
           });
+        } else {
+          // No missing requirements – trigger attendance check immediately.
+          if (_userRollNo != null) {
+            fetchAttendanceInfo();
+          }
         }
-
-        if (_userRollNo != null) {
-          fetchAttendanceInfo();
-        }
-
       } else {
         Fluttertoast.showToast(msg: 'User Not Found in Database');
       }

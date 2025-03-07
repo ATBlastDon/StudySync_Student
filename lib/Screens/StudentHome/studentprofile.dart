@@ -572,6 +572,10 @@ class _StudentProfileState extends State<StudentProfile> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
         centerTitle: true,
         title: FadeInDown(
           duration: const Duration(milliseconds: 500),
@@ -774,6 +778,7 @@ class _StudentProfileState extends State<StudentProfile> {
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
                         ),
                       ),
                     ),
@@ -818,6 +823,7 @@ class _StudentProfileState extends State<StudentProfile> {
                                   ? selectedBatch ?? batchController.text
                                   : null,
                               hint: const Text("Select Batch", style: TextStyle(fontFamily: "Outfit")),
+                              style: TextStyle(fontFamily: "Outfit", color: Colors.black),
                               decoration: InputDecoration(
                                 labelText: "Batch",
                                 labelStyle: TextStyle(fontFamily: "Outfit"),
@@ -876,6 +882,7 @@ class _StudentProfileState extends State<StudentProfile> {
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
                         ),
                       ),
                     ),
@@ -893,6 +900,7 @@ class _StudentProfileState extends State<StudentProfile> {
                             child: DropdownButtonFormField<Map<String, String>>(
                               value: selectedMentor,
                               hint: const Text("Select Mentor", style: TextStyle(fontFamily: "Outfit")),
+                              style: TextStyle(fontFamily: "Outfit", color: Colors.black),
                               decoration: InputDecoration(
                                 labelText: "Mentor",
                                 labelStyle: TextStyle(fontFamily: "Outfit"),
@@ -939,6 +947,7 @@ class _StudentProfileState extends State<StudentProfile> {
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
                         ),
                       ),
                     ),

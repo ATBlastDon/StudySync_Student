@@ -8,13 +8,13 @@ import 'package:studysync_student/Screens/StudentHome/studentprofile.dart';
 import 'package:studysync_student/Screens/Lecture/dloc.dart';
 
 class MissingRequirementsScreen extends StatefulWidget {
-  final List<String> missingRequirements;
   final String year;
   final String sem;
   final String rollNo;
   final String batch;
   final String studentEmail;
   final VoidCallback? onRequirementsUpdated;
+  final List<String> missingRequirements;
 
   const MissingRequirementsScreen({
     super.key,
@@ -28,7 +28,8 @@ class MissingRequirementsScreen extends StatefulWidget {
   });
 
   @override
-  State<MissingRequirementsScreen> createState() => _MissingRequirementsScreenState();
+  State<MissingRequirementsScreen> createState() =>
+      _MissingRequirementsScreenState();
 }
 
 class _MissingRequirementsScreenState extends State<MissingRequirementsScreen> {
@@ -36,61 +37,83 @@ class _MissingRequirementsScreenState extends State<MissingRequirementsScreen> {
   final Color _accentColor = const Color(0xFF00C9A7);
   final Color _darkColor = const Color(0xFF0F4C75);
   final Color _successColor = const Color(0xFF4CAF50);
-  bool _hasOptionalSubjects = false;
 
-  late List<String> _remainingRequirements;
-  Timer? _optionalSubjectsTimer;
+  /// This list is recalculated based on Firestore data.
+  List<String> _remainingRequirements = [];
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     _remainingRequirements = List.from(widget.missingRequirements);
-    // Check initially and then refresh every 5 seconds
-    _refreshOptionalSubjects();
-    _optionalSubjectsTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      _refreshOptionalSubjects();
-    });
+    // Check initially and then refresh every 5 seconds.
+    _refreshMissingRequirements();
+    _refreshTimer =
+        Timer.periodic(const Duration(seconds: 5), (timer) {
+          _refreshMissingRequirements();
+        });
   }
 
   @override
   void dispose() {
-    _optionalSubjectsTimer?.cancel();
+    _refreshTimer?.cancel();
     super.dispose();
   }
 
-  /// Simply checks if the optional_subjects collection exists by querying for any document.
-  Future<bool> checkOptionalSubjects(String year, String sem, String rollNo) async {
+  /// Fetch the student's document from Firestore and calculate which requirements are still missing.
+  Future<void> _refreshMissingRequirements() async {
+    try {
+      DocumentSnapshot<Map<String, dynamic>> doc = await FirebaseFirestore.instance
+          .collection('students')
+          .doc(widget.year)
+          .collection(widget.sem)
+          .doc(widget.rollNo)
+          .get();
+
+      List<String> missingReq = [];
+      if (doc.exists) {
+        final data = doc.data()!;
+        // Check batch more robustly.
+        if (data['batch'] == null ||
+            data['batch'].toString().trim().isEmpty ||
+            data['batch'] == "none") {
+          missingReq.add('batch');
+        }
+        // Check mentor more robustly.
+        if (data['mentor'] == null ||
+            data['mentor'].toString().trim().isEmpty ||
+            data['mentor'] == "none") {
+          missingReq.add('mentor');
+        }
+        // For non-SE years, check if optional subjects (dloc) are filled.
+        if (widget.year != "SE") {
+          bool hasDloc = await _checkOptionalSubjects(widget.year, widget.sem, widget.rollNo);
+          if (!hasDloc) missingReq.add('dloc');
+        }
+      }
+      setState(() {
+        _remainingRequirements = missingReq;
+      });
+
+      // If all tasks are complete and the dialog hasn't been shown yet...
+    } catch (e) {
+      Fluttertoast.showToast(msg: "Error refreshing requirements: $e");
+    }
+  }
+
+  /// Checks if the optional_subjects collection exists by querying for any document.
+  Future<bool> _checkOptionalSubjects(String year, String sem, String rollNo) async {
     try {
       final collectionPath = 'students/$year/$sem/$rollNo/optional_subjects';
-      final querySnapshot = await FirebaseFirestore.instance
-          .collection(collectionPath)
-          .limit(1)
-          .get();
+      final querySnapshot =
+      await FirebaseFirestore.instance.collection(collectionPath).limit(1).get();
       return querySnapshot.docs.isNotEmpty;
     } catch (e) {
-      Fluttertoast.showToast(msg:"$e");
+      Fluttertoast.showToast(msg: "$e");
       return false;
     }
   }
 
-  /// Refresh the _hasOptionalSubjects flag and update _remainingRequirements accordingly.
-  Future<void> _refreshOptionalSubjects() async {
-    bool hasSubjects = await checkOptionalSubjects(widget.year, widget.sem, widget.rollNo);
-    setState(() {
-      _hasOptionalSubjects = hasSubjects;
-      // Reset remaining requirements based on the widget’s requirements.
-      _remainingRequirements = List.from(widget.missingRequirements);
-      // If the optional_subjects collection exists, remove the "dloc" requirement.
-      if (_hasOptionalSubjects) {
-        _remainingRequirements.removeWhere((req) => req == 'dloc');
-      } else {
-        // Optionally ensure "dloc" is in the list if not complete.
-        if (!_remainingRequirements.contains('dloc')) {
-          _remainingRequirements.add('dloc');
-        }
-      }
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -129,9 +152,14 @@ class _MissingRequirementsScreenState extends State<MissingRequirementsScreen> {
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(20),
-              child: _remainingRequirements.isEmpty
-                  ? _buildCompletionCelebration()
-                  : _buildModernTaskGrid(),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 500),
+                switchInCurve: Curves.easeIn,
+                switchOutCurve: Curves.easeOut,
+                child: _remainingRequirements.isEmpty
+                    ? _buildCompletionCelebration(key: const ValueKey("complete"))
+                    : _buildModernTaskGrid(key: const ValueKey("grid")),
+              ),
             ),
           ),
         ],
@@ -155,6 +183,7 @@ class _MissingRequirementsScreenState extends State<MissingRequirementsScreen> {
         ],
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           SlideInLeft(
             child: Text(
@@ -212,14 +241,83 @@ class _MissingRequirementsScreenState extends State<MissingRequirementsScreen> {
     );
   }
 
-  Widget _buildModernTaskGrid() {
+  Widget _buildModernTaskGrid({Key? key}) {
     return GridView.count(
+      key: key,
       crossAxisCount: 2,
-      childAspectRatio: 0.85,
+      childAspectRatio: 0.7,
       padding: const EdgeInsets.symmetric(horizontal: 10),
       children: List.generate(
         _remainingRequirements.length,
             (index) => _buildModernTaskCard(_remainingRequirements[index], index),
+      ),
+    );
+  }
+
+  Widget _buildCompletionCelebration({Key? key}) {
+    return ZoomIn(
+      key: key,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Profile Complete!',
+            style: TextStyle(
+              fontFamily: 'Outfit',
+              fontSize: 24,
+              color: _darkColor,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 40),
+            child: Text(
+              'You’re all set to explore StudySync’s full features!',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: 'Outfit',
+                fontSize: 16,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          ElasticIn(
+            child: ElevatedButton.icon(
+              icon: const Icon(
+                Icons.rocket_launch_rounded,
+                color: Colors.black,
+              ),
+              label: const Text(
+                'Get Started',
+                style: TextStyle(
+                    fontFamily: "Outfit", fontWeight: FontWeight.bold),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _accentColor,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 30, vertical: 15),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => StudentInternal(
+                      year: widget.year,
+                      sem: widget.sem,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -255,61 +353,69 @@ class _MissingRequirementsScreenState extends State<MissingRequirementsScreen> {
             borderRadius: BorderRadius.circular(20),
             onTap: () => _handleFixRequirement(requirement),
             child: Padding(
-              padding: const EdgeInsets.all(15),
+              padding: const EdgeInsets.all(12),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(10),
+                        padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           color: _accentColor.withValues(alpha: 0.2),
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(requirementData.icon,
-                            color: _darkColor, size: 24),
-                      ),
-                      Icon(Icons.arrow_forward_ios_rounded,
-                          color: Colors.grey.shade400, size: 18),
-                    ],
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        requirementData.title,
-                        style: const TextStyle(
-                          fontFamily: 'Outfit',
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                        child: Icon(
+                          requirementData.icon,
+                          color: _darkColor,
+                          size: 20,
                         ),
                       ),
-                      const SizedBox(height: 5),
-                      Text(
-                        requirementData.description,
-                        style: TextStyle(
-                          fontFamily: 'Outfit',
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                      Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        color: Colors.grey.shade400,
+                        size: 16,
                       ),
                     ],
                   ),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Text(
-                      'Tap to complete →',
-                      style: TextStyle(
-                        fontFamily: 'Outfit',
-                        fontSize: 10,
-                        color: _accentColor,
-                        fontWeight: FontWeight.w500,
+                  const SizedBox(height: 6),
+                  Text(
+                    requirementData.title,
+                    style: const TextStyle(
+                      fontFamily: 'Outfit',
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    requirementData.description,
+                    style: TextStyle(
+                      fontFamily: 'Outfit',
+                      fontSize: 10,
+                      color: Colors.grey.shade600,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 6),
+                  Flexible(
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'Tap to complete →',
+                          style: TextStyle(
+                            fontFamily: 'Outfit',
+                            fontSize: 8,
+                            color: _accentColor,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -322,74 +428,22 @@ class _MissingRequirementsScreenState extends State<MissingRequirementsScreen> {
     );
   }
 
-  Widget _buildCompletionCelebration() {
-    return ZoomIn(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            'Profile Complete!',
-            style: TextStyle(
-              fontFamily: 'Outfit',
-              fontSize: 24,
-              color: _darkColor,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 40),
-            child: Text(
-              'You’re all set to explore StudySync’s full features!',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'Outfit',
-                fontSize: 16,
-                color: Colors.grey.shade600,
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          ElasticIn(
-            child: ElevatedButton.icon(
-              icon: const Icon(Icons.rocket_launch_rounded, color: Colors.black,),
-              label: const Text('Get Started',style: TextStyle(fontFamily: "Outfit", fontWeight: FontWeight.bold),),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _accentColor,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-              ),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => StudentInternal(
-                      year: widget.year,
-                      sem: widget.sem,
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   RequirementData _getRequirementData(String requirement) {
     switch (requirement) {
       case 'batch':
-        return RequirementData(Icons.group, 'Batch Information',
+        return RequirementData(
+            Icons.group,
+            'Batch Information',
             'Please set your academic batch to access class-specific features');
       case 'mentor':
-        return RequirementData(Icons.school, 'Mentor Assignment',
+        return RequirementData(
+            Icons.school,
+            'Mentor Assignment',
             'Select your faculty mentor for academic guidance');
       case 'dloc':
-        return RequirementData(Icons.menu_book, 'Optional Subjects',
+        return RequirementData(
+            Icons.menu_book,
+            'Optional Subjects',
             'Choose your department-level optional courses');
       default:
         return RequirementData(Icons.error, 'Unknown Requirement', '');
@@ -429,84 +483,11 @@ class _MissingRequirementsScreenState extends State<MissingRequirementsScreen> {
     }
   }
 
-  @override
-  void didUpdateWidget(covariant MissingRequirementsScreen oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.missingRequirements != oldWidget.missingRequirements) {
-      setState(() {
-        _remainingRequirements = List.from(widget.missingRequirements);
-      });
-      if (widget.missingRequirements.isEmpty) {
-        WidgetsBinding.instance.addPostFrameCallback((_) async {
-          await _showCompletionDialog();
-          if (mounted) Navigator.pop(context);
-        });
-      }
-    }
-  }
-
   void _handleFixRequirement(String requirement) async {
     final result = await _navigateToRequirementScreen(requirement);
     if (result == true && mounted) {
       widget.onRequirementsUpdated?.call();
     }
-  }
-
-  Future<void> _showCompletionDialog() async {
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => FadeInUp(
-        duration: const Duration(milliseconds: 500),
-        child: Dialog(
-          backgroundColor: _pageColor,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.check_circle, color: _successColor, size: 80),
-                const SizedBox(height: 20),
-                const Text(
-                  'All Set!',
-                  style: TextStyle(
-                    fontFamily: 'Outfit',
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  'Your profile is now complete!',
-                  style: TextStyle(
-                    fontFamily: 'Outfit',
-                    fontSize: 16,
-                    color: Colors.grey,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _successColor,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
-                  ),
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Continue',
-                      style: TextStyle(fontFamily: 'Outfit')),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }
 
