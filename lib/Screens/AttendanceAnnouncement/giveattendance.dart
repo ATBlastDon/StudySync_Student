@@ -50,10 +50,12 @@ class _GiveAttendanceState extends State<GiveAttendance> {
       // Compress the captured image.
       img.Image? originalImage = img.decodeImage(await imageFile.readAsBytes());
       if (originalImage == null) return;
+      originalImage = img.flipHorizontal(originalImage);
 
       img.Image resizedImage = img.copyResize(originalImage, width: 800);
       List<int> compressedBytes = img.encodeJpg(resizedImage, quality: 85);
       File compressedImageFile = await imageFile.writeAsBytes(compressedBytes);
+
 
       _showDetailsPopup(compressedImageFile);
     }
