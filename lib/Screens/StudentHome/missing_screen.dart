@@ -3,7 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:studysync_student/Screens/StudentHome/studentinternal.dart';
 import 'package:studysync_student/Screens/StudentHome/studentprofile.dart';
 import 'package:studysync_student/Screens/Lecture/dloc.dart';
 
@@ -46,12 +45,11 @@ class _MissingRequirementsScreenState extends State<MissingRequirementsScreen> {
   void initState() {
     super.initState();
     _remainingRequirements = List.from(widget.missingRequirements);
-    // Check initially and then refresh every 5 seconds.
+    // Initially refresh missing requirements.
     _refreshMissingRequirements();
+    // Refresh missing requirements periodically every 5 seconds.
     _refreshTimer =
-        Timer.periodic(const Duration(seconds: 5), (timer) {
-          _refreshMissingRequirements();
-        });
+        Timer.periodic(const Duration(seconds: 5), (timer) => _refreshMissingRequirements());
   }
 
   @override
@@ -73,13 +71,13 @@ class _MissingRequirementsScreenState extends State<MissingRequirementsScreen> {
       List<String> missingReq = [];
       if (doc.exists) {
         final data = doc.data()!;
-        // Check batch more robustly.
+        // Check batch robustly.
         if (data['batch'] == null ||
             data['batch'].toString().trim().isEmpty ||
             data['batch'] == "none") {
           missingReq.add('batch');
         }
-        // Check mentor more robustly.
+        // Check mentor robustly.
         if (data['mentor'] == null ||
             data['mentor'].toString().trim().isEmpty ||
             data['mentor'] == "none") {
@@ -94,8 +92,6 @@ class _MissingRequirementsScreenState extends State<MissingRequirementsScreen> {
       setState(() {
         _remainingRequirements = missingReq;
       });
-
-      // If all tasks are complete and the dialog hasn't been shown yet...
     } catch (e) {
       Fluttertoast.showToast(msg: "Error refreshing requirements: $e");
     }
@@ -113,7 +109,6 @@ class _MissingRequirementsScreenState extends State<MissingRequirementsScreen> {
       return false;
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -254,6 +249,8 @@ class _MissingRequirementsScreenState extends State<MissingRequirementsScreen> {
     );
   }
 
+  /// When all missing tasks are complete, show the celebration UI.
+  /// The Get Started button now simply pops this screen.
   Widget _buildCompletionCelebration({Key? key}) {
     return ZoomIn(
       key: key,
@@ -298,22 +295,13 @@ class _MissingRequirementsScreenState extends State<MissingRequirementsScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: _accentColor,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 30, vertical: 15),
+                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(15),
                 ),
               ),
               onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => StudentInternal(
-                      year: widget.year,
-                      sem: widget.sem,
-                    ),
-                  ),
-                );
+                Navigator.pop(context);
               },
             ),
           ),

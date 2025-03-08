@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:studysync_student/AboutUs/aboutteam.dart';
 import 'package:studysync_student/Screens/AttendanceAnnouncement/announcement.dart';
 import 'package:studysync_student/Screens/AttendanceAnnouncement/faceregistration.dart';
@@ -23,6 +24,7 @@ import 'package:studysync_student/Screens/StudentHome/studentprofile.dart';
 import 'package:studysync_student/Screens/StudentHome/teacher_content.dart';
 import 'package:studysync_student/Screens/WebView/mywebview.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class StudentInternal extends StatefulWidget {
   final String year;
@@ -48,29 +50,41 @@ class _StudentInternalState extends State<StudentInternal> {
   bool _isConnected = true;
   late StreamSubscription<ConnectivityResult> _connectivitySubscription;
 
+  // Notification plugin instance
+  late FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
+
   @override
   void initState() {
     super.initState();
+
+    // Initialize connectivity
     Connectivity().checkConnectivity().then((result) {
-      // When running on platforms where result might be a List, handle it:
       final ConnectivityResult connectivityResult =
-      result.isNotEmpty
-          ? result.first
-          : result as ConnectivityResult;
+      result.isNotEmpty ? result.first : result as ConnectivityResult;
       setState(() {
         _isConnected = (connectivityResult != ConnectivityResult.none);
       });
     });
     _connectivitySubscription = Connectivity()
         .onConnectivityChanged
-        .map<ConnectivityResult>((result) {
-      // If the result is a List, extract the first element.
-      return result.isNotEmpty ? result.first : ConnectivityResult.none;
-    }).listen((connectivityResult) {
+        .map<ConnectivityResult>((result) =>
+    result.isNotEmpty ? result.first : ConnectivityResult.none)
+        .listen((connectivityResult) {
       setState(() {
         _isConnected = (connectivityResult != ConnectivityResult.none);
       });
     });
+
+    // Initialize flutter_local_notifications
+    flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+    const AndroidInitializationSettings initializationSettingsAndroid =
+    AndroidInitializationSettings('@mipmap/ic_notification_icon');
+    const InitializationSettings initializationSettings =
+    InitializationSettings(android: initializationSettingsAndroid);
+    flutterLocalNotificationsPlugin.initialize(initializationSettings);
+
+    // Request notification permission using permission_handler
+    _requestNotificationPermission();
 
     fetchUserData();
   }
@@ -80,6 +94,17 @@ class _StudentInternalState extends State<StudentInternal> {
     _connectivitySubscription.cancel();
     super.dispose();
   }
+
+  /// Request notification permissions (Android 13+)
+  Future<void> _requestNotificationPermission() async {
+    final status = await Permission.notification.request();
+    if (status.isGranted) {
+      debugPrint('Notification permission granted');
+    } else {
+      debugPrint('Notification permission denied');
+    }
+  }
+
 
   Future<void> fetchUserData() async {
     User? user = FirebaseAuth.instance.currentUser;
@@ -104,7 +129,8 @@ class _StudentInternalState extends State<StudentInternal> {
       if (querySnapshot.docs.isNotEmpty) {
         final userData = querySnapshot.docs.first.data();
         setState(() {
-          _userFullName = '${userData['fname']} ${userData['mname'] ?? ''} ${userData['sname'] ?? ''}';
+          _userFullName =
+          '${userData['fname']} ${userData['mname'] ?? ''} ${userData['sname'] ?? ''}';
           _userProfilePhotoUrl = userData['profilePhotoUrl'];
           _userEmail = userData['email'];
           _userRollNo = userData['rollNo'];
@@ -132,7 +158,7 @@ class _StudentInternalState extends State<StudentInternal> {
         }
 
         if (missingReq.isNotEmpty && mounted) {
-          // Missing profile data exists.
+          // If there are missing requirements, navigate to the MissingRequirementsScreen.
           WidgetsBinding.instance.addPostFrameCallback((_) {
             Navigator.push(
               context,
@@ -151,7 +177,7 @@ class _StudentInternalState extends State<StudentInternal> {
                 ),
               ),
             ).then((_) {
-              // Once MissingRequirementsScreen is popped, call fetchAttendanceInfo.
+              // Once the screen is popped, fetch attendance info.
               if (_userRollNo != null) {
                 fetchAttendanceInfo();
               }
@@ -173,7 +199,8 @@ class _StudentInternalState extends State<StudentInternal> {
 
   Future<bool> checkDLOCFilled() async {
     try {
-      DocumentSnapshot<Map<String, dynamic>> doc = await FirebaseFirestore.instance
+      DocumentSnapshot<Map<String, dynamic>> doc =
+      await FirebaseFirestore.instance
           .collection('students')
           .doc(widget.year)
           .collection(widget.sem)
@@ -188,10 +215,9 @@ class _StudentInternalState extends State<StudentInternal> {
     }
   }
 
-
   Future<void> fetchAttendanceInfo() async {
     try {
-      // First, check the global notification setting from Firestore.
+      // Check global notification setting.
       DocumentSnapshot<Map<String, dynamic>> notificationSnapshot =
       await FirebaseFirestore.instance
           .collection('students')
@@ -202,7 +228,7 @@ class _StudentInternalState extends State<StudentInternal> {
       // If notifications are not enabled, do nothing.
       if (!notificationEnabled) return;
 
-      // Now fetch the student's attendance record.
+      // Fetch the student's attendance record.
       DocumentSnapshot<Map<String, dynamic>> documentSnapshot =
       await FirebaseFirestore.instance
           .collection('students')
@@ -216,10 +242,10 @@ class _StudentInternalState extends State<StudentInternal> {
       final userData = documentSnapshot.data()!;
       final overall = userData['overall'] ?? 0.0;
 
-      // If overall attendance is less than 75.0, show the dialog.
-      if(!mounted) return;
+      if (!mounted) return;
+      // Instead of showing a dialog, send a notification if attendance is below 75%.
       if (overall < 75.0) {
-        _showAttendanceRequiredDialog(context, overall);
+        _showAttendanceNotification(overall);
       }
     } catch (e) {
       Fluttertoast.showToast(
@@ -229,113 +255,29 @@ class _StudentInternalState extends State<StudentInternal> {
     }
   }
 
+  Future<void> _showAttendanceNotification(double overall) async {
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+    AndroidNotificationDetails(
+      'attendance_channel',
+      'Attendance',
+      channelDescription: 'Notification channel for attendance alerts',
+      importance: Importance.max,
+      priority: Priority.high,
+      ticker: 'ticker',
+    );
+    const NotificationDetails platformChannelSpecifics =
+    NotificationDetails(android: androidPlatformChannelSpecifics);
 
-  void _showAttendanceRequiredDialog(BuildContext context, double overall) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20.0),
-          ),
-          elevation: 10,
-          backgroundColor: Colors.white,
-          icon: Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.orange.shade50,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.warning_amber_rounded,
-              size: 50,
-              color: Colors.orange.shade800,
-            ),
-          ),
-          title:  Text('Attendance Alert !',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'Outfit',
-                fontWeight: FontWeight.w700,
-                fontSize: 28,
-                color: Colors.red.shade500,
-              )
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              RichText(
-                textAlign: TextAlign.center,
-                text: TextSpan(
-                  style: const TextStyle(
-                    fontFamily: 'Outfit',
-                    fontSize: 16,
-                    color: Colors.black87,
-                    height: 1.4,
-                  ),
-                  children: [
-                    const TextSpan(
-                      text: 'Your current attendance is\n',
-                    ),
-                    TextSpan(
-                      text: '${overall.toStringAsFixed(1)}%',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
-                        color: Colors.red,
-                      ),
-                    ),
-                    const TextSpan(
-                      text: '\nwhich is below the required 75%',
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 15),
-              Container(
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 15),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Text(
-                  'Please improve your attendance',
-                  style: TextStyle(
-                    fontFamily: 'Outfit',
-                    fontWeight: FontWeight.w500,
-                    color: Colors.orange,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          actionsAlignment: MainAxisAlignment.center,
-          actions: <Widget>[
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                elevation: 2,
-              ),
-              child: const Text('Understood',
-                  style: TextStyle(
-                    fontFamily: 'Outfit',
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white,
-                  )),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
+    await flutterLocalNotificationsPlugin.show(
+      0,
+      'Attendance Alert!',
+      'Your current attendance is ${overall.toStringAsFixed(1)}% which is below the required 75%',
+      platformChannelSpecifics,
+      payload: 'attendance_alert',
     );
   }
 
+  // Removed the dialog-based attendance alert function
 
   @override
   Widget build(BuildContext context) {
@@ -344,7 +286,6 @@ class _StudentInternalState extends State<StudentInternal> {
         centerTitle: true,
         title: FadeInDown(
           duration: const Duration(milliseconds: 500),
-          // Conditionally show text or a loading indicator based on connectivity
           child: _isConnected
               ? const Text(
             'S T U D Y  S Y N C',
@@ -359,7 +300,8 @@ class _StudentInternalState extends State<StudentInternal> {
             width: 24,
             height: 24,
             child: CircularProgressIndicator(
-              color: Colors.black, strokeWidth: 3.0,
+              color: Colors.black,
+              strokeWidth: 3.0,
             ),
           ),
         ),
@@ -386,6 +328,7 @@ class _StudentInternalState extends State<StudentInternal> {
         ],
       ),
       drawer: Drawer(
+        backgroundColor: Colors.white,
         child: ListView(
           padding: EdgeInsets.zero,
           children: <Widget>[
@@ -605,7 +548,8 @@ class _StudentInternalState extends State<StudentInternal> {
                       builder: (context) => PrivacySettingsScreen(
                         year: widget.year,
                         rollNo: _userRollNo!,
-                        sem: widget.sem,),
+                        sem: widget.sem,
+                      ),
                     ),
                   );
                 },
@@ -621,8 +565,7 @@ class _StudentInternalState extends State<StudentInternal> {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                        builder: (context) => const AboutTeam()),
+                    MaterialPageRoute(builder: (context) => const AboutTeam()),
                   );
                 },
               ),
@@ -646,18 +589,19 @@ class _StudentInternalState extends State<StudentInternal> {
             ),
             child: Container(
               decoration: BoxDecoration(
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(0),
                 border: Border.all(color: Colors.black),
               ),
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
+                  gradient: const LinearGradient(
                     colors: [Colors.greenAccent, Colors.teal],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(0),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -675,8 +619,7 @@ class _StudentInternalState extends State<StudentInternal> {
                         ),
                         child: const Text(
                           'Students',
-                          style: TextStyle(
-                              fontFamily: 'Outfit', fontSize: 17),
+                          style: TextStyle(fontFamily: 'Outfit', fontSize: 17),
                         ),
                       ),
                     ),
@@ -693,8 +636,7 @@ class _StudentInternalState extends State<StudentInternal> {
                         ),
                         child: const Text(
                           'Teachers',
-                          style: TextStyle(
-                              fontFamily: 'Outfit', fontSize: 17),
+                          style: TextStyle(fontFamily: 'Outfit', fontSize: 17),
                         ),
                       ),
                     ),
@@ -823,7 +765,13 @@ class _StudentInternalState extends State<StudentInternal> {
   }
 }
 
-void _openAttendanceAnnouncement(BuildContext context, String year,String rollNo, String sem, String batch, String fullName) {
+void _openAttendanceAnnouncement(
+    BuildContext context,
+    String year,
+    String rollNo,
+    String sem,
+    String batch,
+    String fullName) {
   Navigator.push(
     context,
     MaterialPageRoute(
