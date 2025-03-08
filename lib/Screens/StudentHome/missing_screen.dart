@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:studysync_student/Screens/StudentHome/studentinternal.dart';
 import 'package:studysync_student/Screens/StudentHome/studentprofile.dart';
 import 'package:studysync_student/Screens/Lecture/dloc.dart';
 
@@ -301,7 +302,15 @@ class _MissingRequirementsScreenState extends State<MissingRequirementsScreen> {
                 ),
               ),
               onPressed: () {
-                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => StudentInternal(
+                      year: widget.year,
+                      sem: widget.sem,
+                    ),
+                  ),
+                );
               },
             ),
           ),
