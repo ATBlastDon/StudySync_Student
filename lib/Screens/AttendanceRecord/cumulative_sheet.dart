@@ -11,7 +11,7 @@ class CumulativeSheet extends StatefulWidget {
   final String rollNo;        // Single student's roll number
   final String fullName;
   final String batch;
-  /// Teacher‐selected subjects (a combined list of regular subjects and optional category keys)
+  /// Teacher‐selected subjects (a combined list of regular subjects and optional subject category keys)
   final List<String> selectedSubjects;
 
   const CumulativeSheet({
@@ -37,29 +37,8 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
   Map<String, String> studentOptionalSelections = {};
   bool isLoading = true;
 
-  // Mapping for optional subject categories (DLOC and ILOC)
-  final Map<String, Map<String, Map<String, List<String>>>> dlocOptions = {
-    'TE': {
-      '5': {
-        'DLOC1': ['Stats', 'IOT']
-      },
-      '6': {
-        'DLOC2': ['DC', 'IVP']
-      }
-    },
-    'BE': {
-      '7': {
-        'DLOC3': ['AI For Healthcare', 'NLP', 'NNFS'],
-        'DLOC4': ['UX Design with VR', 'BC', 'GT'],
-        'ILOC1': ['PLM', 'RE', 'MIS', 'DOE', 'OR', 'CSL', 'DMMM', 'EAM', 'DE'],
-      },
-      '8': {
-        'DLOC5': ['AI for FBA', 'RL', 'QC'],
-        'DLOC6': ['RS', 'SMA', 'GDS'],
-        'ILOC2': ['PM', 'FM', 'EDM', 'PEC', 'RM', 'IPRP', 'DBM', 'EM'],
-      }
-    }
-  };
+  /// Firebase subjects mapping.
+  Map<String, dynamic> subjectsMapping = {};
 
   @override
   void initState() {
@@ -67,8 +46,10 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
     _initData();
   }
 
-  /// Initialize by fetching regular attendance, student's optional selections, and optional attendance.
+  /// Initialize by fetching the subjects mapping from Firebase,
+  /// then regular attendance, student's optional selections, and optional attendance.
   Future<void> _initData() async {
+    await _fetchSubjectsMapping();
     await _fetchRegularAttendance();
     await _fetchStudentOptionalSelections();
     await _fetchOptionalAttendance();
@@ -78,21 +59,47 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
     await _updateFirebaseRecords();
   }
 
+  /// Fetch the subjects mapping from Firestore.
+  Future<void> _fetchSubjectsMapping() async {
+    try {
+      DocumentSnapshot snapshot = await FirebaseFirestore.instance
+          .collection('subjects')
+          .doc('all_subjects')
+          .get();
+      if (snapshot.exists) {
+        setState(() {
+          subjectsMapping = snapshot.data() as Map<String, dynamic>;
+        });
+      } else {
+        Fluttertoast.showToast(msg: "Subjects mapping not found");
+      }
+    } catch (e) {
+      Fluttertoast.showToast(msg: "Error loading subjects mapping: $e");
+    }
+  }
+
+  /// Helper to get optional keys from the Firebase mapping.
+  List<String> _getOptionalKeys() {
+    List<String> optionalKeys = [];
+    if (subjectsMapping.isNotEmpty) {
+      final semMap = (subjectsMapping[widget.selectedClass] as Map<String, dynamic>?)?[widget.selectedSem] as Map<String, dynamic>? ?? {};
+      final dlocMap = semMap['dloc'] as Map<String, dynamic>? ?? {};
+      final ilocMap = semMap['iloc'] as Map<String, dynamic>? ?? {};
+      optionalKeys = [...dlocMap.keys, ...ilocMap.keys];
+    }
+    return optionalKeys;
+  }
+
   /// Fetch regular subject attendance for the student.
   Future<void> _fetchRegularAttendance() async {
     final firestore = FirebaseFirestore.instance;
     String rollNo = widget.rollNo;
 
-    // Determine which subjects are optional by getting the keys from dlocOptions.
-    List<String> optionalKeys = [];
-    if (dlocOptions[widget.selectedClass] != null &&
-        dlocOptions[widget.selectedClass]![widget.selectedSem] != null) {
-      optionalKeys =
-          dlocOptions[widget.selectedClass]![widget.selectedSem]!.keys.toList();
-    }
+    // Determine optional subject keys using the Firebase mapping.
+    List<String> optionalKeys = _getOptionalKeys();
     // Regular subjects: those in selectedSubjects not in the optional keys.
-    List<String> regularSubjects = widget.selectedSubjects.where((
-        s) => !optionalKeys.contains(s)).toList();
+    List<String> regularSubjects =
+    widget.selectedSubjects.where((s) => !optionalKeys.contains(s)).toList();
 
     try {
       for (String subject in regularSubjects) {
@@ -118,10 +125,10 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
             if (mode == 'Lab') {
               var lectureData = lectureDoc.data() as Map<String, dynamic>;
               if (lectureData['batch'] != widget.batch) {
-                continue; // Skip this lecture.
+                continue;
               }
             }
-            totalLectures++; // Only increment if the lecture is valid for this student.
+            totalLectures++; // Count valid lecture.
             DocumentSnapshot presentSnapshot = await firestore
                 .collection('attendance_record')
                 .doc(widget.selectedClass)
@@ -183,19 +190,13 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
     final firestore = FirebaseFirestore.instance;
     String rollNo = widget.rollNo;
 
-    // Determine optional subject keys.
-    List<String> optionalKeys = [];
-    if (dlocOptions[widget.selectedClass] != null &&
-        dlocOptions[widget.selectedClass]![widget.selectedSem] != null) {
-      optionalKeys =
-          dlocOptions[widget.selectedClass]![widget.selectedSem]!.keys.toList();
-    }
+    // Determine optional subject keys from the Firebase mapping.
+    List<String> optionalKeys = _getOptionalKeys();
     // From the teacher–selected subjects, pick those that are optional.
-    List<String> optionalSubjects = widget.selectedSubjects.where((s) =>
-        optionalKeys.contains(s)).toList();
+    List<String> optionalSubjects = widget.selectedSubjects.where((s) => optionalKeys.contains(s)).toList();
 
     for (String category in optionalSubjects) {
-      // Get the student's chosen subject for this category.
+      // Get the student's chosen subject for this optional category.
       String? chosenSubject = studentOptionalSelections[category];
       if (chosenSubject == null || chosenSubject.isEmpty) continue;
       // Decide which modes to process.
@@ -219,14 +220,14 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
               .collection('lecture')
               .get();
           for (var lectureDoc in lecturesSnapshot.docs) {
-            // For Lab mode, check the lecture's batch.
+            // For Lab mode, validate the lecture's batch.
             if (mode == 'Lab') {
               var lectureData = lectureDoc.data() as Map<String, dynamic>;
               if (lectureData['batch'] != widget.batch) {
                 continue;
               }
             }
-            totalLectures++; // Only count if valid.
+            totalLectures++;
             DocumentSnapshot presentDoc = await firestore
                 .collection('attendance_record')
                 .doc(widget.selectedClass)
@@ -256,7 +257,6 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
       }
     }
   }
-
 
   /// Update Firebase with the calculated attendance for this student.
   Future<void> _updateFirebaseRecords() async {
@@ -305,14 +305,11 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
     tableData.add(["Roll No", widget.rollNo]);
     tableData.add(["Name", widget.fullName]);
 
+    // Use the Firebase mapping to determine optional subject keys.
+    List<String> optionalKeys = _getOptionalKeys();
+
     List<String> regularSubjectColumns = [];
     List<String> optionalSubjectColumns = [];
-    List<String> optionalKeys = [];
-    if (dlocOptions[widget.selectedClass] != null &&
-        dlocOptions[widget.selectedClass]![widget.selectedSem] != null) {
-      optionalKeys =
-          dlocOptions[widget.selectedClass]![widget.selectedSem]!.keys.toList();
-    }
     for (var subject in widget.selectedSubjects) {
       if (optionalKeys.contains(subject)) {
         optionalSubjectColumns.add("$subject (Theory)");
@@ -347,8 +344,7 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
       count++;
       tableData.add([
         subject,
-        "Present: $present, Total: $total, Percentage: ${percentage
-            .toStringAsFixed(1)}%"
+        "Present: $present, Total: $total, Percentage: ${percentage.toStringAsFixed(1)}%"
       ]);
     }
     double overallPercentage = count > 0 ? (sumPercentages / count) : 0;
@@ -375,15 +371,14 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
               headerStyle: pw.TextStyle(
                   fontWeight: pw.FontWeight.bold, fontSize: 10),
               cellStyle: const pw.TextStyle(fontSize: 10),
-              headerDecoration: const pw.BoxDecoration(
-                  color: PdfColors.green100),
+              headerDecoration: const pw.BoxDecoration(color: PdfColors.green100),
               border: pw.TableBorder.all(color: PdfColors.grey),
               cellHeight: 25,
             ),
       ),
     );
-    String fullName = "${widget.fullName}_Cumulative_Attendance_Record";
-    await Printing.layoutPdf(name: fullName, onLayout: (format) => doc.save());
+    String fileName = "${widget.fullName}_Cumulative_Attendance_Record.pdf";
+    await Printing.layoutPdf(name: fileName, onLayout: (format) => doc.save());
   }
 
   @override

@@ -11,12 +11,14 @@ class LectureAttendance extends StatefulWidget {
   final String rollNo;
   final String batch;
 
-  const LectureAttendance({super.key,
+  const LectureAttendance({
+    super.key,
     required this.year,
     required this.sem,
     required this.rollNo,
     required this.batch,
-    required this.fullName});
+    required this.fullName,
+  });
 
   @override
   State<LectureAttendance> createState() => _LectureAttendanceState();
@@ -28,97 +30,91 @@ class _LectureAttendanceState extends State<LectureAttendance> {
   // Selected values for the dropdowns.
   String? selectedLabOrTheory;
   String? selectedSubject;
-  String? selectedOptionalSubject; // New dropdown for optional subject
+  String? selectedOptionalSubject; // Dropdown for optional subject
 
   List<Map<String, dynamic>> lectures = [];
 
-  /// Updated subject mapping.
-  /// Main subjects mapping.
-  final Map<String, Map<String, Map<String, List<String>>>> subjects = {
-    'SE': {
-      '3': {
-        'Theory': ['EM-3', 'DSGT', 'DS', 'DLCOA', 'CG', 'JAVA', 'Mini Project 1A'],
-        'Lab': ['DS', 'DLCOA', 'CG', 'JAVA'],
-      },
-      '4': {
-        'Theory': ['EM-4', 'DBMS', 'OS', 'AOA', 'Python', 'MP', 'Mini Project 1B'],
-        'Lab': ['DBMS', 'OS', 'Python', 'AOA', 'MP'],
-      },
-    },
-    'TE': {
-      '5': {
-        'Theory': ['DWHM', 'CN', 'WC', 'DLOC1', 'AI', 'Mini Project 2A'],
-        'Lab': ['DWHM', 'CN', 'WC', 'AI'],
-      },
-      '6': {
-        'Theory': ['DAV', 'ML', 'SEPM', 'CSS', 'DLOC2', 'Mini Project'],
-        'Lab': ['DAV', 'ML', 'SEPM', 'CSS', 'DLOC2', 'CC'],
-      },
-    },
-    'BE': {
-      '7': {
-        'Theory': ['DL', 'BDA', 'ILOC1', 'DLOC3', 'DLOC4', 'Major Project 1A'],
-        'Lab': ['DL', 'BDA', 'DLOC3', 'DLOC4'],
-      },
-      '8': {
-        'Theory': ['AAI', 'ILOC2', 'DLOC5', 'DLOC6', 'Major Project'],
-        'Lab': ['AAI', 'DLOC5', 'DLOC6'],
-      },
-    }
-  };
+  /// Firebase subjects mapping.
+  Map<String, dynamic> subjectsMapping = {};
 
-  /// Mapping for optional subjects.
-  final Map<String, Map<String, Map<String, List<String>>>> dlocOptions = {
-    'TE': {
-      '5': {
-        'DLOC1': ['Stats', 'IOT']
-      },
-      '6': {
-        'DLOC2': ['DC', 'IVP']
+  @override
+  void initState() {
+    super.initState();
+    _fetchSubjectsMapping();
+  }
+
+  /// Fetch the subjects mapping from Firestore.
+  Future<void> _fetchSubjectsMapping() async {
+    try {
+      DocumentSnapshot snapshot = await FirebaseFirestore.instance
+          .collection('subjects')
+          .doc('all_subjects')
+          .get();
+      if (snapshot.exists) {
+        setState(() {
+          subjectsMapping = snapshot.data() as Map<String, dynamic>;
+        });
+      } else {
+        Fluttertoast.showToast(msg: "Subjects mapping not found");
       }
-    },
-    'BE': {
-      '7': {
-        'DLOC3': ['AI For Healthcare', 'NLP', 'NNFS'],
-        'DLOC4': ['UX Design with VR', 'BC', 'GT'],
-        'ILOC1': ['PLM', 'RE', 'MIS', 'DOE', 'OR', 'CSL', 'DMMM', 'EAM', 'DE'],
-      },
-      '8': {
-        'DLOC5': ['AI for FBA', 'RL', 'QC'],
-        'DLOC6': ['RS', 'SMA', 'GDS'],
-        'ILOC2': ['PM', 'FM', 'EDM', 'PEC', 'RM', 'IPRP', 'DBM', 'EM'],
-      }
+    } catch (e) {
+      Fluttertoast.showToast(msg: "Error fetching subjects mapping: $e");
     }
-  };
+  }
 
-
-
+  /// Get available regular subjects for the selected Lab/Theory.
   List<String> getAvailableSubjects() {
-    if (selectedLabOrTheory != null) {
-      return subjects[widget.year]![widget.sem]![selectedLabOrTheory!] ?? [];
+    if (subjectsMapping.isNotEmpty &&
+        subjectsMapping.containsKey(widget.year) &&
+        selectedLabOrTheory != null) {
+      final classMap = subjectsMapping[widget.year] as Map<String, dynamic>;
+      if (classMap.containsKey(widget.sem)) {
+        final semData = classMap[widget.sem] as Map<String, dynamic>;
+        // Use lower-case keys for comparison.
+        final key = selectedLabOrTheory!.toLowerCase();
+        if (key == "lab" && semData.containsKey("lab")) {
+          return List<String>.from(semData["lab"]);
+        } else if (key == "theory" && semData.containsKey("theory")) {
+          return List<String>.from(semData["theory"]);
+        }
+      }
     }
     return [];
   }
 
-  List<String> getAvailableOptionalSubjects() {
-    if (selectedSubject != null &&
-        (selectedSubject!.startsWith('DLOC') || selectedSubject!.startsWith('ILOC'))) {
-      return dlocOptions[widget.year]?[widget.sem]?[selectedSubject!] ?? [];
+  /// Returns available optional subjects for the given subject.
+  List<String> getAvailableOptionalSubjects(String subject) {
+    if (subjectsMapping.isNotEmpty &&
+        subjectsMapping.containsKey(widget.year)) {
+      final classMap = subjectsMapping[widget.year] as Map<String, dynamic>;
+      if (classMap.containsKey(widget.sem)) {
+        final semData = classMap[widget.sem] as Map<String, dynamic>;
+        if (subject.toUpperCase().startsWith("DLOC") && semData.containsKey("dloc")) {
+          final dlocMap = semData["dloc"] as Map<String, dynamic>;
+          if (dlocMap.containsKey(subject)) {
+            return List<String>.from(dlocMap[subject]);
+          }
+        } else if (subject.toUpperCase().startsWith("ILOC") && semData.containsKey("iloc")) {
+          final ilocMap = semData["iloc"] as Map<String, dynamic>;
+          if (ilocMap.containsKey(subject)) {
+            return List<String>.from(ilocMap[subject]);
+          }
+        }
+      }
     }
     return [];
   }
-
 
   Future<void> fetchLectureHistory() async {
     if (_formKey.currentState!.validate()) {
       try {
         Query attendanceQuery;
 
-        // If an optional subject is selected, adjust the query path.
-        if ((selectedSubject?.startsWith('DLOC') == true ||
-            selectedSubject?.startsWith('ILOC') == true) &&
+        // Adjust the query path if an optional subject is selected.
+        if ((selectedSubject?.toUpperCase().startsWith('DLOC') == true ||
+            selectedSubject?.toUpperCase().startsWith('ILOC') == true) &&
             selectedOptionalSubject != null) {
-          // Path: attendance/{class}/{sem}/{subject}/{optionalSubject}/{lab_or_theory}
+          // Path: attendance/{year}/{sem}/{subject}/{optionalSubject}/{lab_or_theory}
           attendanceQuery = FirebaseFirestore.instance
               .collection("attendance")
               .doc(widget.year)
@@ -128,7 +124,7 @@ class _LectureAttendanceState extends State<LectureAttendance> {
               .doc(selectedLabOrTheory!)
               .collection("lecture");
         } else {
-          // Default path: attendance/{class}/{sem}/{subject}/{lab_or_theory}
+          // Default path: attendance/{year}/{sem}/{subject}/{lab_or_theory}
           attendanceQuery = FirebaseFirestore.instance
               .collection("attendance")
               .doc(widget.year)
@@ -137,7 +133,7 @@ class _LectureAttendanceState extends State<LectureAttendance> {
               .collection(selectedLabOrTheory!);
         }
 
-        // If Lab is selected, filter by the selected batch.
+        // If Lab is selected, filter by batch.
         if (selectedLabOrTheory == 'Lab') {
           attendanceQuery = attendanceQuery.where('batch', isEqualTo: widget.batch);
         }
@@ -200,7 +196,8 @@ class _LectureAttendanceState extends State<LectureAttendance> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
           titlePadding: const EdgeInsets.fromLTRB(20.0, 20.0, 20.0, 0.0),
           contentPadding: const EdgeInsets.fromLTRB(20.0, 20.0, 20.0, 0.0),
           title: Row(
@@ -222,11 +219,15 @@ class _LectureAttendanceState extends State<LectureAttendance> {
             child: RichText(
               text: const TextSpan(
                 style: TextStyle(
-                    color: Colors.black, fontFamily: 'Outfit', fontSize: 16),
+                    color: Colors.black,
+                    fontFamily: 'Outfit',
+                    fontSize: 16),
                 children: <TextSpan>[
                   TextSpan(
                     text: "Lab/Theory: ",
-                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black),
                   ),
                   TextSpan(
                     text:
@@ -234,7 +235,9 @@ class _LectureAttendanceState extends State<LectureAttendance> {
                   ),
                   TextSpan(
                     text: "Subject: ",
-                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black),
                   ),
                   TextSpan(
                     text:
@@ -242,7 +245,9 @@ class _LectureAttendanceState extends State<LectureAttendance> {
                   ),
                   TextSpan(
                     text: "Fetch Result: ",
-                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black),
                   ),
                   TextSpan(
                     text:
@@ -252,7 +257,8 @@ class _LectureAttendanceState extends State<LectureAttendance> {
               ),
             ),
           ),
-          actionsPadding: const EdgeInsets.only(bottom: 16.0, right: 16.0),
+          actionsPadding:
+          const EdgeInsets.only(bottom: 16.0, right: 16.0),
           actions: [
             TextButton(
               onPressed: () {
@@ -305,7 +311,6 @@ class _LectureAttendanceState extends State<LectureAttendance> {
             onPressed: _showNoticeDialogue,
           ),
         ],
-
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -335,7 +340,10 @@ class _LectureAttendanceState extends State<LectureAttendance> {
                     items: ['Lab', 'Theory'].map((String type) {
                       return DropdownMenuItem<String>(
                         value: type,
-                        child: Text(type,style: TextStyle(fontFamily: 'Outfit')),
+                        child: Text(
+                          type,
+                          style: TextStyle(fontFamily: 'Outfit'),
+                        ),
                       );
                     }).toList(),
                     onChanged: (value) {
@@ -352,8 +360,10 @@ class _LectureAttendanceState extends State<LectureAttendance> {
                         fontSize: 18,
                         color: Colors.black,
                       ),
-                      focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.black)),
-                      enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.black)),
+                      focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.black)),
+                      enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.black)),
                     ),
                   ),
                 ),
@@ -366,7 +376,10 @@ class _LectureAttendanceState extends State<LectureAttendance> {
                     items: getAvailableSubjects().map((String subject) {
                       return DropdownMenuItem<String>(
                         value: subject,
-                        child: Text(subject,style: TextStyle(fontFamily: 'Outfit')),
+                        child: Text(
+                          subject,
+                          style: TextStyle(fontFamily: 'Outfit'),
+                        ),
                       );
                     }).toList(),
                     onChanged: (value) {
@@ -383,23 +396,30 @@ class _LectureAttendanceState extends State<LectureAttendance> {
                         fontSize: 18,
                         color: Colors.black,
                       ),
-                      focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.black)),
-                      enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.black)),
+                      focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.black)),
+                      enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.black)),
                     ),
                   ),
                 ),
                 const SizedBox(height: 30),
                 // If subject is optional (starts with DLOC or ILOC), show Optional Subject dropdown.
                 if (selectedSubject != null &&
-                    (selectedSubject!.startsWith('DLOC') || selectedSubject!.startsWith('ILOC')))
+                    (selectedSubject!.toUpperCase().startsWith('DLOC') ||
+                        selectedSubject!.toUpperCase().startsWith('ILOC')))
                   FadeInUp(
                     duration: const Duration(milliseconds: 1000),
                     child: DropdownButtonFormField<String>(
                       value: selectedOptionalSubject,
-                      items: getAvailableOptionalSubjects().map((String optSubj) {
+                      items: getAvailableOptionalSubjects(selectedSubject!)
+                          .map((String optSubj) {
                         return DropdownMenuItem<String>(
                           value: optSubj,
-                          child: Text(optSubj,style: TextStyle(fontFamily: 'Outfit')),
+                          child: Text(
+                            optSubj,
+                            style: TextStyle(fontFamily: 'Outfit'),
+                          ),
                         );
                       }).toList(),
                       onChanged: (value) {
@@ -414,13 +434,16 @@ class _LectureAttendanceState extends State<LectureAttendance> {
                           fontSize: 18,
                           color: Colors.black,
                         ),
-                        focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.black)),
-                        enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.black)),
+                        focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Colors.black)),
+                        enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Colors.black)),
                       ),
                     ),
                   ),
                 if (selectedSubject != null &&
-                    (selectedSubject!.startsWith('DLOC') || selectedSubject!.startsWith('ILOC')))
+                    (selectedSubject!.toUpperCase().startsWith('DLOC') ||
+                        selectedSubject!.toUpperCase().startsWith('ILOC')))
                   const SizedBox(height: 30),
                 FadeInUp(
                   duration: const Duration(milliseconds: 1000),
@@ -450,8 +473,8 @@ class _LectureAttendanceState extends State<LectureAttendance> {
                               if (_formKey.currentState!.validate() &&
                                   selectedLabOrTheory != null &&
                                   selectedSubject != null &&
-                                  (!selectedSubject!.startsWith('DLOC') &&
-                                      !selectedSubject!.startsWith('ILOC') ||
+                                  (!selectedSubject!.toUpperCase().startsWith('DLOC') &&
+                                      !selectedSubject!.toUpperCase().startsWith('ILOC') ||
                                       selectedOptionalSubject != null)) {
                                 Navigator.push(
                                   context,
@@ -460,10 +483,11 @@ class _LectureAttendanceState extends State<LectureAttendance> {
                                       year: widget.year,
                                       sem: widget.sem,
                                       type: selectedLabOrTheory!, // Safe to use !
-                                      sub: selectedSubject!,      // Safe to use !
+                                      sub: selectedSubject!, // Safe to use !
                                       optionalSubject: selectedOptionalSubject ?? 'N/A',
                                       rollNo: widget.rollNo,
                                       fullName: widget.fullName,
+                                      batch: widget.batch,
                                     ),
                                   ),
                                 );
@@ -491,7 +515,7 @@ class _LectureAttendanceState extends State<LectureAttendance> {
                                   fontFamily: 'Outfit',
                                   fontWeight: FontWeight.w600,
                                   fontSize: 17,
-                                  color: Colors.black, // Adjust as needed for contrast
+                                  color: Colors.black,
                                 ),
                               ),
                             ),

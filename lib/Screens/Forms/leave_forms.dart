@@ -326,7 +326,7 @@ class _LeaveFormsState extends State<LeaveForms> {
                           const SizedBox(width: 8),
                           Text(
                             DateFormat('dd/MM/yy').format(_selectedStartDate),
-                            style: const TextStyle(fontSize: 14, color: Color(0xFF384E58)),
+                            style: const TextStyle(fontFamily:"Outfit", fontSize: 14, color: Color(0xFF384E58)),
                           ),
                         ],
                       ),
@@ -366,7 +366,7 @@ class _LeaveFormsState extends State<LeaveForms> {
                           const SizedBox(width: 8),
                           Text(
                             DateFormat('dd/MM/yy').format(_selectedEndDate),
-                            style: const TextStyle(fontSize: 14, color: Color(0xFF384E58)),
+                            style: const TextStyle(fontFamily:"Outfit",fontSize: 14, color: Color(0xFF384E58)),
                           ),
                         ],
                       ),

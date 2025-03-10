@@ -27,67 +27,54 @@ class _AttendanceAnnouncementState extends State<AttendanceAnnouncement> {
   List<Map<String, dynamic>> announcements = [];
   bool isLoading = false;
 
-  /// Subjects mapping.
-  final Map<String, Map<String, Map<String, List<String>>>> subjects = {
-    'SE': {
-      '3': {
-        'Theory': ['EM-3', 'DSGT', 'DS', 'DLCOA', 'CG', 'JAVA', 'Mini Project 1A'],
-        'Lab': ['DS', 'DLCOA', 'JAVA', 'CG'],
-      },
-      '4': {
-        'Theory': ['EM-4', 'DBMS', 'OS', 'AOA', 'Python', 'MP', 'Mini Project 1B'],
-        'Lab': ['DBMS', 'OS', 'Python', 'MP', 'AOA'],
-      },
-    },
-    'TE': {
-      '5': {
-        'Theory': ['DWHM', 'CN', 'WC', 'DLOC1', 'AI', 'Mini Project 2A'],
-        'Lab': ['DWHM', 'CN', 'WC', 'AI'],
-      },
-      '6': {
-        'Theory': ['DAV', 'ML', 'SEPM', 'CSS', 'DLOC2', 'Mini Project'],
-        'Lab': ['DAV', 'ML', 'SEPM', 'CSS', 'DLOC2', 'CC'],
-      },
-    },
-    'BE': {
-      '7': {
-        'Theory': ['DL', 'BDA', 'ILOC1', 'DLOC3', 'DLOC4', 'Major Project 1A'],
-        'Lab': ['DL', 'BDA', 'DLOC3', 'DLOC4'],
-      },
-      '8': {
-        'Theory': ['AAI', 'ILOC2', 'DLOC5', 'DLOC6', 'Major Project'],
-        'Lab': ['AAI', 'DLOC5', 'DLOC6'],
-      },
-    }
-  };
+  // Firebase subjects mapping loaded from Firestore.
+  Map<String, dynamic> subjectsMapping = {};
 
-  /// Mapping for optional subjects.
-  final Map<String, Map<String, Map<String, List<String>>>> dlocOptions = {
-    'TE': {
-      '5': {
-        'DLOC1': ['Stats', 'IOT']
-      },
-      '6': {
-        'DLOC2': ['DC', 'IVP']
-      }
-    },
-    'BE': {
-      '7': {
-        'DLOC3': ['AI For Healthcare', 'NLP', 'NNFS'],
-        'DLOC4': ['UX Design with VR', 'BC', 'GT'],
-        'ILOC1': ['PLM', 'RE', 'MIS', 'DOE', 'OR', 'CSL', 'DMMM', 'EAM', 'DE'],
-      },
-      '8': {
-        'DLOC5': ['AI for FBA', 'RL', 'QC'],
-        'DLOC6': ['RS', 'SMA', 'GDS'],
-        'ILOC2': ['PM', 'FM', 'EDM', 'PEC', 'RM', 'IPRP', 'DBM', 'EM'],
-      }
-    }
-  };
+  // Selected type (Lab or Theory) and subject.
+  String? selectedType; // 'Lab' or 'Theory'
+  String? selectedSubject; // Chosen subject from the mapping
+  String? selectedOptionalSubject; // If applicable, the actual optional subject chosen by the student
 
-
-
+  // Student's optional subject selection fetched from the student's document.
   Map<String, String> optionalMapping = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchSubjectsMapping();
+    // Fetch the student's optional subject selection.
+    fetchOptionalMapping();
+  }
+
+  /// Fetch the subjects mapping from Firestore.
+  Future<void> _fetchSubjectsMapping() async {
+    setState(() => isLoading = true);
+    try {
+      DocumentSnapshot snapshot = await FirebaseFirestore.instance
+          .collection('subjects')
+          .doc('all_subjects')
+          .get();
+      if (snapshot.exists) {
+        setState(() {
+          subjectsMapping = snapshot.data() as Map<String, dynamic>;
+        });
+      } else {
+        setState(() {
+          errorMessage = "Subjects mapping not found";
+        });
+      }
+    } catch (e) {
+      setState(() {
+        errorMessage = "Error loading subjects mapping: $e";
+      });
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
+
+  String? errorMessage;
+
+  /// Fetch the student's optional subject selections.
   Future<void> fetchOptionalMapping() async {
     try {
       DocumentSnapshot<Map<String, dynamic>> snapshot =
@@ -102,43 +89,48 @@ class _AttendanceAnnouncementState extends State<AttendanceAnnouncement> {
 
       if (snapshot.exists && snapshot.data() != null) {
         setState(() {
-          optionalMapping =
-          Map<String, String>.from(snapshot.data()!);
+          optionalMapping = Map<String, String>.from(snapshot.data()!);
         });
       }
     } catch (e) {
-      // Handle any errors as needed.
       debugPrint('Error fetching optional mapping: $e');
     }
   }
 
-  String? selectedType; // 'Lab' or 'Theory'
-  String? selectedSubject; // Selected subject from subjects mapping
-  String? selectedOptionalSubject; // Selected optional subject from dlocOptions
-
-  @override
-  void initState() {
-    super.initState();
-    // Fetch the optional mapping from the database.
-    fetchOptionalMapping();
-  }
-
   /// Returns available subjects based on widget.classYear, widget.sem, and selectedType.
   List<String> getAvailableSubjects() {
-    if (subjects[widget.classYear] != null &&
-        subjects[widget.classYear]![widget.sem] != null &&
+    if (subjectsMapping.isNotEmpty &&
+        subjectsMapping.containsKey(widget.classYear) &&
+        (subjectsMapping[widget.classYear] as Map<String, dynamic>).containsKey(widget.sem) &&
         selectedType != null) {
-      // Access subjects for the selected type (Lab/Theory)
-      return subjects[widget.classYear]![widget.sem]![selectedType] ?? [];
+      final semData = (subjectsMapping[widget.classYear] as Map<String, dynamic>)[widget.sem] as Map<String, dynamic>;
+      if (selectedType == "Lab" && semData.containsKey("lab")) {
+        return List<String>.from(semData["lab"]);
+      } else if (selectedType == "Theory" && semData.containsKey("theory")) {
+        return List<String>.from(semData["theory"]);
+      }
     }
     return [];
   }
 
-  /// Returns available optional subjects if the selected subject starts with 'DLOC' or 'ILOC'.
-  List<String> getAvailableOptionalSubjects() {
-    if (selectedSubject != null &&
-        (selectedSubject!.startsWith('DLOC') || selectedSubject!.startsWith('ILOC'))) {
-      return dlocOptions[widget.classYear]?[widget.sem]?[selectedSubject!] ?? [];
+  /// Returns available optional subjects for a given subject.
+  /// If the subject starts with "DLOC" or "ILOC" (case-insensitive), it looks under the corresponding key.
+  List<String> getAvailableOptionalSubjects(String subject) {
+    if (subjectsMapping.isNotEmpty &&
+        subjectsMapping.containsKey(widget.classYear) &&
+        (subjectsMapping[widget.classYear] as Map<String, dynamic>).containsKey(widget.sem)) {
+      final semData = (subjectsMapping[widget.classYear] as Map<String, dynamic>)[widget.sem] as Map<String, dynamic>;
+      if (subject.toUpperCase().startsWith("DLOC") && semData.containsKey("dloc")) {
+        final dlocMap = semData["dloc"] as Map<String, dynamic>;
+        if (dlocMap.containsKey(subject)) {
+          return List<String>.from(dlocMap[subject]);
+        }
+      } else if (subject.toUpperCase().startsWith("ILOC") && semData.containsKey("iloc")) {
+        final ilocMap = semData["iloc"] as Map<String, dynamic>;
+        if (ilocMap.containsKey(subject)) {
+          return List<String>.from(ilocMap[subject]);
+        }
+      }
     }
     return [];
   }
@@ -149,7 +141,7 @@ class _AttendanceAnnouncementState extends State<AttendanceAnnouncement> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Please select both Subject and Type.", style: TextStyle(fontFamily: "Outfit")),
-          duration: Duration(seconds: 3), // Adjust duration as needed
+          duration: Duration(seconds: 3),
         ),
       );
       return;
@@ -161,23 +153,21 @@ class _AttendanceAnnouncementState extends State<AttendanceAnnouncement> {
     try {
       Query attendanceQuery;
 
-      // Modify query path if an optional subject is selected.
-      if ((selectedSubject?.startsWith('DLOC') == true ||
-          selectedSubject?.startsWith('ILOC') == true) &&
+      // If the selected subject is optional, use the student's chosen subject.
+      if ((selectedSubject?.toUpperCase().startsWith('DLOC') == true ||
+          selectedSubject?.toUpperCase().startsWith('ILOC') == true) &&
           selectedOptionalSubject != null) {
-        // Firestore path:
-        // attendance/{classYear}/{sem}/{selectedSubject}/{selectedOptionalSubject}/{selectedType}/lecture
+        // Path: attendance/{classYear}/{sem}/{selectedSubject}/{selectedOptionalSubject}/{selectedType}/lecture
         attendanceQuery = FirebaseFirestore.instance
             .collection("attendance")
             .doc(widget.classYear)
             .collection(widget.sem)
             .doc(selectedSubject!) // Base optional subject key.
             .collection(selectedOptionalSubject!) // Chosen optional subject.
-            .doc(selectedType!) // (Optional grouping document)
+            .doc(selectedType!) // Optional grouping document.
             .collection("lecture");
       } else {
-        // Default path:
-        // attendance/{classYear}/{sem}/{selectedSubject}/{selectedType}
+        // Default path: attendance/{classYear}/{sem}/{selectedSubject}/{selectedType}
         attendanceQuery = FirebaseFirestore.instance
             .collection("attendance")
             .doc(widget.classYear)
@@ -191,9 +181,7 @@ class _AttendanceAnnouncementState extends State<AttendanceAnnouncement> {
         attendanceQuery = attendanceQuery.where('batch', isEqualTo: widget.batch);
       }
 
-      attendanceQuery =
-          attendanceQuery.orderBy('created_at', descending: true);
-
+      attendanceQuery = attendanceQuery.orderBy('created_at', descending: true);
 
       QuerySnapshot attendanceDocs = await attendanceQuery.get();
       announcements.clear();
@@ -211,7 +199,7 @@ class _AttendanceAnnouncementState extends State<AttendanceAnnouncement> {
           'sem': widget.sem,
           'subject': selectedSubject,
           'fullName': widget.fullName,
-          'optional_sub': selectedOptionalSubject ?? "N/A", // Pass "N/A" instead of null
+          'optional_sub': selectedOptionalSubject ?? "N/A",
           'type': selectedType,
           'batch': data['batch'],
           'password': data['password'],
@@ -224,28 +212,25 @@ class _AttendanceAnnouncementState extends State<AttendanceAnnouncement> {
       announcements = announcements.toSet().toList();
 
       if (announcements.isEmpty) {
-        // Show toast if no announcements found
-        if(!mounted) return;
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             backgroundColor: Colors.red,
             content: Text("No Announcements found.", style: TextStyle(fontFamily: "Outfit")),
-            duration: Duration(seconds: 3), // Adjust duration as needed
+            duration: Duration(seconds: 3),
           ),
         );
       } else {
-        if(!mounted) return;
+        if (!mounted) return;
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (context) => ListOfAttendance(announcements: announcements),
           ),
         );
       }
-
-
     } finally {
       setState(() {
-        isLoading = false; // Stop loading after fetching
+        isLoading = false;
       });
     }
   }
@@ -256,7 +241,7 @@ class _AttendanceAnnouncementState extends State<AttendanceAnnouncement> {
       appBar: AppBar(
         centerTitle: true,
         title: FadeInDown(
-          duration: const Duration(milliseconds: 500),
+          duration: const Duration(milliseconds: 1000),
           child: const Text(
             'A N N O U N C E M E N T',
             style: TextStyle(
@@ -279,7 +264,9 @@ class _AttendanceAnnouncementState extends State<AttendanceAnnouncement> {
         backgroundColor: Colors.grey[100],
       ),
       backgroundColor: Colors.white,
-      body: SingleChildScrollView(
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 40),
           child: Column(
@@ -300,12 +287,12 @@ class _AttendanceAnnouncementState extends State<AttendanceAnnouncement> {
               const SizedBox(height: 30),
               FadeInUp(
                 duration: const Duration(milliseconds: 1000),
-                child: Center( // Center the RichText
+                child: Center(
                   child: Text.rich(
                     const TextSpan(
                       style: TextStyle(
                         fontFamily: 'Outfit',
-                        fontSize: 16, // Slightly smaller
+                        fontSize: 16,
                       ),
                       children: <TextSpan>[
                         TextSpan(
@@ -313,16 +300,15 @@ class _AttendanceAnnouncementState extends State<AttendanceAnnouncement> {
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             color: Colors.black,
-                            fontSize: 18, // Slightly larger for "Note"
+                            fontSize: 18,
                           ),
                         ),
                         TextSpan(
-                          text:
-                          "Select the following details to fetch Attendance Announcements.",
+                          text: "Select the following details to fetch Attendance Announcements.",
                         ),
                       ],
                     ),
-                    textAlign: TextAlign.center, // Center the text
+                    textAlign: TextAlign.center,
                   ),
                 ),
               ),
@@ -334,7 +320,7 @@ class _AttendanceAnnouncementState extends State<AttendanceAnnouncement> {
                   items: ['Lab', 'Theory'].map((String type) {
                     return DropdownMenuItem<String>(
                       value: type,
-                      child: Text(type,style: TextStyle(fontFamily: 'Outfit',),),
+                      child: Text(type, style: TextStyle(fontFamily: 'Outfit')),
                     );
                   }).toList(),
                   onChanged: (value) {
@@ -358,7 +344,8 @@ class _AttendanceAnnouncementState extends State<AttendanceAnnouncement> {
                     ),
                   ),
                 ),
-              ),              const SizedBox(height: 30),
+              ),
+              const SizedBox(height: 30),
               FadeInUp(
                 duration: const Duration(milliseconds: 1000),
                 child: DropdownButtonFormField<String>(
@@ -366,17 +353,17 @@ class _AttendanceAnnouncementState extends State<AttendanceAnnouncement> {
                   items: getAvailableSubjects().map((String subject) {
                     return DropdownMenuItem<String>(
                       value: subject,
-                      child: Text(subject,style: TextStyle(fontFamily: 'Outfit',)),
+                      child: Text(subject, style: TextStyle(fontFamily: 'Outfit')),
                     );
                   }).toList(),
                   onChanged: (value) {
                     setState(() {
                       selectedSubject = value;
-                      // When subject changes, reset optional subject.
                       selectedOptionalSubject = null;
-                      // If the selected subject is optional, check the fetched mapping.
+                      // When subject changes, if it is an optional category, fetch its selected value.
                       if (value != null &&
-                          (value.startsWith('DLOC') || value.startsWith('ILOC')) &&
+                          (value.toUpperCase().startsWith("DLOC") ||
+                              value.toUpperCase().startsWith("ILOC")) &&
                           optionalMapping.containsKey(value)) {
                         selectedOptionalSubject = optionalMapping[value];
                       }
@@ -446,4 +433,3 @@ class _AttendanceAnnouncementState extends State<AttendanceAnnouncement> {
     );
   }
 }
-

@@ -1,6 +1,7 @@
-import 'package:animate_do/animate_do.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 class IaMarks extends StatefulWidget {
   final String year;
@@ -35,45 +36,39 @@ class _IaMarksState extends State<IaMarks> {
   bool isLoading = true;
   String? errorMessage;
 
-  // Predefined subjects structure.
-  final Map<String, Map<String, Map<String, List<String>>>> subjects = {
-    'SE': {
-      '3': {
-        'Theory': ['EM-3', 'DSGT', 'DS', 'DLCOA', 'CG'],
-        'Lab': ['DS', 'DLCOA', 'JAVA', 'CG'],
-      },
-      '4': {
-        'Theory': ['EM-4', 'DBMS', 'OS', 'AOA', 'MP'],
-        'Lab': ['DBMS', 'OS', 'Python', 'AOA', 'MP'],
-      },
-    },
-    'TE': {
-      '5': {
-        'Theory': ['DWHM', 'CN', 'WC', 'AI'],
-        'Lab': ['DWHM', 'CN', 'WC', 'AI'],
-      },
-      '6': {
-        'Theory': ['DAV', 'ML', 'SEPM', 'CSS'],
-        'Lab': ['DAV', 'ML', 'SEPM', 'CSS', 'CC'],
-      },
-    },
-    'BE': {
-      '7': {
-        'Theory': ['DL', 'BDA'],
-        'Lab': ['DL', 'BDA'],
-      },
-      '8': {
-        'Theory': ['AAI'],
-        'Lab': ['AAI'],
-      },
-    }
-  };
-
+  /// Firebase mapping for predefined subjects.
+  /// This mapping is fetched from Firestore.
+  Map<String, dynamic> subjectsMapping = {};
 
   @override
   void initState() {
     super.initState();
-    _loadData();
+    // First, fetch the mapping then load the remaining data.
+    _fetchSubjectsMapping().then((_) {
+      _loadData();
+    });
+  }
+
+  /// Fetch the subjects mapping from Firestore.
+  Future<void> _fetchSubjectsMapping() async {
+    try {
+      DocumentSnapshot snapshot = await FirebaseFirestore.instance
+          .collection('subjects')
+          .doc('all_subjects')
+          .get();
+      if (snapshot.exists) {
+        setState(() {
+          subjectsMapping = snapshot.data() as Map<String, dynamic>;
+        });
+      } else {
+        Fluttertoast.showToast(msg: "Subjects mapping not found");
+      }
+    } catch (e) {
+      setState(() {
+        errorMessage = "Failed to load subjects mapping.";
+      });
+      Fluttertoast.showToast(msg: "Error fetching subjects mapping: $e");
+    }
   }
 
   /// Loads optional subjects and marks data.
@@ -137,8 +132,8 @@ class _IaMarksState extends State<IaMarks> {
             .get();
 
         if (docSnapshot.exists) {
-          Map<String, dynamic> data = docSnapshot.data() as Map<String,
-              dynamic>;
+          Map<String, dynamic> data =
+          docSnapshot.data() as Map<String, dynamic>;
           setState(() {
             marksData[subject] = {
               "IA-1": data["IA-1"] as int?,
@@ -190,32 +185,43 @@ class _IaMarksState extends State<IaMarks> {
         "Average": averageMarks[subject] ?? 0.0,
       }, SetOptions(merge: true));
     } catch (e) {
-      if(!mounted) return;
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to save marks and average",
-            style: TextStyle(fontFamily: "Outfit"))),
+        const SnackBar(
+            content: Text("Failed to save marks and average",
+                style: TextStyle(fontFamily: "Outfit"))),
       );
     }
   }
 
-  /// Returns a list of all subjects combining predefined Theory, Lab, and optional subjects.
+  /// Returns a list of all subjects combining the Firebase mapping for Theory and Lab with any optional subjects.
   List<String> getAllSubjects() {
     Set<String> allSubjects = {}; // Using a Set to remove duplicates
 
-    // Fetch predefined Theory and Lab subjects.
-    if (subjects.containsKey(widget.year) &&
-        subjects[widget.year]!.containsKey(widget.sem)) {
-      var semesterSubjects = subjects[widget.year]![widget.sem]!;
-
-      if (semesterSubjects.containsKey('Theory')) {
-        allSubjects.addAll(semesterSubjects['Theory']!);
+    // Fetch predefined Theory and Lab subjects from Firebase mapping.
+    if (subjectsMapping.isNotEmpty &&
+        subjectsMapping.containsKey(widget.year) &&
+        (subjectsMapping[widget.year] as Map<String, dynamic>).containsKey(widget.sem)) {
+      final semData =
+      (subjectsMapping[widget.year] as Map<String, dynamic>)[widget.sem] as Map<String, dynamic>;
+      if (semData.containsKey('theory')) {
+        allSubjects.addAll(List<String>.from(semData['theory']));
       }
-      if (semesterSubjects.containsKey('Lab')) {
-        allSubjects.addAll(semesterSubjects['Lab']!);
+      if (semData.containsKey('lab')) {
+        allSubjects.addAll(List<String>.from(semData['lab']));
       }
     }
 
-    // Add selected optional subjects (if any)
+    // Remove unwanted categories: any subject containing "Major Project" (case-insensitive),
+    // or exactly "DLOC5", "DLOC6", or any subject starting with "ILOC".
+    allSubjects.removeWhere((subject) =>
+    subject.toLowerCase().contains("major project") ||
+        subject.toUpperCase() == "DLOC5" ||
+        subject.toUpperCase() == "DLOC6" ||
+        subject.toUpperCase().startsWith("ILOC")
+    );
+
+    // Add the selected optional subjects (which hold the actual subject names).
     allSubjects.addAll(selectedSubjects.values);
 
     return allSubjects.toList();
@@ -258,9 +264,9 @@ class _IaMarksState extends State<IaMarks> {
                   Navigator.pop(context);
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text(
-                        "Marks must be between 0 and 20",
-                        style: TextStyle(fontFamily: "Outfit"))),
+                    const SnackBar(
+                        content: Text("Marks must be between 0 and 20",
+                            style: TextStyle(fontFamily: "Outfit"))),
                   );
                 }
               },
@@ -274,6 +280,38 @@ class _IaMarksState extends State<IaMarks> {
 
   @override
   Widget build(BuildContext context) {
+    // While loading, show a circular progress indicator.
+    if (isLoading) {
+      return Scaffold(
+        appBar: AppBar(
+          centerTitle: true,
+          title: FadeInDown(
+            duration: const Duration(milliseconds: 500),
+            child: const Text(
+              'I A   M A R K S',
+              style: TextStyle(
+                fontFamily: 'Outfit',
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+          ),
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.greenAccent, Colors.teal],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+          ),
+          backgroundColor: Colors.grey[100],
+        ),
+        body: const Center(child: CircularProgressIndicator(color: Colors.black,)),
+      );
+    }
+
     List<String> allSubjects = getAllSubjects();
 
     return Scaffold(
@@ -310,8 +348,8 @@ class _IaMarksState extends State<IaMarks> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center, // Center the Row's content
               children: [
-                Icon(Icons.menu_book, size: 24, color: Colors.teal),
-                SizedBox(width: 8),
+                const Icon(Icons.menu_book, size: 24, color: Colors.teal),
+                const SizedBox(width: 8),
                 Text(
                   "Enter your IA Marks",
                   style: TextStyle(
@@ -341,7 +379,6 @@ class _IaMarksState extends State<IaMarks> {
                         headingRowHeight: 50,
                         dataRowMinHeight: 40,
                         dataRowMaxHeight: 40,
-
                         columns: const [
                           DataColumn(
                             label: Text("Subject",
@@ -386,8 +423,7 @@ class _IaMarksState extends State<IaMarks> {
                                       const SnackBar(
                                         content: Text(
                                           "IA-1 marks can only be entered once. Contact your teacher to modify.",
-                                          style: TextStyle(
-                                              fontFamily: "Outfit"),
+                                          style: TextStyle(fontFamily: "Outfit"),
                                         ),
                                       ),
                                     );
@@ -404,9 +440,8 @@ class _IaMarksState extends State<IaMarks> {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
                                         content: Text(
-                                          "Note :- IA-2 marks can only be entered once. Contact your teacher to modify.",
-                                          style: TextStyle(
-                                              fontFamily: "Outfit"),
+                                          "IA-2 marks can only be entered once. Contact your teacher to modify.",
+                                          style: TextStyle(fontFamily: "Outfit"),
                                         ),
                                       ),
                                     );
@@ -415,8 +450,7 @@ class _IaMarksState extends State<IaMarks> {
                               ),
                               DataCell(
                                 Text(
-                                    averageMarks[subject]?.toStringAsFixed(2) ??
-                                        "-",
+                                    averageMarks[subject]?.toStringAsFixed(2) ?? "-",
                                     style: TextStyle(fontFamily: "Outfit")),
                               ),
                             ],

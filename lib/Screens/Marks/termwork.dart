@@ -40,7 +40,7 @@ class _StudentTermWorkState extends State<StudentTermWork> {
   Map<String, int> originalAssignmentTotalMarks = {};
   Map<String, int> originalAssignmentObtainedMarks = {};
 
-  // For Crossword (unchanged)
+  // For Crossword marks.
   Map<String, int> crosswordMarks = {};
   Map<String, int> originalCrosswordMarks = {};
 
@@ -49,30 +49,35 @@ class _StudentTermWorkState extends State<StudentTermWork> {
   bool isLoading = true;
   String? errorMessage;
 
-  // Options for DLOC/ILOC subjects (if needed)
-  final Map<String, Map<String, Map<String, List<String>>>> dlocOptions = {
-    'TE': {
-      '5': {'DLOC1': ['Stats', 'IOT']},
-      '6': {'DLOC2': ['DC', 'IVP']},
-    },
-    'BE': {
-      '7': {
-        'DLOC3': ['AI For Healthcare', 'NLP', 'NNFS'],
-        'DLOC4': ['UX Design with VR', 'BC', 'GT'],
-        'ILOC1': ['PLM', 'RE', 'MIS', 'DOE', 'OR', 'CSL', 'DMMM', 'EAM', 'DE'],
-      },
-      '8': {
-        'DLOC5': ['AI for FBA', 'RL', 'QC'],
-        'DLOC6': ['RS', 'SMA', 'GDS'],
-        'ILOC2': ['PM', 'FM', 'EDM', 'PEC', 'RM', 'IPRP', 'DBM', 'EM'],
-      },
-    },
-  };
+  // Firebase mapping for optional subjects (DLOC/ILOC and also predefined subjects)
+  Map<String, dynamic> optionalMapping = {};
 
   @override
   void initState() {
     super.initState();
-    _loadSubjectList();
+    // First, load the optional subjects mapping from Firebase.
+    _fetchOptionalMapping().then((_) {
+      _loadSubjectList();
+    });
+  }
+
+  /// Fetch the optional subjects mapping from Firestore.
+  /// Assumes the document structure under "subjects/all_subjects" contains keys like:
+  /// { "TE": { "5": { "dloc": { "DLOC1": [ ... ] } } }, "BE": { "7": { "dloc": {...}, "iloc": {...} }, ... }
+  Future<void> _fetchOptionalMapping() async {
+    try {
+      DocumentSnapshot snapshot =
+      await _firestore.collection('subjects').doc('all_subjects').get();
+      if (snapshot.exists) {
+        setState(() {
+          optionalMapping = snapshot.data() as Map<String, dynamic>;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        errorMessage = "Error fetching optional subjects mapping: $e";
+      });
+    }
   }
 
   // Load subjects exclusively from Firestore.
@@ -127,7 +132,9 @@ class _StudentTermWorkState extends State<StudentTermWork> {
         );
         await _fetchStudentMarks();
       } else if (_isDlocSubject()) {
-        _initializeMaps(0, 0, 0); // Defaults for DLOC/ILOC subjects.
+        // If the configuration is missing but the subject is an optional one,
+        // initialize with default values.
+        _initializeMaps(0, 0, 0);
         await _fetchStudentMarks();
       } else {
         setState(() => errorMessage = "Configuration missing for $selectedSubject");
@@ -139,9 +146,26 @@ class _StudentTermWorkState extends State<StudentTermWork> {
     }
   }
 
+  /// Checks if the selected subject is a DLOC/ILOC (optional) subject using the Firebase mapping.
   bool _isDlocSubject() {
-    return dlocOptions[widget.year]?[widget.sem]?.containsKey(selectedSubject) ?? false;
+    if (optionalMapping.isNotEmpty &&
+        optionalMapping.containsKey(widget.year) &&
+        (optionalMapping[widget.year] as Map<String, dynamic>).containsKey(widget.sem)) {
+      final semData = (optionalMapping[widget.year] as Map<String, dynamic>)[widget.sem] as Map<String, dynamic>;
+      if (selectedSubject != null) {
+        if (semData.containsKey("dloc")) {
+          final dlocMap = semData["dloc"] as Map<String, dynamic>;
+          if (dlocMap.containsKey(selectedSubject)) return true;
+        }
+        if (semData.containsKey("iloc")) {
+          final ilocMap = semData["iloc"] as Map<String, dynamic>;
+          if (ilocMap.containsKey(selectedSubject)) return true;
+        }
+      }
+    }
+    return false;
   }
+
 
   // Initialize the maps that will hold the marks.
   void _initializeMaps(int exp, int ass, int cross) {
@@ -678,7 +702,7 @@ class _StudentTermWorkState extends State<StudentTermWork> {
   Widget build(BuildContext context) {
     if (isLoading) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+        body: Center(child: CircularProgressIndicator(color: Colors.black,)),
       );
     }
     if (errorMessage != null) {
@@ -867,7 +891,7 @@ class _StudentTermWorkState extends State<StudentTermWork> {
                               child: Container(
                                 alignment: Alignment.center,
                                 child: isLoading
-                                    ? const CircularProgressIndicator()
+                                    ? const CircularProgressIndicator(color: Colors.black,)
                                     : const Text(
                                   'Save Marks',
                                   style: TextStyle(

@@ -11,8 +11,8 @@ class CumulativeAttendance extends StatefulWidget {
   final String sem;
   final String fullName;
 
-
-  const CumulativeAttendance({super.key,
+  const CumulativeAttendance({
+    super.key,
     required this.rollNo,
     required this.fullName,
     required this.year,
@@ -25,123 +25,121 @@ class CumulativeAttendance extends StatefulWidget {
 }
 
 class _CumulativeAttendanceState extends State<CumulativeAttendance> {
-  String? selectedClass;
-  String? selectedSem;
-  // Removed selectedType; now teacher selects only subjects.
+  // Instead of local mappings, we now load the configuration from Firebase.
+  Map<String, dynamic> subjectsMapping = {};
+  bool isMappingLoading = true;
+  bool isLoading = false;
+  String? errorMessage;
+
+  // List of subjects selected by the user.
   List<String> selectedSubjects = [];
 
-  bool isLoading = false;
+  // List of students fetched from Firebase.
   List<Map<String, dynamic>> students = [];
 
-  final Map<String, List<String>> semesters = {
-    'BE': ['7', '8'],
-    'TE': ['5', '6'],
-    'SE': ['3', '4'],
-  };
+  @override
+  void initState() {
+    super.initState();
+    _fetchSubjectsMapping();
+  }
 
-  // Subjects are still stored per class, sem and type (Theory & Lab)
-  final Map<String, Map<String, Map<String, List<String>>>> subjects = {
-    'SE': {
-      '3': {
-        'Theory': ['EM-3', 'DSGT', 'DS', 'DLCOA', 'CG', 'JAVA', 'Mini Project 1A'],
-        'Lab': ['DS', 'DLCOA', 'CG', 'JAVA'],
-      },
-      '4': {
-        'Theory': ['EM-4', 'DBMS', 'OS', 'AOA', 'Python', 'MP', 'Mini Project 1B'],
-        'Lab': ['DBMS', 'OS', 'AOA', 'Python', 'MP'],
-      },
-    },
-    'TE': {
-      '5': {
-        'Theory': ['DWHM', 'CN', 'WC', 'AI', 'Mini Project 2A'],
-        'Lab': ['DWHM', 'CN', 'WC', 'AI'],
-      },
-      '6': {
-        'Theory': ['DAV', 'ML', 'SEPM', 'CSS', 'Mini Project'],
-        'Lab': ['DAV', 'ML', 'SEPM', 'CSS', 'CC'],
-      },
-    },
-    'BE': {
-      '7': {
-        'Theory': ['DL', 'BDA', 'Major Project 1A'],
-        'Lab': ['DL', 'BDA'],
-      },
-      '8': {
-        'Theory': ['AAI', 'Major Project'],
-        'Lab': ['AAI'],
-      },
+  /// Fetch the subjects mapping from Firestore.
+  Future<void> _fetchSubjectsMapping() async {
+    setState(() => isMappingLoading = true);
+    try {
+      DocumentSnapshot snapshot = await FirebaseFirestore.instance
+          .collection('subjects')
+          .doc('all_subjects')
+          .get();
+      if (snapshot.exists) {
+        setState(() {
+          subjectsMapping = snapshot.data() as Map<String, dynamic>;
+        });
+      } else {
+        setState(() {
+          errorMessage = "Subjects mapping not found";
+        });
+      }
+    } catch (e) {
+      setState(() {
+        errorMessage = "Error loading subjects mapping: $e";
+      });
+    } finally {
+      setState(() => isMappingLoading = false);
     }
-  };
+  }
 
-  // Mapping for optional subjects (dlocOptions) with an extra level for mode.
-  final Map<String, Map<String, Map<String, Map<String, List<String>>>>>
-  dlocOptions = {
-    'TE': {
-      '5': {
-        'Theory': {
-          'DLOC1': ['Stats', 'IOT']
-        },
-        'Lab': {
-          'DLOC1': ['Stats', 'IOT']
-        },
-      },
-      '6': {
-        'Theory': {
-          'DLOC2': ['DC', 'IVP']
-        },
-        'Lab': {
-          'DLOC2': ['DC', 'IVP']
-        },
-      },
-    },
-    'BE': {
-      '7': {
-        'Theory': {
-          'DLOC3': ['AI For Healthcare', 'NLP', 'NNFS'],
-          'DLOC4': ['UX Design with VR', 'BC', 'GT'],
-          'ILOC1': ['PLM', 'RE', 'MIS', 'DOE', 'OR', 'CSL', 'DMMM', 'EAM', 'DE'],
-        },
-        'Lab': {
-          // For BE 7 labs, only DLOC subjects are available.
-          'DLOC3': ['AI For Healthcare', 'NLP', 'NNFS'],
-          'DLOC4': ['UX Design with VR', 'BC', 'GT'],
-        },
-      },
-      '8': {
-        'Theory': {
-          'DLOC5': ['AI for FBA', 'RL', 'QC'],
-          'DLOC6': ['RS', 'SMA', 'GDS'],
-          'ILOC2': ['PM', 'FM', 'EDM', 'PEC', 'RM', 'IPRP', 'DBM', 'EM'],
-        },
-        'Lab': {
-          // For BE 8 labs, only DLOC subjects are available.
-          'DLOC5': ['AI for FBA', 'RL', 'QC'],
-          'DLOC6': ['RS', 'SMA', 'GDS'],
-        },
-      },
-    },
-  };
+  /// Returns available semesters for the given year.
+  List<String> getAvailableSemesters(String year) {
+    if (subjectsMapping.containsKey(year)) {
+      final classMap = subjectsMapping[year] as Map<String, dynamic>;
+      return classMap.keys.toList();
+    }
+    return [];
+  }
 
-  Future<List<Map<String, dynamic>>> fetchApprovedStudents(
-      String selectedClass, String selectedSem) async {
-    List<Map<String, dynamic>> students = [];
+  /// Returns available subjects for the given year and sem by combining
+  /// both theory and lab subjects.
+  List<String> getAvailableSubjects(String year, String sem) {
+    List<String> subjectsList = [];
+    if (subjectsMapping.containsKey(year)) {
+      final classMap = subjectsMapping[year] as Map<String, dynamic>;
+      if (classMap.containsKey(sem)) {
+        final semData = classMap[sem] as Map<String, dynamic>;
+        if (semData.containsKey("theory")) {
+          subjectsList.addAll(List<String>.from(semData["theory"]));
+        }
+        if (semData.containsKey("lab")) {
+          subjectsList.addAll(List<String>.from(semData["lab"]));
+        }
+      }
+    }
+    // Optional: Remove duplicates and sort.
+    subjectsList = subjectsList.toSet().toList()..sort();
+    return subjectsList;
+  }
 
+  /// Returns available optional subjects for a given subject.
+  /// Checks the "dloc" and "iloc" keys in the mapping.
+  List<String> getAvailableOptionalSubjects(String year, String sem, String subject) {
+    if (subjectsMapping.containsKey(year)) {
+      final classMap = subjectsMapping[year] as Map<String, dynamic>;
+      if (classMap.containsKey(sem)) {
+        final semData = classMap[sem] as Map<String, dynamic>;
+        if (subject.toUpperCase().startsWith("DLOC") && semData.containsKey("dloc")) {
+          final dlocMap = semData["dloc"] as Map<String, dynamic>;
+          if (dlocMap.containsKey(subject)) {
+            return List<String>.from(dlocMap[subject]);
+          }
+        } else if (subject.toUpperCase().startsWith("ILOC") && semData.containsKey("iloc")) {
+          final ilocMap = semData["iloc"] as Map<String, dynamic>;
+          if (ilocMap.containsKey(subject)) {
+            return List<String>.from(ilocMap[subject]);
+          }
+        }
+      }
+    }
+    return [];
+  }
+
+  /// Fetch approved students for the given year and sem.
+  Future<List<Map<String, dynamic>>> fetchApprovedStudents(String year, String sem) async {
+    List<Map<String, dynamic>> fetchedStudents = [];
     try {
       QuerySnapshot querySnapshot = await FirebaseFirestore.instance
           .collection('students')
-          .doc(selectedClass)
-          .collection(selectedSem)
+          .doc(year)
+          .collection(sem)
           .where('approvalStatus', isEqualTo: 'approved')
           .get();
 
       for (var doc in querySnapshot.docs) {
-        students.add(doc.data() as Map<String, dynamic>);
+        fetchedStudents.add(doc.data() as Map<String, dynamic>);
       }
     } catch (e) {
       Fluttertoast.showToast(msg: 'Error fetching students: $e');
     }
-
-    return students;
+    return fetchedStudents;
   }
 
   Future<void> _fetchStudents() async {
@@ -185,35 +183,43 @@ class _CumulativeAttendanceState extends State<CumulativeAttendance> {
     }
   }
 
-  /// Build checkboxes for subjects by combining the regular subjects (theory & lab)
-  /// and the optional subject categories from both modes.
+  /// Build checkboxes for subjects using the Firebase mapping.
   List<Widget> _buildSubjectCheckboxes() {
-    List<String> theorySubjects =
-        subjects[widget.year]?[widget.sem]?['Theory'] ?? [];
-    List<String> labSubjects =
-        subjects[widget.year]?[widget.sem]?['Lab'] ?? [];
+    // Get regular subjects from Firebase mapping.
+    List<String> theorySubjects = [];
+    List<String> labSubjects = [];
+    if (subjectsMapping.containsKey(widget.year)) {
+      final classMap = subjectsMapping[widget.year] as Map<String, dynamic>;
+      if (classMap.containsKey(widget.sem)) {
+        final semData = classMap[widget.sem] as Map<String, dynamic>;
+        if (semData.containsKey("theory")) {
+          theorySubjects = List<String>.from(semData["theory"]);
+        }
+        if (semData.containsKey("lab")) {
+          labSubjects = List<String>.from(semData["lab"]);
+        }
+      }
+    }
     List<String> regularSubjects = [...theorySubjects, ...labSubjects];
 
-    // Get optional subjects from both theory and lab keys in dlocOptions.
+    // Get optional subjects from both "dloc" and "iloc" keys.
     List<String> optionalSubjects = [];
-    if (dlocOptions[widget.year] != null &&
-        dlocOptions[widget.year]![widget.sem] != null) {
-      Map<String, List<String>>? theoryMap =
-      dlocOptions[widget.year]![widget.sem]?['Theory'];
-      Map<String, List<String>>? labMap =
-      dlocOptions[widget.year]![widget.sem]?['Lab'];
-      if (theoryMap != null) {
-        optionalSubjects.addAll(theoryMap.keys);
-      }
-      if (labMap != null) {
-        optionalSubjects.addAll(labMap.keys);
+    if (subjectsMapping.containsKey(widget.year)) {
+      final classMap = subjectsMapping[widget.year] as Map<String, dynamic>;
+      if (classMap.containsKey(widget.sem)) {
+        final semData = classMap[widget.sem] as Map<String, dynamic>;
+        if (semData.containsKey("dloc") && semData["dloc"] is Map) {
+          optionalSubjects.addAll((semData["dloc"] as Map<String, dynamic>).keys);
+        }
+        if (semData.containsKey("iloc") && semData["iloc"] is Map) {
+          optionalSubjects.addAll((semData["iloc"] as Map<String, dynamic>).keys);
+        }
       }
     }
 
     // Combine the lists and remove duplicates.
     List<String> allSubjects = [...regularSubjects, ...optionalSubjects];
-    allSubjects = allSubjects.toSet().toList();
-    allSubjects.sort();
+    allSubjects = allSubjects.toSet().toList()..sort();
 
     return allSubjects.map((subject) {
       return CheckboxListTile(
@@ -242,8 +248,7 @@ class _CumulativeAttendanceState extends State<CumulativeAttendance> {
         backgroundColor: Colors.white,
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
-          icon:
-          const Icon(Icons.arrow_back_ios, size: 20, color: Colors.black),
+          icon: const Icon(Icons.arrow_back_ios, size: 20, color: Colors.black),
         ),
       ),
       body: SingleChildScrollView(
@@ -267,7 +272,7 @@ class _CumulativeAttendanceState extends State<CumulativeAttendance> {
               const SizedBox(height: 30),
               FadeInUp(
                 duration: const Duration(milliseconds: 1000),
-                child: Center( // Center the RichText
+                child: Center(
                   child: Text.rich(
                     TextSpan(
                       style: const TextStyle(
@@ -275,24 +280,24 @@ class _CumulativeAttendanceState extends State<CumulativeAttendance> {
                         fontSize: 20,
                       ),
                       children: <TextSpan>[
-                        TextSpan(
+                        const TextSpan(
                           text: "Note:\n",
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
                             color: Colors.black,
                           ),
                         ),
-                        TextSpan(
-                          text: "Select the following Subjects to fetch Student Attendance.",
+                        const TextSpan(
+                          text:
+                          "Select the subjects to fetch Student Attendance.",
                         ),
                       ],
                     ),
-                    textAlign: TextAlign.center, // Center the text within RichText
+                    textAlign: TextAlign.center,
                   ),
                 ),
               ),
               const SizedBox(height: 30),
-              // Removed the dropdown for "Type"
               FadeInUp(
                 duration: const Duration(milliseconds: 1000),
                 child: Column(
@@ -306,7 +311,7 @@ class _CumulativeAttendanceState extends State<CumulativeAttendance> {
                         color: Colors.black,
                       ),
                     ),
-                      ..._buildSubjectCheckboxes(),
+                    ..._buildSubjectCheckboxes(),
                   ],
                 ),
               ),
@@ -343,7 +348,7 @@ class _CumulativeAttendanceState extends State<CumulativeAttendance> {
                           child: Container(
                             alignment: Alignment.center,
                             child: const Text(
-                              'Fetch Students',
+                              'Fetch',
                               style: TextStyle(
                                 fontFamily: 'Outfit',
                                 fontWeight: FontWeight.w600,

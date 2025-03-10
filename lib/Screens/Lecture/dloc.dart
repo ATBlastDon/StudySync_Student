@@ -1,6 +1,7 @@
 import 'package:animate_do/animate_do.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 class SelectionSubjects extends StatefulWidget {
   final String year; // e.g. "BE"
@@ -21,44 +22,54 @@ class SelectionSubjects extends StatefulWidget {
 }
 
 class _SelectionSubjectsState extends State<SelectionSubjects> {
-  // Map to hold the student’s selected option for each DLOC key.
+  // Map to hold the student’s selected option for each DLOC/ILOC key.
   Map<String, String?> selectedSubjects = {};
   // Keep a copy of the previously saved subjects.
   Map<String, String?> previousSelectedSubjects = {};
 
   // Variable to track if a process (save/update) is in progress.
   bool _isProcessing = false;
+  // State variable to track if the Firebase mapping is still loading.
+  bool _isMappingLoading = true;
 
-  // Mapping for DLOC subjects/options.
-  final Map<String, Map<String, Map<String, List<String>>>> dlocOptions = {
-    'TE': {
-      '5': {
-        'DLOC1': ['Stats', 'IOT']
-      },
-      '6': {
-        'DLOC2': ['DC', 'IVP']
-      }
-    },
-    'BE': {
-      '7': {
-        'DLOC3': ['AI For Healthcare', 'NLP', 'NNFS'],
-        'DLOC4': ['UX Design with VR', 'BC', 'GT'],
-        'ILOC1': ['PLM', 'RE', 'MIS', 'DOE', 'OR', 'CSL', 'DMMM', 'EAM', 'DE'],
-      },
-      '8': {
-        'DLOC5': ['AI for FBA', 'RL', 'QC'],
-        'DLOC6': ['RS', 'SMA', 'GDS'],
-        'ILOC2': ['PM', 'FM', 'EDM', 'PEC', 'RM', 'IPRP', 'DBM', 'EM'],
-      }
-    }
-  };
+  /// Firebase mapping for optional subjects.
+  /// This mapping is fetched from Firestore.
+  Map<String, dynamic> subjectsMapping = {};
 
   @override
   void initState() {
     super.initState();
+    _fetchSubjectsMapping();
     _loadExistingSubjects();
   }
 
+  /// Fetch the optional subjects mapping from Firestore.
+  Future<void> _fetchSubjectsMapping() async {
+    try {
+      DocumentSnapshot snapshot = await FirebaseFirestore.instance
+          .collection('subjects')
+          .doc('all_subjects')
+          .get();
+      if (snapshot.exists) {
+        setState(() {
+          subjectsMapping = snapshot.data() as Map<String, dynamic>;
+          _isMappingLoading = false;
+        });
+      } else {
+        setState(() {
+          _isMappingLoading = false;
+        });
+        Fluttertoast.showToast(msg: "Subjects mapping not found");
+      }
+    } catch (e) {
+      setState(() {
+        _isMappingLoading = false;
+      });
+      Fluttertoast.showToast(msg: "Error fetching subjects mapping: $e");
+    }
+  }
+
+  /// Load existing subject selections for the student.
   Future<void> _loadExistingSubjects() async {
     final String year = widget.year;
     final String sem = widget.sem;
@@ -75,25 +86,24 @@ class _SelectionSubjectsState extends State<SelectionSubjects> {
     if (docSnapshot.exists &&
         docSnapshot.data() != null &&
         docSnapshot.data()!.isNotEmpty) {
-      // Convert document data to Map<String, String?>.
       setState(() {
         selectedSubjects = docSnapshot.data()!
             .map((key, value) => MapEntry(key, value.toString()));
-        // Save a copy as the previous selections
+        // Save a copy as the previous selections.
         previousSelectedSubjects = Map.from(selectedSubjects);
       });
     }
   }
 
-  // Helper: make sure every DLOC subject has a selected value.
-  bool _allOptionsSelected(List<String> dlocKeys) {
-    for (var key in dlocKeys) {
+  /// Helper: check that every optional subject key has a selected value.
+  bool _allOptionsSelected(List<String> optionalKeys) {
+    for (var key in optionalKeys) {
       if (selectedSubjects[key] == null) return false;
     }
     return true;
   }
 
-  // Save (or update) the selected subjects in the student's document.
+  /// Save (or update) the selected subjects in the student's document.
   Future<void> _saveSelectedSubjects() async {
     final String year = widget.year;
     final String sem = widget.sem;
@@ -108,7 +118,6 @@ class _SelectionSubjectsState extends State<SelectionSubjects> {
         .doc(sem);
 
     try {
-      // Merge so that if the document exists, it gets updated.
       await docRef.set(selectedSubjects, SetOptions(merge: true));
     } catch (error) {
       if (!mounted) return;
@@ -120,29 +129,30 @@ class _SelectionSubjectsState extends State<SelectionSubjects> {
     }
   }
 
+  /// Save the selections in the optional subjects collection.
   Future<void> _saveInOptionalSubjects() async {
     final String year = widget.year;
     final String sem = widget.sem;
     final String rollNo = widget.rollNo;
 
     for (final entry in selectedSubjects.entries) {
-      final String dlocKey = entry.key;
+      final String optionalKey = entry.key;
       final String newSubject = entry.value!;
-      final String? oldSubject = previousSelectedSubjects[dlocKey];
+      final String? oldSubject = previousSelectedSubjects[optionalKey];
 
-      // If there is an old selection that is different than the new one, remove the rollNo.
+      // If there is an old selection that differs from the new one, remove the rollNo.
       if (oldSubject != null && oldSubject != newSubject) {
         final oldDocRef = FirebaseFirestore.instance
             .collection("optional_subjects")
             .doc(year)
             .collection(sem)
-            .doc(dlocKey)
+            .doc(optionalKey)
             .collection(oldSubject)
             .doc(rollNo);
         try {
           await oldDocRef.delete();
         } catch (error) {
-          // Handle errors if needed (e.g. the document might not exist)
+          // Handle errors if needed.
         }
       }
 
@@ -151,32 +161,56 @@ class _SelectionSubjectsState extends State<SelectionSubjects> {
           .collection("optional_subjects")
           .doc(year)
           .collection(sem)
-          .doc(dlocKey)
+          .doc(optionalKey)
           .collection(newSubject)
           .doc(rollNo);
 
       await newDocRef.set({
-        'batch': widget.batch, // Store the batch as a field in the document.
+        'batch': widget.batch,
       });
     }
 
-    // Update the previousSelectedSubjects for any future changes.
     previousSelectedSubjects = Map.from(selectedSubjects);
   }
 
   @override
   Widget build(BuildContext context) {
-    // Retrieve options for the current branch and semester.
-    Map<String, List<String>>? subjectsOptions = dlocOptions[widget.year]?[widget.sem];
+    // While the mapping is loading, show a CircularProgressIndicator.
+    if (_isMappingLoading) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: const Center(child: CircularProgressIndicator(color: Colors.black,)),
+      );
+    }
 
-    if (subjectsOptions == null) {
+    // Build a merged map of optional subject options for the given branch and sem.
+    // Merge both "dloc" and "iloc" sections from the Firebase mapping.
+    Map<String, List<String>> subjectsOptions = {};
+    if (subjectsMapping.isNotEmpty &&
+        subjectsMapping.containsKey(widget.year) &&
+        (subjectsMapping[widget.year] as Map<String, dynamic>).containsKey(widget.sem)) {
+      final semData = (subjectsMapping[widget.year] as Map<String, dynamic>)[widget.sem] as Map<String, dynamic>;
+      if (semData.containsKey("dloc")) {
+        final dlocMap = semData["dloc"] as Map<String, dynamic>;
+        dlocMap.forEach((key, value) {
+          subjectsOptions[key] = List<String>.from(value);
+        });
+      }
+      if (semData.containsKey("iloc")) {
+        final ilocMap = semData["iloc"] as Map<String, dynamic>;
+        ilocMap.forEach((key, value) {
+          subjectsOptions[key] = List<String>.from(value);
+        });
+      }
+    }
+
+    if (subjectsOptions.isEmpty) {
       return Scaffold(
         backgroundColor: Colors.white,
         body: Padding(
           padding: const EdgeInsets.all(20.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               FadeInUp(
                 duration: const Duration(milliseconds: 1000),
@@ -194,7 +228,7 @@ class _SelectionSubjectsState extends State<SelectionSubjects> {
               FadeInUp(
                 duration: const Duration(milliseconds: 1000),
                 child: const Text(
-                  "No Choice for DLOC or ILOC subjects",
+                  "No choices for DLOC or ILOC subjects",
                   style: TextStyle(
                     fontFamily: 'Outfit',
                     fontSize: 18,
@@ -209,7 +243,6 @@ class _SelectionSubjectsState extends State<SelectionSubjects> {
       );
     }
 
-    // Wrap the main content with a Stack to overlay the CircularProgressIndicator.
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -229,7 +262,6 @@ class _SelectionSubjectsState extends State<SelectionSubjects> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Heading
                 FadeInUp(
                   duration: const Duration(milliseconds: 1000),
                   child: Center(
@@ -248,18 +280,18 @@ class _SelectionSubjectsState extends State<SelectionSubjects> {
                 Expanded(
                   child: ListView(
                     children: [
-                      // Build a dropdown for each DLOC key (e.g. "DLOC1", "DLOC2")
+                      // Build a dropdown for each optional key (DLOC or ILOC).
                       ...subjectsOptions.entries.map((entry) {
-                        final String dlocKey = entry.key;
+                        final String optionalKey = entry.key;
                         final List<String> options = entry.value;
                         return FadeInUp(
                           duration: const Duration(milliseconds: 1000),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(vertical: 8.0),
                             child: DropdownButtonFormField<String>(
-                              style: TextStyle(fontFamily: "Outfit", color: Colors.black),
+                              style: const TextStyle(fontFamily: "Outfit", color: Colors.black),
                               decoration: InputDecoration(
-                                labelText: dlocKey,
+                                labelText: optionalKey,
                                 labelStyle: const TextStyle(
                                   fontFamily: 'Outfit',
                                   fontSize: 18,
@@ -273,17 +305,17 @@ class _SelectionSubjectsState extends State<SelectionSubjects> {
                                   borderSide: BorderSide(color: Colors.black),
                                 ),
                               ),
-                              // If a subject was already selected, it appears here.
-                              value: selectedSubjects[dlocKey],
+                              // Show previously saved selection if available.
+                              value: selectedSubjects[optionalKey],
                               items: options.map((String option) {
                                 return DropdownMenuItem<String>(
                                   value: option,
-                                  child: Text(option, style: TextStyle(fontFamily: "Outfit")),
+                                  child: Text(option, style: const TextStyle(fontFamily: "Outfit")),
                                 );
                               }).toList(),
                               onChanged: (String? newValue) {
                                 setState(() {
-                                  selectedSubjects[dlocKey] = newValue;
+                                  selectedSubjects[optionalKey] = newValue;
                                 });
                               },
                             ),
@@ -334,7 +366,8 @@ class _SelectionSubjectsState extends State<SelectionSubjects> {
                                             ),
                                           );
                                         }
-                                      });                                    } else {
+                                      });
+                                    } else {
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         const SnackBar(
                                           content: Text("Please select an option for every Optional subject.", style: TextStyle(fontFamily: "Outfit")),
@@ -366,7 +399,7 @@ class _SelectionSubjectsState extends State<SelectionSubjects> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 30), // Spacing above the note.
+                      const SizedBox(height: 30),
                       FadeInUp(
                         duration: const Duration(milliseconds: 1000),
                         child: Center(
@@ -402,12 +435,12 @@ class _SelectionSubjectsState extends State<SelectionSubjects> {
               ],
             ),
           ),
-          // Circular Progress Indicator Overlay
+          // Overlay progress indicator when processing.
           if (_isProcessing)
             Container(
               color: Colors.black.withValues(alpha: 0.5),
               child: const Center(
-                child: CircularProgressIndicator(color: Colors.black,),
+                child: CircularProgressIndicator(color: Colors.black),
               ),
             ),
         ],

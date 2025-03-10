@@ -10,6 +10,7 @@ class ParticularLecture extends StatefulWidget {
   final String sub;
   final String type;
   final String fullName;
+  final String batch;
   final String rollNo;
   final String optionalSubject; // Pass empty string if not applicable
 
@@ -20,6 +21,7 @@ class ParticularLecture extends StatefulWidget {
     required this.rollNo,
     required this.sub,
     required this.type,
+    required this.batch,
     required this.optionalSubject,
     required this.fullName,
   });
@@ -105,6 +107,11 @@ class _ParticularLectureState extends State<ParticularLecture> {
             isLessThanOrEqualTo: Timestamp.fromDate(toDate!));
       }
 
+      // If the lecture type is lab, filter by the batch.
+      if (widget.type.toLowerCase() == 'lab') {
+        query = query.where('batch', isEqualTo: widget.batch);
+      }
+
       QuerySnapshot querySnapshot = await query.get();
 
       List<Map<String, dynamic>> data = [];
@@ -112,6 +119,14 @@ class _ParticularLectureState extends State<ParticularLecture> {
 
       for (var doc in querySnapshot.docs) {
         final lecture = doc.data() as Map<String, dynamic>;
+
+        // Additional check: In lab mode, verify the lecture document's batch matches.
+        if (widget.type.toLowerCase() == 'lab') {
+          if (lecture['batch'] != widget.batch) {
+            continue;
+          }
+        }
+
         if (lecture.containsKey('percentage')) {
           double percentage =
               double.tryParse(lecture['percentage'].toString()) ?? 0.0;
@@ -160,6 +175,7 @@ class _ParticularLectureState extends State<ParticularLecture> {
           year: widget.year,
           sem: widget.sem,
           sub: widget.sub,
+          batch: widget.batch,
           type: widget.type,
           optionalSubject: widget.optionalSubject,
           fromDate: fromDate!,

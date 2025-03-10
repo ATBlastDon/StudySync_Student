@@ -13,6 +13,7 @@ class ParticularSheet extends StatefulWidget {
   final String type;
   final String fullName;
   final String optionalSubject;
+  final String batch;
   final DateTime fromDate;
   final DateTime toDate;
   final List<Map<String, dynamic>> attendanceData;
@@ -25,6 +26,7 @@ class ParticularSheet extends StatefulWidget {
     required this.sub,
     required this.type,
     required this.optionalSubject,
+    required this.batch,
     required this.fromDate,
     required this.toDate,
     required this.attendanceData,
@@ -53,14 +55,63 @@ class _ParticularSheetState extends State<ParticularSheet> {
 
   Future<void> fetchStudent() async {
     try {
-      // Fetch the student's details from:
-      // students/{year}/{sem}/{rollNo}/details (assuming a document with id "details")
-      DocumentSnapshot docSnapshot = await FirebaseFirestore.instance
-          .collection('students')
-          .doc(widget.year)
-          .collection(widget.sem)
-          .doc(widget.rollNo)
-          .get();
+      bool hasOptional = widget.optionalSubject.isNotEmpty &&
+          widget.optionalSubject.toLowerCase() != "none" &&
+          (widget.sub.startsWith("DLOC") || widget.sub.startsWith("ILOC"));
+
+      DocumentSnapshot? docSnapshot;
+
+      if (hasOptional) {
+        // Try fetching the student from the optional_subjects collection.
+        if (widget.type.toLowerCase() == 'lab') {
+          // For Lab, filter by batch.
+          docSnapshot = await FirebaseFirestore.instance
+              .collection('optional_subjects')
+              .doc(widget.year)
+              .collection(widget.sem)
+              .doc(widget.sub)
+              .collection(widget.optionalSubject)
+              .doc(widget.rollNo)
+              .get();
+
+          // If found, ensure the batch matches.
+          if (docSnapshot.exists) {
+            Map<String, dynamic> optionalData =
+            docSnapshot.data() as Map<String, dynamic>;
+            if (optionalData['batch'] != widget.batch) {
+              // Batch mismatch: treat as not found.
+              docSnapshot = null;
+            }
+          }
+        } else {
+          // For Theory, no batch filtering is needed.
+          docSnapshot = await FirebaseFirestore.instance
+              .collection('optional_subjects')
+              .doc(widget.year)
+              .collection(widget.sem)
+              .doc(widget.sub)
+              .collection(widget.optionalSubject)
+              .doc(widget.rollNo)
+              .get();
+        }
+        // If the student isn’t found in optional_subjects, fallback to main students.
+        if (!docSnapshot!.exists) {
+          docSnapshot = await FirebaseFirestore.instance
+              .collection('students')
+              .doc(widget.year)
+              .collection(widget.sem)
+              .doc(widget.rollNo)
+              .get();
+        }
+      } else {
+        // No optional subject; fetch from main 'students' collection.
+        docSnapshot = await FirebaseFirestore.instance
+            .collection('students')
+            .doc(widget.year)
+            .collection(widget.sem)
+            .doc(widget.rollNo)
+            .get();
+      }
 
       if (docSnapshot.exists) {
         setState(() {
@@ -90,13 +141,6 @@ class _ParticularSheetState extends State<ParticularSheet> {
       setState(() {
         loadingStudent = false;
       });
-      Fluttertoast.showToast(
-        msg: "Error fetching student",
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-      );
     }
   }
 
@@ -299,8 +343,11 @@ class _ParticularSheetState extends State<ParticularSheet> {
                   style: pw.TextStyle(
                       fontSize: 24, fontWeight: pw.FontWeight.bold)),
               pw.SizedBox(height: 16),
-              pw.Text("Class: ${widget.year}, Sem: ${widget.sem}",
-                  style: pw.TextStyle(fontSize: 16)),
+              pw.Text(
+                "Class: ${widget.year} \nSubject: ${widget.sub} ${widget.optionalSubject != 'N/A' ? ' - ${widget.optionalSubject}':''} ${widget.type == 'Lab' ? ' | Batch: ${widget.batch}' : ''}",                style: pw.TextStyle(
+                  fontSize: 16,
+                ),
+              ),
               pw.SizedBox(height: 16),
               pw.Table(
                 border: pw.TableBorder.all(color: PdfColors.grey),
@@ -488,13 +535,11 @@ class _ParticularSheetState extends State<ParticularSheet> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    "Class: ${widget.year},"
-                        "  Sem: ${widget.sem}",
+                  Text("Class: ${widget.year} \nSubject: ${widget.sub} ${widget.optionalSubject != 'N/A' ? ' - ${widget.optionalSubject}':''} ${widget.type == 'Lab' ? ' | Batch: ${widget.batch}' : ''}",
                     style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: "Outfit"),
+                      fontSize: 15,
+                      fontFamily: "Outfit",
+                    ),
                   ),
                 ],
               ),
