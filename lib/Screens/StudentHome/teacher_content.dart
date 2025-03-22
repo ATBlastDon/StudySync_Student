@@ -36,8 +36,10 @@ class TeachersContent extends StatelessWidget {
   final String _email;
   final String year;
   final String sem;
+  final String ay;
+  final String dept;
 
-  const TeachersContent(this._email, this.year, {super.key, required this.sem});
+  const TeachersContent(this._email, this.year, {super.key, required this.sem, required this.ay, required this.dept});
 
 
   @override
@@ -152,7 +154,7 @@ class TeachersContent extends StatelessWidget {
                       },
                     ),
                     onTap: () {
-                      _openChatScreen(context, teacherDocument.id, _email, peerEmail, fullName, year, sem);
+                      _openChatScreen(context, teacherDocument.id, _email, peerEmail, fullName, year, sem, ay, dept);
                     },
                   ),
                   if (index != snapshot.data!.docs.length - 1)
@@ -168,7 +170,7 @@ class TeachersContent extends StatelessWidget {
 }
 
 void _openChatScreen(BuildContext context, String chatUserId, String currentUserEmail,
-    String chatUserEmail, String chatUserName, String year, String sem) async {
+    String chatUserEmail, String chatUserName, String year, String sem, String ay, String dept) async {
   final groupChatId = generateGroupChatId(currentUserEmail, chatUserEmail);
   final navigator = Navigator.of(context);
   await markMessagesAsRead(groupChatId, currentUserEmail);
@@ -180,6 +182,8 @@ void _openChatScreen(BuildContext context, String chatUserId, String currentUser
         chatusername: chatUserName,
         year: year,
         sem: sem,
+        ay: ay,
+        dept: dept,
       ),
     ),
   );

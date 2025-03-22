@@ -9,11 +9,15 @@ class PrivacySettingsScreen extends StatefulWidget {
   final String year; // For example: BE, TE, or SE
   final String rollNo;
   final String sem;
+  final String ay;
+  final String dept;
 
   const PrivacySettingsScreen({super.key,
     required this.year,
     required this.rollNo,
-    required this.sem
+    required this.sem,
+    required this.ay,
+    required this.dept
   });
 
   @override
@@ -138,6 +142,9 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                       year: widget.year,
                       sem: widget.sem,
                       rollNo: widget.rollNo,
+                      dept: widget.dept,
+                      ay: widget.ay,
+
                     ),
                   ),
                 );

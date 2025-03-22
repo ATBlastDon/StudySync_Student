@@ -10,12 +10,16 @@ class DeleteAccount extends StatefulWidget {
   final String year;
   final String sem;
   final String rollNo;
+  final String ay;
+  final String dept;
 
   const DeleteAccount({
     super.key,
     required this.year,
     required this.sem,
     required this.rollNo,
+    required this.ay,
+    required this.dept,
   });
 
   @override
@@ -234,7 +238,7 @@ class _DeleteAccountState extends State<DeleteAccount> {
       // Delete profile photo from Firebase Storage.
       final storageRef = FirebaseStorage.instance
           .ref()
-          .child('Profile_Photos/Student/${widget.year}/${widget.rollNo}.jpg');
+          .child('Profile_Photos/Student/${widget.dept}/${widget.ay}/${widget.year}/${widget.sem}/${widget.rollNo}.jpg');
       await storageRef.delete().catchError((error) {
         debugPrint('Error deleting profile photo: $error');
       });
@@ -242,6 +246,8 @@ class _DeleteAccountState extends State<DeleteAccount> {
       // Delete the nested optional subjects document.
       final optionalSubjectsDocRef = FirebaseFirestore.instance
           .collection('students')
+          .doc(widget.dept)
+          .collection(widget.ay)
           .doc(widget.year)
           .collection(widget.sem)
           .doc(widget.rollNo)
@@ -254,6 +260,8 @@ class _DeleteAccountState extends State<DeleteAccount> {
       // Delete the student document from Firestore.
       final studentDocRef = FirebaseFirestore.instance
           .collection('students')
+          .doc(widget.dept)
+          .collection(widget.ay)
           .doc(widget.year)
           .collection(widget.sem)
           .doc(widget.rollNo);

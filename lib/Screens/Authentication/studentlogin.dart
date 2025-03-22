@@ -19,11 +19,12 @@ class StudentLogin extends StatefulWidget {
 class _StudentLoginState extends State<StudentLogin> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  // Removed _yearController and _semController
 
   // New state variables for dropdowns
   String? _selectedYear;
   String? _selectedSemester;
+  String? _selectedDepartment;
+  String? _selectedAcademicYear;
 
   // Map for semester options based on year
   final Map<String, List<String>> semesterOptions = {
@@ -39,25 +40,27 @@ class _StudentLoginState extends State<StudentLogin> {
   void initState() {
     super.initState();
     _initSharedPreferences();
+  }
+
+  Future<void> _initSharedPreferences() async {
+    _prefs = await SharedPreferences.getInstance();
+    // Now that _prefs is initialized, check if the user is already logged in.
     checkIfLoggedIn();
   }
 
-  void checkIfLoggedIn() async {
-    bool isLoggedIn = await _isLoggedIn();
+  void checkIfLoggedIn() {
+    bool isLoggedIn = _prefs.getBool("isLoggedIn") ?? false;
     if (isLoggedIn) {
       String? year = _prefs.getString("year");
       String? sem = _prefs.getString("sem");
+      String? dept = _prefs.getString("dept");
+      String? ay = _prefs.getString("ay");
 
-      if (year != null && year.isNotEmpty && sem!.isNotEmpty) {
-        // If user is already logged in, navigate to the student internal page
+      if (dept != null && ay != null && year != null && year.isNotEmpty && sem!.isNotEmpty) {
         if (!mounted) return;
-        _navigateToStudentInternal(context, year, sem);
+        _navigateToStudentInternal(context, year, sem, dept, ay);
       }
     }
-  }
-
-  void _initSharedPreferences() async {
-    _prefs = await SharedPreferences.getInstance();
   }
 
   void navigateToStudentRegister(BuildContext context) {
@@ -83,15 +86,10 @@ class _StudentLoginState extends State<StudentLogin> {
     await _prefs.setBool('isLoggedIn', isLoggedIn);
   }
 
-  Future<bool> _isLoggedIn() async {
-    return _prefs.getBool('isLoggedIn') ?? false;
-  }
-
   @override
   Widget build(BuildContext context) {
     return KeyboardVisibilityBuilder(
       builder: (context, isKeyboardVisible) {
-        // You can use the isKeyboardVisible boolean to adjust your UI if needed.
         return Scaffold(
           resizeToAvoidBottomInset: false,
           backgroundColor: Colors.white,
@@ -136,10 +134,116 @@ class _StudentLoginState extends State<StudentLogin> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 20),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 40),
                   child: Column(
                     children: <Widget>[
+                      // Department Dropdown
+                      FadeInUp(
+                        duration: const Duration(milliseconds: 1000),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "Department",
+                              style: TextStyle(
+                                fontFamily: 'Outfit',
+                                fontSize: 15,
+                                fontWeight: FontWeight.w400,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            DropdownButtonFormField<String>(
+                              value: _selectedDepartment,
+                              style: const TextStyle(fontFamily: "Outfit", color: Colors.black),
+                              decoration: InputDecoration(
+                                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
+                                enabledBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(color: Colors.grey.shade400),
+                                ),
+                                border: OutlineInputBorder(
+                                  borderSide: BorderSide(color: Colors.grey.shade400),
+                                ),
+                              ),
+                              hint: const Text("Select Department", style: TextStyle(fontFamily: "Outfit")),
+                              onChanged: (String? newValue) {
+                                setState(() {
+                                  _selectedDepartment = newValue;
+                                });
+                              },
+                              items: [
+                                "CSE(AIML)",
+                                "MCA",
+                                "Mechanical",
+                                "Chemical",
+                                "IT",
+                                "EXTC",
+                                "Electrical"
+                              ].map((String department) {
+                                return DropdownMenuItem<String>(
+                                  value: department,
+                                  child: Text(department, style: const TextStyle(fontFamily: "Outfit")),
+                                );
+                              }).toList(),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      // Academic Year Dropdown
+                      FadeInUp(
+                        duration: const Duration(milliseconds: 1000),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "Academic Year",
+                              style: TextStyle(
+                                fontFamily: 'Outfit',
+                                fontSize: 15,
+                                fontWeight: FontWeight.w400,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            DropdownButtonFormField<String>(
+                              value: _selectedAcademicYear,
+                              style: const TextStyle(fontFamily: "Outfit", color: Colors.black),
+                              decoration: InputDecoration(
+                                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
+                                enabledBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(color: Colors.grey.shade400),
+                                ),
+                                border: OutlineInputBorder(
+                                  borderSide: BorderSide(color: Colors.grey.shade400),
+                                ),
+                              ),
+                              hint: const Text("Select Academic Year", style: TextStyle(fontFamily: "Outfit")),
+                              onChanged: (String? newValue) {
+                                setState(() {
+                                  _selectedAcademicYear = newValue;
+                                });
+                              },
+                              items: (() {
+                                final int currentYear = DateTime.now().year;
+                                final int startYear = currentYear - 5;
+                                final int totalYears = 11;
+                                return List.generate(totalYears, (index) {
+                                  int year = startYear + index;
+                                  String academicYear = "$year-${year + 1}";
+                                  return DropdownMenuItem<String>(
+                                    value: academicYear,
+                                    child: Text(academicYear, style: const TextStyle(fontFamily: "Outfit")),
+                                  );
+                                });
+                              }()),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 5),
                       // Year Dropdown
                       FadeInUp(
                         duration: const Duration(milliseconds: 1000),
@@ -172,7 +276,6 @@ class _StudentLoginState extends State<StudentLogin> {
                               onChanged: (String? newValue) {
                                 setState(() {
                                   _selectedYear = newValue;
-                                  // Reset semester when year changes
                                   _selectedSemester = null;
                                 });
                               },
@@ -186,7 +289,7 @@ class _StudentLoginState extends State<StudentLogin> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 5),
                       // Semester Dropdown (dependent on Year)
                       FadeInUp(
                         duration: const Duration(milliseconds: 1000),
@@ -233,7 +336,7 @@ class _StudentLoginState extends State<StudentLogin> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 5),
                       FadeInUp(
                         duration: const Duration(milliseconds: 1000),
                         child: makeInput(
@@ -389,7 +492,7 @@ class _StudentLoginState extends State<StudentLogin> {
           controller: controller,
           obscureText: label == "Password" ? true : false,
           decoration: InputDecoration(
-            hintText: hintText, // Display the hint text here
+            hintText: hintText,
             hintStyle: TextStyle(fontFamily: "Outfit"),
             contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
             enabledBorder: OutlineInputBorder(
@@ -400,19 +503,20 @@ class _StudentLoginState extends State<StudentLogin> {
             ),
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 10),
       ],
     );
   }
 
   void signInStudent() async {
-    // Retrieve year and semester from dropdown selections
     final String? year = _selectedYear;
     final String? sem = _selectedSemester;
+    final String? dept = _selectedDepartment;
+    final String? ay = _selectedAcademicYear;
     final String email = _emailController.text.trim();
     final String password = _passwordController.text.trim();
 
-    if (year == null || sem == null || email.isEmpty || password.isEmpty) {
+    if (ay == null || dept == null || year == null || sem == null || email.isEmpty || password.isEmpty) {
       showMessage('Please fill all fields and select Year & Semester');
       return;
     }
@@ -430,6 +534,8 @@ class _StudentLoginState extends State<StudentLogin> {
     try {
       CollectionReference studentsRef = FirebaseFirestore.instance
           .collection("students")
+          .doc(dept)
+          .collection(ay)
           .doc(year)
           .collection(sem);
       QuerySnapshot querySnapshot =
@@ -437,8 +543,8 @@ class _StudentLoginState extends State<StudentLogin> {
 
       if (querySnapshot.docs.isEmpty) {
         if (!mounted) return;
-        Navigator.pop(context); // Dismiss the progress indicator
-        showMessage('Email not found');
+        Navigator.pop(context);
+        showMessage('Login Failed - Invalid email or password. Or Your Department, Year, Sem, Academic Year is not correct.');
         return;
       }
 
@@ -451,19 +557,21 @@ class _StudentLoginState extends State<StudentLogin> {
           await _saveLoginStatus(true);
           await _prefs.setString('year', year);
           await _prefs.setString('sem', sem);
+          await _prefs.setString('dept', dept);
+          await _prefs.setString('ay', ay);
           if (!mounted) return;
-          Navigator.pop(context); // Dismiss the progress indicator
-          _navigateToStudentInternal(context, year, sem);
+          Navigator.pop(context);
+          _navigateToStudentInternal(context, year, sem, dept, ay);
         } else {
           if (!mounted) return;
-          Navigator.pop(context); // Dismiss the progress indicator
+          Navigator.pop(context);
           showMessage('Your student account is not approved yet.');
           await _firebaseAuth.signOut();
         }
       }
     } catch (e) {
       if (!mounted) return;
-      Navigator.pop(context); // Dismiss the progress indicator
+      Navigator.pop(context);
       showMessage('Sign-in failed. Please check your credentials.');
     }
   }
@@ -471,8 +579,10 @@ class _StudentLoginState extends State<StudentLogin> {
   Future<bool> checkApprovalStatus(String email) async {
     final String year = _selectedYear!;
     final String sem = _selectedSemester!;
+    final String dept = _selectedDepartment!;
+    final String ay = _selectedAcademicYear!;
     CollectionReference studentsRef =
-    FirebaseFirestore.instance.collection("students").doc(year).collection(sem);
+    FirebaseFirestore.instance.collection("students").doc(dept).collection(ay).doc(year).collection(sem);
     QuerySnapshot querySnapshot =
     await studentsRef.where("email", isEqualTo: email).get();
 
@@ -495,10 +605,10 @@ class _StudentLoginState extends State<StudentLogin> {
     return false;
   }
 
-  void _navigateToStudentInternal(BuildContext context, String year, String sem) {
+  void _navigateToStudentInternal(BuildContext context, String year, String sem, String dept, String ay) {
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => StudentInternal(year: year, sem: sem)),
+      MaterialPageRoute(builder: (context) => StudentInternal(year: year, sem: sem, dept: dept, ay: ay)),
     );
   }
 
@@ -544,7 +654,7 @@ class _PasswordFieldState extends State<PasswordField> {
           obscureText: _obscureText,
           style: TextStyle(fontFamily: "Outfit"),
           decoration: InputDecoration(
-            hintText: widget.hintText, // Display the hint text here
+            hintText: widget.hintText,
             hintStyle: TextStyle(fontFamily: "Outfit"),
             contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
             enabledBorder: OutlineInputBorder(

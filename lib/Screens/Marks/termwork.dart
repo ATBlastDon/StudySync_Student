@@ -8,6 +8,8 @@ class StudentTermWork extends StatefulWidget {
   final String rollNo;
   final String fullName;
   final String batch;
+  final String ay;
+  final String dept;
 
   const StudentTermWork({
     super.key,
@@ -15,7 +17,7 @@ class StudentTermWork extends StatefulWidget {
     required this.sem,
     required this.rollNo,
     required this.fullName,
-    required this.batch,
+    required this.batch, required this.ay, required this.dept,
   });
 
   @override
@@ -67,7 +69,7 @@ class _StudentTermWorkState extends State<StudentTermWork> {
   Future<void> _fetchOptionalMapping() async {
     try {
       DocumentSnapshot snapshot =
-      await _firestore.collection('subjects').doc('all_subjects').get();
+      await _firestore.collection('subjects').doc(widget.dept).get();
       if (snapshot.exists) {
         setState(() {
           optionalMapping = snapshot.data() as Map<String, dynamic>;
@@ -87,6 +89,8 @@ class _StudentTermWorkState extends State<StudentTermWork> {
       final QuerySnapshot qs = await _firestore
           .collection('marks')
           .doc("termwork_config")
+          .collection(widget.dept)
+          .doc(widget.ay)
           .collection(widget.year)
           .doc(widget.sem)
           .collection('subjects')
@@ -117,6 +121,8 @@ class _StudentTermWorkState extends State<StudentTermWork> {
       final DocumentSnapshot configSnapshot = await _firestore
           .collection('marks')
           .doc("termwork_config")
+          .collection(widget.dept)
+          .doc(widget.ay)
           .collection(widget.year)
           .doc(widget.sem)
           .collection('subjects')
@@ -212,6 +218,8 @@ class _StudentTermWorkState extends State<StudentTermWork> {
       final DocumentSnapshot marksSnapshot = await _firestore
           .collection("marks")
           .doc("termwork_marks")
+          .collection(widget.dept)
+          .doc(widget.ay)
           .collection(widget.year)
           .doc(widget.sem)
           .collection(selectedSubject!)
@@ -282,6 +290,8 @@ class _StudentTermWorkState extends State<StudentTermWork> {
       await _firestore
           .collection('marks')
           .doc('termwork_marks')
+          .collection(widget.dept)
+          .doc(widget.ay)
           .collection(widget.year)
           .doc(widget.sem)
           .collection(selectedSubject!)

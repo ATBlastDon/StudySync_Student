@@ -12,6 +12,8 @@ import 'package:image_picker/image_picker.dart';
 class StudentProfile extends StatefulWidget {
   final String studentmail;
   final String studentyear;
+  final String dept;
+  final String ay;
   final String sem;
 
   const StudentProfile({
@@ -19,6 +21,8 @@ class StudentProfile extends StatefulWidget {
     required this.studentmail,
     required this.studentyear,
     required this.sem,
+    required this.dept,
+    required this.ay,
   });
 
   @override
@@ -31,6 +35,7 @@ class _StudentProfileState extends State<StudentProfile> {
   bool isEditingRollNo = false;
   bool isEditingYear = false;
   bool isEditingSem = false;
+  bool isEditingAy = false;
   bool isEditingBatch = false;
   bool isEditingMentor = false;
   bool loadingTeachers = false;
@@ -42,6 +47,8 @@ class _StudentProfileState extends State<StudentProfile> {
   TextEditingController semController = TextEditingController();
   TextEditingController batchController = TextEditingController();
   TextEditingController mentorController = TextEditingController();
+  TextEditingController ayController = TextEditingController();
+
 
   List<String> batches = ['B1', 'B2', 'B3', 'B4'];
   List<String> classes = ['BE', 'TE', 'SE'];
@@ -60,8 +67,10 @@ class _StudentProfileState extends State<StudentProfile> {
   Future<void> fetchTeachers() async {
     setState(() => loadingTeachers = true);
     try {
-      QuerySnapshot querySnapshot =
-      await FirebaseFirestore.instance.collection('teachers').get();
+      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+          .collection('teachers')
+          .where('dept', isEqualTo: widget.dept)
+          .get();
 
       teachers = querySnapshot.docs.map((doc) {
         var data = doc.data() as Map<String, dynamic>;
@@ -85,6 +94,8 @@ class _StudentProfileState extends State<StudentProfile> {
       QuerySnapshot<Map<String, dynamic>> querySnapshot =
       await FirebaseFirestore.instance
           .collection('students')
+          .doc(widget.dept)
+          .collection(widget.ay)
           .doc(widget.studentyear)
           .collection(widget.sem)
           .where('email', isEqualTo: widget.studentmail)
@@ -101,6 +112,7 @@ class _StudentProfileState extends State<StudentProfile> {
         semController.text = widget.sem;
         batchController.text = studentData!['batch'] ?? 'N/A';
         mentorController.text = studentData!['mentor'] ?? 'N/A';
+        ayController.text = studentData!['ay'] ?? 'N/A';
       } else {
         setState(() {
           isLoading = false;
@@ -259,6 +271,8 @@ class _StudentProfileState extends State<StudentProfile> {
 
     final rollNoQuerySnapshot = await FirebaseFirestore.instance
         .collection('students')
+        .doc(widget.dept)
+        .collection(widget.ay)
         .doc(widget.studentyear)
         .collection(widget.sem)
         .where('rollNo', isEqualTo: rollNoController.text)
@@ -280,6 +294,8 @@ class _StudentProfileState extends State<StudentProfile> {
       try {
         DocumentReference newDocRef = FirebaseFirestore.instance
             .collection('students')
+            .doc(widget.dept)
+            .collection(widget.ay)
             .doc(widget.studentyear)
             .collection(widget.sem)
             .doc(rollNoController.text);
@@ -288,6 +304,8 @@ class _StudentProfileState extends State<StudentProfile> {
 
         await FirebaseFirestore.instance
             .collection('students')
+            .doc(widget.dept)
+            .collection(widget.ay)
             .doc(widget.studentyear)
             .collection(widget.sem)
             .doc(studentData!['rollNo'])
@@ -330,6 +348,8 @@ class _StudentProfileState extends State<StudentProfile> {
       try {
         DocumentReference studentDocRef = FirebaseFirestore.instance
             .collection('students')
+            .doc(widget.dept)
+            .collection(widget.ay)
             .doc(widget.studentyear)
             .collection(widget.sem)
             .doc(rollNoController.text);
@@ -368,6 +388,8 @@ class _StudentProfileState extends State<StudentProfile> {
       try {
         DocumentReference studentDocRef = FirebaseFirestore.instance
             .collection('students')
+            .doc(widget.dept)
+            .collection(widget.ay)
             .doc(widget.studentyear)
             .collection(widget.sem)
             .doc(rollNoController.text);
@@ -401,35 +423,142 @@ class _StudentProfileState extends State<StudentProfile> {
     });
   }
 
+  Future<void> updateAy(String newAcademicYear) async {
+    if (newAcademicYear.isEmpty) return;
+
+    showConfirmationDialog(() async {
+      try {
+        // Assume studentData is a Map containing the current student's record.
+        final String oldAy = studentData!['ay'];
+        final String dept = studentData!['dept'];
+        final String year = studentData!['year'];
+        final String sem = studentData!['semester'];
+        final String rollNo = studentData!['rollNo'];
+
+        // Create a new document reference under the new Academic Year.
+        DocumentReference newDocRef = FirebaseFirestore.instance
+            .collection("students")
+            .doc(dept)
+            .collection(newAcademicYear)
+            .doc(year)
+            .collection(sem)
+            .doc(rollNo);
+
+        // Prepare updated student data with the new academic year.
+        Map<String, dynamic> updatedData = Map<String, dynamic>.from(studentData!);
+        updatedData['ay'] = newAcademicYear;
+
+        // Create the new document with the updated data.
+        await newDocRef.set(updatedData);
+
+        // Build a reference to the old student document.
+        DocumentReference oldDocRef = FirebaseFirestore.instance
+            .collection("students")
+            .doc(dept)
+            .collection(oldAy)
+            .doc(year)
+            .collection(sem)
+            .doc(rollNo);
+
+        // Delete external optional subjects mappings (and the mapping document) from the old document.
+        await deleteOptionalSubjects(oldDocRef, dept, oldAy, year, sem, rollNo);
+
+        // Delete the old student document.
+        await oldDocRef.delete();
+
+        // Update local state.
+        setState(() {
+          studentData!['ay'] = newAcademicYear;
+        });
+
+        // Clear shared preferences and navigate to login.
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.clear();
+
+        Fluttertoast.showToast(
+          msg: "Academic Year updated successfully. Please log in again.",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.CENTER,
+          backgroundColor: Colors.green,
+          textColor: Colors.white,
+          fontSize: 16.0,
+        );
+
+        if (!mounted) return;
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => StudentLogin()),
+              (route) => false,
+        );
+      } catch (error) {
+        Fluttertoast.showToast(
+          msg: "Error updating Academic Year: $error",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.CENTER,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+          fontSize: 16.0,
+        );
+      }
+    });
+  }
+
+
   Future<void> updateSem() async {
     if (semController.text.isEmpty) return;
 
     showConfirmationDialog(() async {
       try {
+        // Store the old semester and year values.
+        final oldYear = studentData!['year'];
+        final oldSem = studentData!['semester'];
+
+        // Create a new document reference using the new semester value.
         DocumentReference newDocRef = FirebaseFirestore.instance
             .collection('students')
-            .doc(studentData!['year'])
+            .doc(widget.dept)
+            .collection(widget.ay)
+            .doc(oldYear)
             .collection(semController.text)
             .doc(studentData!['rollNo']);
 
+        // Set the new document with the current student data.
         await newDocRef.set(studentData!);
 
-        await FirebaseFirestore.instance
+        // Build a reference to the old student document.
+        DocumentReference oldDocRef = FirebaseFirestore.instance
             .collection('students')
-            .doc(widget.studentyear)
-            .collection(widget.sem)
-            .doc(studentData!['rollNo'])
-            .delete();
+            .doc(widget.dept)
+            .collection(widget.ay)
+            .doc(oldYear)
+            .collection(oldSem)
+            .doc(studentData!['rollNo']);
 
+        // Delete the student's external optional subjects and mapping.
+        await deleteOptionalSubjects(
+          oldDocRef,
+          widget.dept,
+          widget.ay,
+          oldYear,
+          oldSem,
+          studentData!['rollNo'],
+        );
+
+        // Delete the old student document.
+        await oldDocRef.delete();
+
+        // Update the local state with the new semester value.
         setState(() {
           studentData!['semester'] = semController.text;
           isEditingSem = false;
         });
 
+        // Update the new document to ensure the semester field is correct.
         await newDocRef.update({
           'semester': semController.text,
         });
 
+        // Clear stored preferences and navigate to login.
         final prefs = await SharedPreferences.getInstance();
         await prefs.clear();
 
@@ -464,38 +593,81 @@ class _StudentProfileState extends State<StudentProfile> {
   Future<void> updateYear() async {
     if (yearController.text.isEmpty) return;
 
+    // Prompt user for the new semester before updating year.
+    String? newSemester = await showSemesterUpdateDialog(
+      context,
+      initialSemester: studentData!['semester'],
+      course: yearController.text, // Assumes yearController.text holds the course (e.g. "BE")
+    );
+
+    // If the user cancels or provides an empty value, do not proceed.
+    if (newSemester == null || newSemester.isEmpty) return;
+
+    // Prompt user for the new academic year.
+    String? newAcademicYear = await showAcademicYearUpdateDialog(
+      context,
+      currentAcademicYear: ayController.text,
+    );
+    if (newAcademicYear == null || newAcademicYear.isEmpty) return;
+
     showConfirmationDialog(() async {
       try {
+        // Store the old values.
+        final String oldYear = studentData!['year'];
+        final String oldSem = studentData!['semester'];
+        final String oldAy = studentData!['ay'];
+        final String dept = studentData!['dept'];
+        final String rollNo = studentData!['rollNo'];
+
+        // Create a new document reference under the new Academic Year.
         DocumentReference newDocRef = FirebaseFirestore.instance
-            .collection('students')
-            .doc(yearController.text)
-            .collection(widget.sem)
-            .doc(studentData!['rollNo']);
+            .collection("students")
+            .doc(dept)
+            .collection(newAcademicYear)
+            .doc(yearController.text) // new year value from the controller
+            .collection(newSemester)
+            .doc(rollNo);
 
-        await newDocRef.set(studentData!);
+        // Prepare updated student data with new year, class, semester, and academic year.
+        Map<String, dynamic> updatedData = Map<String, dynamic>.from(studentData!);
+        updatedData['year'] = yearController.text;
+        updatedData['class'] = yearController.text;
+        updatedData['semester'] = newSemester;
+        updatedData['ay'] = newAcademicYear;
 
-        await FirebaseFirestore.instance
-            .collection('students')
-            .doc(widget.studentyear)
-            .collection(widget.sem)
-            .doc(studentData!['rollNo'])
-            .delete();
+        // Create the new document with the updated data.
+        await newDocRef.set(updatedData);
 
+        // Build a reference to the old student document.
+        DocumentReference oldDocRef = FirebaseFirestore.instance
+            .collection("students")
+            .doc(dept)
+            .collection(oldAy)
+            .doc(oldYear)
+            .collection(oldSem)
+            .doc(rollNo);
+
+        // Delete the student's external optional subjects and mapping.
+        await deleteOptionalSubjects(oldDocRef, dept, oldAy, oldYear, oldSem, rollNo);
+
+        // Delete the old student document.
+        await oldDocRef.delete();
+
+        // Update local state.
         setState(() {
           studentData!['year'] = yearController.text;
           studentData!['class'] = yearController.text;
+          studentData!['semester'] = newSemester;
+          studentData!['ay'] = newAcademicYear;
           isEditingYear = false;
         });
 
-        await newDocRef.update({
-          'class': yearController.text,
-        });
-
+        // Clear SharedPreferences and navigate to login.
         final prefs = await SharedPreferences.getInstance();
         await prefs.clear();
 
         Fluttertoast.showToast(
-          msg: 'Year and Class updated successfully. Please log in again.',
+          msg: 'Year, Semester and Academic Year updated successfully. Please log in again.',
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.CENTER,
           backgroundColor: Colors.green,
@@ -522,6 +694,236 @@ class _StudentProfileState extends State<StudentProfile> {
     });
   }
 
+  Future<void> deleteOptionalSubjects(
+      DocumentReference studentDocRef,
+      String dept,
+      String ay,
+      String year,
+      String sem,
+      String rollNo,
+      ) async {
+    // 1. Fetch the student's mapping document.
+    DocumentReference mappingDocRef = studentDocRef.collection('optional_subjects').doc(sem);
+    DocumentSnapshot mappingSnapshot = await mappingDocRef.get();
+
+    if (mappingSnapshot.exists) {
+      Map<String, dynamic>? mapping = mappingSnapshot.data() as Map<String, dynamic>?;
+
+      if (mapping != null) {
+        WriteBatch batch = FirebaseFirestore.instance.batch();
+
+        // 2. For each subject key in the mapping, delete the external document.
+        mapping.forEach((subjectKey, optionalSubjectValue) {
+          // Build the external document path:
+          // /optional_subjects/{dept}/{ay}/{year}/{sem}/{subjectKey}/{optionalSubjectValue}/{rollNo}
+          DocumentReference externalDocRef = FirebaseFirestore.instance
+              .collection('optional_subjects')
+              .doc(dept)
+              .collection(ay)
+              .doc(year)
+              .collection(sem)
+              .doc(subjectKey)
+              .collection(optionalSubjectValue)
+              .doc(rollNo);
+
+          batch.delete(externalDocRef);
+        });
+
+        // Commit the batch deletion for the external documents.
+        await batch.commit();
+      }
+
+      // 3. Delete the student's mapping document after external deletions.
+      await mappingDocRef.delete();
+    }
+  }
+
+  Future<String?> showAcademicYearUpdateDialog(BuildContext context, {required String currentAcademicYear}) async {
+    String nextAY = currentAcademicYear;
+    if (currentAcademicYear.contains('-')) {
+      List<String> parts = currentAcademicYear.split('-');
+      if (parts.length == 2) {
+        int? startYear = int.tryParse(parts[0]);
+        if (startYear != null) {
+          nextAY = "${startYear + 1}-${startYear + 2}";
+        }
+      }
+    }
+    return await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text(
+            "Update Academic Year",
+            style: TextStyle(fontFamily: "Outfit", fontSize: 22, fontWeight: FontWeight.w500, color: Colors.green),
+          ),
+          content: Text(
+            "Do you want to update Academic Year to $nextAY?",
+            style: const TextStyle(fontFamily: "Outfit"),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, null),
+              child: const Text("Cancel", style: TextStyle(fontFamily: "Outfit")),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10.0),
+                ),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 24, vertical: 12),
+              ),
+              onPressed: () => Navigator.pop(context, nextAY),
+              child: const Text("Yes", style: TextStyle(fontFamily: "Outfit",color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
+
+  Future<String?> showSemesterUpdateDialog(BuildContext context,
+      {required String course, String? initialSemester}) async {
+    // Define dropdown options based on the course.
+    List<String> options;
+    switch (course) {
+      case 'BE':
+        options = ['7', '8'];
+        break;
+      case 'TE':
+        options = ['5', '6'];
+        break;
+      case 'SE':
+        options = ['3', '4'];
+        break;
+      default:
+        options = [];
+    }
+
+    // Set the initial selected value if provided and valid.
+    String? newSemester = (initialSemester != null && options.contains(initialSemester))
+        ? initialSemester
+        : null;
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16.0),
+              ),
+              title: const Text(
+                'Update Semester',
+                style: TextStyle(
+                  fontFamily: 'Outfit',
+                  fontSize: 22,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.green,
+                ),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<String>(
+                    decoration: InputDecoration(
+                      labelText: 'Select Semester',
+                      labelStyle: const TextStyle(fontFamily: "Outfit"),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.0),
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey[50],
+                      contentPadding: const EdgeInsets.symmetric(
+                          vertical: 16.0, horizontal: 20.0),
+                    ),
+                    value: newSemester,
+                    items: options.map((option) {
+                      return DropdownMenuItem(
+                        value: option,
+                        child: Text(option,
+                            style: const TextStyle(
+                                fontFamily: "Outfit", fontSize: 16)),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        newSemester = value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  if (newSemester == null)
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Please select a semester',
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontFamily: "Outfit",
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.blueGrey,
+                  ),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(fontFamily: "Outfit"),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: newSemester == null
+                      ? null
+                      : () {
+                    Navigator.of(context).pop();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10.0),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 12),
+                  ),
+                  child: const Text(
+                    'Save Changes',
+                    style: TextStyle(
+                      fontFamily: 'Outfit',
+                      fontSize: 16,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+              actionsPadding: const EdgeInsets.only(
+                right: 20,
+                bottom: 16,
+                top: 8,
+              ),
+              contentPadding:
+              const EdgeInsets.fromLTRB(24.0, 20.0, 24.0, 8.0),
+            );
+          },
+        );
+      },
+    );
+
+    return newSemester;
+  }
+
   // New method to change profile photo.
   Future<void> _changeProfilePhoto() async {
     final ImagePicker picker = ImagePicker();
@@ -541,7 +943,7 @@ class _StudentProfileState extends State<StudentProfile> {
         }
         // Prepare new file name and storage path.
         String fileName = '${studentData!['rollNo']}.jpg';
-        String storagePath = 'Profile_Photos/Student/${widget.studentyear}/$fileName';
+        String storagePath = 'Profile_Photos/Student/$widget.dept/$widget.ay/${widget.studentyear}/$widget.sem/$fileName';
         firebase_storage.Reference ref =
         firebase_storage.FirebaseStorage.instance.ref().child(storagePath);
         // Upload the file.
@@ -550,6 +952,8 @@ class _StudentProfileState extends State<StudentProfile> {
         // Update Firestore record.
         await FirebaseFirestore.instance
             .collection('students')
+            .doc(widget.dept)
+            .collection(widget.ay)
             .doc(widget.studentyear)
             .collection(widget.sem)
             .doc(studentData!['rollNo'])
@@ -693,6 +1097,46 @@ class _StudentProfileState extends State<StudentProfile> {
                     ),
                     const SizedBox(height: 32),
                     FadeInUp(
+                      duration: const Duration(milliseconds: 500),
+                      child: TextField(
+                        readOnly: true,
+                        style: TextStyle(fontFamily: 'Outfit'),
+                        decoration: InputDecoration(
+                          labelText: "Department",
+                          labelStyle: TextStyle(fontFamily: "Outfit"),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                        ),
+                        controller: TextEditingController(
+                          text:
+                          "${studentData!['dept']}",
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 32,),
+                    FadeInUp(
+                      duration: const Duration(milliseconds: 500),
+                      child: TextField(
+                        readOnly: true,
+                        style: TextStyle(fontFamily: 'Outfit'),
+                        decoration: InputDecoration(
+                          labelText: "Academic Year",
+                          labelStyle: TextStyle(fontFamily: "Outfit"),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                        ),
+                        controller: TextEditingController(
+                          text:
+                          "${studentData!['ay']}",
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    FadeInUp(
                       duration: const Duration(milliseconds: 700),
                       child: TextField(
                         readOnly: !isEditingRollNo,
@@ -720,7 +1164,7 @@ class _StudentProfileState extends State<StudentProfile> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 32,),
                     FadeInUp(
                       duration: const Duration(milliseconds: 800),
                       child: isEditingYear

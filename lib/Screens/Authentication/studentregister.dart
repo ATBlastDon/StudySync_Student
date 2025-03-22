@@ -32,6 +32,8 @@ class _StudentRegisterState extends State<StudentRegister> {
 
   String? _selectedYear;
   String? _selectedSemester;
+  String? _selectedDepartment;
+  String? _selectedAcademicYear;
   File? _selectedImage;
 
   // Map for semester options based on year
@@ -151,6 +153,100 @@ class _StudentRegisterState extends State<StudentRegister> {
                                 ),
                               ),
                               // Year Dropdown
+                              FadeInUp(
+                                duration: const Duration(milliseconds: 1000),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      "Department",
+                                      style: _outfitTextStyle,
+                                    ),
+                                    const SizedBox(height: 5),
+                                    DropdownButtonFormField<String>(
+                                      value: _selectedDepartment,
+                                      style: const TextStyle(fontFamily: "Outfit", color: Colors.black),
+                                      decoration: InputDecoration(
+                                        contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderSide: BorderSide(color: Colors.grey.shade400),
+                                        ),
+                                        border: OutlineInputBorder(
+                                          borderSide: BorderSide(color: Colors.grey.shade400),
+                                        ),
+                                      ),
+                                      hint: const Text("Select Department", style: TextStyle(fontFamily: "Outfit")),
+                                      onChanged: (String? newValue) {
+                                        setState(() {
+                                          _selectedDepartment = newValue;
+                                        });
+                                      },
+                                      items: [
+                                        "CSE(AIML)",
+                                        "MCA",
+                                        "Mechanical",
+                                        "Chemical",
+                                        "IT",
+                                        "EXTC",
+                                        "Electrical"
+                                      ].map((String department) {
+                                        return DropdownMenuItem<String>(
+                                          value: department,
+                                          child: Text(department, style: const TextStyle(fontFamily: "Outfit")),
+                                        );
+                                      }).toList(),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              FadeInUp(
+                                duration: const Duration(milliseconds: 1000),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      "Academic Year",
+                                      style: _outfitTextStyle,
+                                    ),
+                                    const SizedBox(height: 5),
+                                    DropdownButtonFormField<String>(
+                                      value: _selectedAcademicYear,
+                                      style: const TextStyle(fontFamily: "Outfit", color: Colors.black),
+                                      decoration: InputDecoration(
+                                        contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderSide: BorderSide(color: Colors.grey.shade400),
+                                        ),
+                                        border: OutlineInputBorder(
+                                          borderSide: BorderSide(color: Colors.grey.shade400),
+                                        ),
+                                      ),
+                                      hint: const Text("Select Academic Year", style: TextStyle(fontFamily: "Outfit")),
+                                      onChanged: (String? newValue) {
+                                        setState(() {
+                                          _selectedAcademicYear = newValue;
+                                        });
+                                      },
+                                      items: (() {
+                                        // Get the current year.
+                                        final int currentYear = DateTime.now().year;
+                                        // Generate a list from 5 years before to 5 years after.
+                                        final int startYear = currentYear - 5;
+                                        final int totalYears = 11; // 5 before, current, 5 ahead
+                                        return List.generate(totalYears, (index) {
+                                          int year = startYear + index;
+                                          String academicYear = "$year-${year + 1}";
+                                          return DropdownMenuItem<String>(
+                                            value: academicYear,
+                                            child: Text(academicYear, style: const TextStyle(fontFamily: "Outfit")),
+                                          );
+                                        });
+                                      }()),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
                               FadeInUp(
                                 duration: const Duration(milliseconds: 1000),
                                 child: Column(
@@ -360,7 +456,7 @@ class _StudentRegisterState extends State<StudentRegister> {
                                 children: <Widget>[
                                   ListTile(
                                     leading: const Icon(Icons.camera),
-                                    title: const Text('Take a photo'),
+                                    title: const Text('Take a photo',style: TextStyle(fontFamily: "Outfit"),),
                                     onTap: () async {
                                       await _getImageFromCamera();
                                       if (context.mounted) {
@@ -370,7 +466,7 @@ class _StudentRegisterState extends State<StudentRegister> {
                                   ),
                                   ListTile(
                                     leading: const Icon(Icons.photo_library),
-                                    title: const Text('Choose from gallery'),
+                                    title: const Text('Choose from gallery',style: TextStyle(fontFamily: "Outfit")),
                                     onTap: () async {
                                       await _getImageFromGallery();
                                       if (context.mounted) {
@@ -482,6 +578,8 @@ class _StudentRegisterState extends State<StudentRegister> {
       String email = _emailController.text.trim();
       String year = _selectedYear!;
       String sem = _selectedSemester!;
+      String dept = _selectedDepartment!;
+      String ay = _selectedAcademicYear!;
       String rollNo = _rollNoController.text.trim();
       String regNo = _regNoController.text.trim();
       String phoneNo = _phoneNoController.text.trim();
@@ -490,6 +588,8 @@ class _StudentRegisterState extends State<StudentRegister> {
       // Check if email exists
       QuerySnapshot emailSnapshot = await FirebaseFirestore.instance
           .collection("students")
+          .doc(dept)
+          .collection(ay)
           .doc(year)
           .collection(sem)
           .where("email", isEqualTo: email)
@@ -504,6 +604,8 @@ class _StudentRegisterState extends State<StudentRegister> {
 
       QuerySnapshot regSnapshot = await FirebaseFirestore.instance
           .collection("students")
+          .doc(dept)
+          .collection(ay)
           .doc(year)
           .collection(sem)
           .where("regNo", isEqualTo: regNo)
@@ -519,6 +621,8 @@ class _StudentRegisterState extends State<StudentRegister> {
       // Check if roll number exists
       DocumentSnapshot rollNoSnapshot = await FirebaseFirestore.instance
           .collection("students")
+          .doc(dept)
+          .collection(ay)
           .doc(year) // Check the specific class (e.g., BE, TE, SE)
           .collection(sem)
           .doc(rollNo) // Check the specific roll number
@@ -540,7 +644,7 @@ class _StudentRegisterState extends State<StudentRegister> {
       if (userCredential.user != null) {
         // Upload profile photo
         await _uploadProfilePhoto(
-            _selectedImage!, rollNo, fname, mname, sname, email, year, sem, regNo, phoneNo);
+            _selectedImage!, rollNo, fname, mname, sname, email,dept, ay, year, sem, regNo, phoneNo);
         if(context.mounted){
           Navigator.of(context).pop(); // Dismiss loading dialog
         }
@@ -563,7 +667,7 @@ class _StudentRegisterState extends State<StudentRegister> {
                         MaterialPageRoute(builder: (context) => const StudentLogin()),
                       );
                     },
-                    child: const Text("OK",style: TextStyle(fontFamily: "Outfit"),),
+                    child: const Text("OK",style: TextStyle(fontFamily: "Outfit", color: Colors.black),),
                   ),
                 ],
               );
@@ -586,6 +690,8 @@ class _StudentRegisterState extends State<StudentRegister> {
     String email = _emailController.text.trim();
     String year = _selectedYear!;
     String sem = _selectedSemester!;
+    String dept = _selectedDepartment!;
+    String ay = _selectedAcademicYear!;
     String rollNo = _rollNoController.text.trim();
     String regNo = _regNoController.text.trim();
     String phoneNo = _phoneNoController.text.trim();
@@ -596,6 +702,8 @@ class _StudentRegisterState extends State<StudentRegister> {
         mname.isEmpty ||
         sname.isEmpty ||
         email.isEmpty ||
+        dept.isEmpty ||
+        ay.isEmpty ||
         year.isEmpty ||
         sem.isEmpty ||
         rollNo.isEmpty ||
@@ -621,7 +729,7 @@ class _StudentRegisterState extends State<StudentRegister> {
   }
 
   Future<void> _uploadProfilePhoto(File profilePhotoUri, String rollNo,
-      String fname, mname, sname, String email, String year, String sem, String regNo, String phoneNo) async {
+      String fname, mname, sname, String email,String dept, String ay, String year, String sem, String regNo, String phoneNo) async {
 
     try {
       // Read image as bytes
@@ -640,7 +748,7 @@ class _StudentRegisterState extends State<StudentRegister> {
 
       // Upload to Firebase Storage
       final storageRef = FirebaseStorage.instance.ref()
-          .child("Profile_Photos/Student/$year")
+          .child("Profile_Photos/Student/$dept/$ay/$year/$sem")
           .child("$rollNo.jpg");
       final uploadTask = storageRef.putData(
         compressedBytes,
@@ -653,13 +761,15 @@ class _StudentRegisterState extends State<StudentRegister> {
       final downloadURL = await storageRef.getDownloadURL();
 
       // Save profile details to Firestore
-      await FirebaseFirestore.instance.collection("students").doc(year).collection(sem).doc(rollNo).set({
+      await FirebaseFirestore.instance.collection("students").doc(dept).collection(ay).doc(year).collection(sem).doc(rollNo).set({
         "fname": fname,
         "mname": mname,
         "sname": sname,
         "email": email,
         "regNo": regNo,
         "rollNo": rollNo,
+        "dept": dept,
+        "ay": ay,
         "year": year,
         "semester": sem,
         "phoneNo": phoneNo,
@@ -702,14 +812,14 @@ class _StudentRegisterState extends State<StudentRegister> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text("Message"),
+          title: const Text("Message",style: TextStyle(fontFamily: "Outfit")),
           content: Text(message),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: const Text("OK"),
+              child: const Text("OK",style: TextStyle(fontFamily: "Outfit", color: Colors.black),),
             ),
           ],
         );

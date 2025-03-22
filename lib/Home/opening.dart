@@ -98,13 +98,15 @@ class _OpeningScreenState extends State<OpeningScreen> {
 
   void _goToStudentInternal() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    String year = prefs.getString("year") ?? ''; // Retrieve the year
-    String sem = prefs.getString("sem") ?? ''; // Retrieve the year
+    String year = prefs.getString("year") ?? '';
+    String sem = prefs.getString("sem") ?? '';
+    String dept = prefs.getString("dept") ?? '';
+    String ay = prefs.getString("ay") ?? '';
 
     if (!mounted) return;
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => StudentInternal(year: year, sem: sem,)),
+      MaterialPageRoute(builder: (context) => StudentInternal(year: year, sem: sem, dept: dept, ay: ay)),
     );
   }
 

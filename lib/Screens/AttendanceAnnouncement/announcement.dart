@@ -8,6 +8,8 @@ class AttendanceAnnouncement extends StatefulWidget {
   final String rollNo;
   final String sem;
   final String batch;
+  final String ay;
+  final String dept;
   final String fullName;
 
   const AttendanceAnnouncement({
@@ -17,6 +19,9 @@ class AttendanceAnnouncement extends StatefulWidget {
     required this.sem,
     required this.batch,
     required this.fullName,
+    required this.dept,
+    required this.ay,
+
   });
 
   @override
@@ -52,7 +57,7 @@ class _AttendanceAnnouncementState extends State<AttendanceAnnouncement> {
     try {
       DocumentSnapshot snapshot = await FirebaseFirestore.instance
           .collection('subjects')
-          .doc('all_subjects')
+          .doc(widget.dept)
           .get();
       if (snapshot.exists) {
         setState(() {
@@ -80,6 +85,8 @@ class _AttendanceAnnouncementState extends State<AttendanceAnnouncement> {
       DocumentSnapshot<Map<String, dynamic>> snapshot =
       await FirebaseFirestore.instance
           .collection('students')
+          .doc(widget.dept)
+          .collection(widget.ay)
           .doc(widget.classYear)
           .collection(widget.sem)
           .doc(widget.rollNo)
@@ -160,6 +167,8 @@ class _AttendanceAnnouncementState extends State<AttendanceAnnouncement> {
         // Path: attendance/{classYear}/{sem}/{selectedSubject}/{selectedOptionalSubject}/{selectedType}/lecture
         attendanceQuery = FirebaseFirestore.instance
             .collection("attendance")
+            .doc(widget.dept)
+            .collection(widget.ay)
             .doc(widget.classYear)
             .collection(widget.sem)
             .doc(selectedSubject!) // Base optional subject key.
@@ -170,6 +179,8 @@ class _AttendanceAnnouncementState extends State<AttendanceAnnouncement> {
         // Default path: attendance/{classYear}/{sem}/{selectedSubject}/{selectedType}
         attendanceQuery = FirebaseFirestore.instance
             .collection("attendance")
+            .doc(widget.dept)
+            .collection(widget.ay)
             .doc(widget.classYear)
             .collection(widget.sem)
             .doc(selectedSubject!)
@@ -199,6 +210,8 @@ class _AttendanceAnnouncementState extends State<AttendanceAnnouncement> {
           'sem': widget.sem,
           'subject': selectedSubject,
           'fullName': widget.fullName,
+          'dept': widget.dept,
+          'ay': widget.ay,
           'optional_sub': selectedOptionalSubject ?? "N/A",
           'type': selectedType,
           'batch': data['batch'],

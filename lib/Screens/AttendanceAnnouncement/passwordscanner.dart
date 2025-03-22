@@ -8,6 +8,8 @@ class Passwordscanner extends StatefulWidget {
   final String type;
   final String batch;
   final String rollNo;
+  final String dept;
+  final String ay;
   final String year;
   final String sem;
   final String pass;
@@ -28,6 +30,8 @@ class Passwordscanner extends StatefulWidget {
     required this.created,
     required this.optionalSubject,
     required this.fullName,
+    required this.dept,
+    required this.ay,
 
   });
 
@@ -286,11 +290,13 @@ class _PasswordscannerState extends State<Passwordscanner> {
                         type: widget.type,
                         batch: widget.batch,
                         rollNo: widget.rollNo,
+                        dept: widget.dept,
                         optionalSubject: widget.optionalSubject,
                         year: widget.year,
                         sem: widget.sem,
                         created: widget.created,
                         fullName: widget.fullName,
+                        ay: widget.ay,
                         ),
                       ),
                     );

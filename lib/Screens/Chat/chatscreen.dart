@@ -15,6 +15,8 @@ class ChatScreen extends StatefulWidget {
   final String peerUseremail;
   final String chatusername;
   final String year;
+  final String ay;
+  final String dept;
   final String sem;
 
   const ChatScreen({super.key,
@@ -23,6 +25,8 @@ class ChatScreen extends StatefulWidget {
     required this.chatusername,
     required this.year,
     required this.sem,
+    required this.ay,
+    required this.dept,
   });
 
   @override
@@ -61,6 +65,8 @@ class _ChatScreenState extends State<ChatScreen> {
     QuerySnapshot<Map<String, dynamic>> snapshotStudent =
     await FirebaseFirestore.instance
         .collection('students')
+        .doc(widget.dept)
+        .collection(widget.ay)
         .doc(widget.year)
         .collection(widget.sem)
         .where('email', isEqualTo: widget.peerUseremail)

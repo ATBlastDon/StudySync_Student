@@ -12,6 +12,8 @@ class MissingRequirementsScreen extends StatefulWidget {
   final String sem;
   final String rollNo;
   final String batch;
+  final String dept;
+  final String ay;
   final String studentEmail;
   final VoidCallback? onRequirementsUpdated;
   final List<String> missingRequirements;
@@ -25,6 +27,8 @@ class MissingRequirementsScreen extends StatefulWidget {
     required this.batch,
     required this.studentEmail,
     this.onRequirementsUpdated,
+    required this.dept,
+    required this.ay,
   });
 
   @override
@@ -64,6 +68,8 @@ class _MissingRequirementsScreenState extends State<MissingRequirementsScreen> {
     try {
       DocumentSnapshot<Map<String, dynamic>> doc = await FirebaseFirestore.instance
           .collection('students')
+          .doc(widget.dept)
+          .collection(widget.ay)
           .doc(widget.year)
           .collection(widget.sem)
           .doc(widget.rollNo)
@@ -86,7 +92,7 @@ class _MissingRequirementsScreenState extends State<MissingRequirementsScreen> {
         }
         // For non-SE years, check if optional subjects (dloc) are filled.
         if (widget.year != "SE") {
-          bool hasDloc = await _checkOptionalSubjects(widget.year, widget.sem, widget.rollNo);
+          bool hasDloc = await _checkOptionalSubjects(widget.dept, widget.ay, widget.year, widget.sem, widget.rollNo);
           if (!hasDloc) missingReq.add('dloc');
         }
       }
@@ -99,9 +105,9 @@ class _MissingRequirementsScreenState extends State<MissingRequirementsScreen> {
   }
 
   /// Checks if the optional_subjects collection exists by querying for any document.
-  Future<bool> _checkOptionalSubjects(String year, String sem, String rollNo) async {
+  Future<bool> _checkOptionalSubjects(String dept, String ay, String year, String sem, String rollNo) async {
     try {
-      final collectionPath = 'students/$year/$sem/$rollNo/optional_subjects';
+      final collectionPath = 'students/$dept/$ay/$year/$sem/$rollNo/optional_subjects';
       final querySnapshot =
       await FirebaseFirestore.instance.collection(collectionPath).limit(1).get();
       return querySnapshot.docs.isNotEmpty;
@@ -308,6 +314,8 @@ class _MissingRequirementsScreenState extends State<MissingRequirementsScreen> {
                     builder: (context) => StudentInternal(
                       year: widget.year,
                       sem: widget.sem,
+                      dept: widget.dept,
+                      ay: widget.ay,
                     ),
                   ),
                 );
@@ -458,6 +466,8 @@ class _MissingRequirementsScreenState extends State<MissingRequirementsScreen> {
               studentmail: widget.studentEmail,
               studentyear: widget.year,
               sem: widget.sem,
+              dept: widget.dept,
+              ay: widget.ay,
             ),
           ),
         );
@@ -471,6 +481,8 @@ class _MissingRequirementsScreenState extends State<MissingRequirementsScreen> {
               sem: widget.sem,
               rollNo: widget.rollNo,
               batch: widget.batch,
+              dept: widget.dept,
+              ay: widget.ay,
             ),
           ),
         );

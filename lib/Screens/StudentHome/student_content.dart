@@ -36,13 +36,18 @@ class StudentsContent extends StatelessWidget {
   final String _email;
   final String year;
   final String sem;
-  const StudentsContent(this._email, this.year, {super.key, required this.sem});
+  final String ay;
+  final String dept;
+
+  const StudentsContent(this._email, this.year, {super.key, required this.sem, required this.ay, required this.dept});
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('students')
+          .doc(dept)
+          .collection(ay)
           .doc(year)
           .collection(sem)
           .where('approvalStatus', isEqualTo: 'approved')
@@ -54,22 +59,28 @@ class StudentsContent extends StatelessWidget {
         if (snapshot.hasError) {
           return Center(child: Text('Error: ${snapshot.error}'));
         }
-        if (snapshot.data == null || snapshot.data!.docs.isEmpty) {
-          return const Center(child: Text('No approved students found.'));
+        if (!snapshot.hasData) {
+          return const Center(child: Text('No Students Yet'));
+        }
+
+        // Filter out the logged in user.
+        final allDocs = snapshot.data!.docs;
+        final filteredDocs = allDocs.where((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          return data['email'] != _email;
+        }).toList();
+
+        if (filteredDocs.isEmpty) {
+          return const Center(child: Text('No Students Yet'));
         }
 
         return ListView.builder(
-          itemCount: snapshot.data!.docs.length,
+          itemCount: filteredDocs.length,
           itemBuilder: (context, index) {
-            final studentDocument = snapshot.data!.docs[index];
+            final studentDocument = filteredDocs[index];
             final studentData = studentDocument.data() as Map<String, dynamic>;
             final currentUserEmail = FirebaseAuth.instance.currentUser!.email;
-
-            // Do not show yourself.
-            if (studentData['email'] == currentUserEmail) {
-              return const SizedBox.shrink();
-            }
-
+            // Prepare display values.
             String fullName = '${studentData['fname']} ${studentData['sname'] ?? ''}';
             final profilePhotoUrl = studentData['profilePhotoUrl'] as String?;
             final peerEmail = studentData['email'];
@@ -83,7 +94,8 @@ class StudentsContent extends StatelessWidget {
                     leading: CircleAvatar(
                       backgroundImage: profilePhotoUrl != null
                           ? CachedNetworkImageProvider(profilePhotoUrl)
-                          : const AssetImage('assets/images/default_avatar.png') as ImageProvider,
+                          : const AssetImage('assets/images/default_avatar.png')
+                      as ImageProvider,
                     ),
                     title: Text(
                       fullName,
@@ -155,10 +167,10 @@ class StudentsContent extends StatelessWidget {
                       },
                     ),
                     onTap: () {
-                      _openChatScreen(context, studentDocument.id, _email, peerEmail, fullName, year, sem);
+                      _openChatScreen(context, studentDocument.id, _email, peerEmail, fullName, year, sem, ay, dept);
                     },
                   ),
-                  if (index != snapshot.data!.docs.length - 1)
+                  if (index != filteredDocs.length - 1)
                     const Divider(color: Colors.black26, height: 0),
                 ],
               ),
@@ -172,7 +184,7 @@ class StudentsContent extends StatelessWidget {
 
 
 void _openChatScreen(BuildContext context, String chatUserId, String currentUserEmail,
-    String chatUserEmail, String chatUserName, String year, String sem) async {
+    String chatUserEmail, String chatUserName, String year, String sem, String ay, String dept) async {
   final navigator = Navigator.of(context);
   final groupChatId = generateGroupChatId(currentUserEmail, chatUserEmail);
   await markMessagesAsRead(groupChatId, currentUserEmail);
@@ -184,6 +196,8 @@ void _openChatScreen(BuildContext context, String chatUserId, String currentUser
         chatusername: chatUserName,
         year: year,
         sem: sem,
+        ay: ay,
+        dept: dept,
       ),
     ),
   );

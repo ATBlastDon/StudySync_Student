@@ -9,6 +9,8 @@ class MarksHome extends StatefulWidget {
   final String rollNo;
   final String batch;
   final String fullName;
+  final String ay;
+  final String dept;
 
   const MarksHome({
     super.key,
@@ -17,6 +19,8 @@ class MarksHome extends StatefulWidget {
     required this.rollNo,
     required this.batch,
     required this.fullName,
+    required this.ay,
+    required this.dept,
   });
 
   @override
@@ -129,6 +133,8 @@ class _MarksHomeState extends State<MarksHome> {
                       rollNo: widget.rollNo,
                       batch: widget.batch,
                       fullName: widget.fullName,
+                      dept: widget.dept,
+                      ay: widget.ay,
                     ),
                   ),
                 ),
@@ -147,6 +153,8 @@ class _MarksHomeState extends State<MarksHome> {
                       rollNo: widget.rollNo,
                       batch: widget.batch,
                       fullName: widget.fullName,
+                      dept: widget.dept,
+                      ay: widget.ay,
                     ),
                   ),
                 ),

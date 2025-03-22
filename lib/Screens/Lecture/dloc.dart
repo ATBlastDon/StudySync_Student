@@ -8,6 +8,8 @@ class SelectionSubjects extends StatefulWidget {
   final String sem; // e.g. "8"
   final String rollNo; // e.g. "59"
   final String batch;
+  final String dept;
+  final String ay;
 
   const SelectionSubjects({
     super.key,
@@ -15,6 +17,8 @@ class SelectionSubjects extends StatefulWidget {
     required this.sem,
     required this.rollNo,
     required this.batch,
+    required this.dept,
+    required this.ay,
   });
 
   @override
@@ -48,7 +52,7 @@ class _SelectionSubjectsState extends State<SelectionSubjects> {
     try {
       DocumentSnapshot snapshot = await FirebaseFirestore.instance
           .collection('subjects')
-          .doc('all_subjects')
+          .doc(widget.dept)
           .get();
       if (snapshot.exists) {
         setState(() {
@@ -74,8 +78,13 @@ class _SelectionSubjectsState extends State<SelectionSubjects> {
     final String year = widget.year;
     final String sem = widget.sem;
     final String rollNo = widget.rollNo;
+    final String dept = widget.dept;
+    final String ay = widget.ay;
+
     final docRef = FirebaseFirestore.instance
         .collection("students")
+        .doc(dept)
+        .collection(ay)
         .doc(year)
         .collection(sem)
         .doc(rollNo)
@@ -108,9 +117,13 @@ class _SelectionSubjectsState extends State<SelectionSubjects> {
     final String year = widget.year;
     final String sem = widget.sem;
     final String rollNo = widget.rollNo;
+    final String dept = widget.dept;
+    final String ay = widget.ay;
 
     final docRef = FirebaseFirestore.instance
         .collection("students")
+        .doc(dept)
+        .collection(ay)
         .doc(year)
         .collection(sem)
         .doc(rollNo)
@@ -134,6 +147,8 @@ class _SelectionSubjectsState extends State<SelectionSubjects> {
     final String year = widget.year;
     final String sem = widget.sem;
     final String rollNo = widget.rollNo;
+    final String dept = widget.dept;
+    final String ay = widget.ay;
 
     for (final entry in selectedSubjects.entries) {
       final String optionalKey = entry.key;
@@ -144,6 +159,8 @@ class _SelectionSubjectsState extends State<SelectionSubjects> {
       if (oldSubject != null && oldSubject != newSubject) {
         final oldDocRef = FirebaseFirestore.instance
             .collection("optional_subjects")
+            .doc(dept)
+            .collection(ay)
             .doc(year)
             .collection(sem)
             .doc(optionalKey)
@@ -159,6 +176,8 @@ class _SelectionSubjectsState extends State<SelectionSubjects> {
       // Add (or update) the new selection.
       final newDocRef = FirebaseFirestore.instance
           .collection("optional_subjects")
+          .doc(dept)
+          .collection(ay)
           .doc(year)
           .collection(sem)
           .doc(optionalKey)

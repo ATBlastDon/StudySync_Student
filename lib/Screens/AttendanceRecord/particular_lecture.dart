@@ -12,6 +12,8 @@ class ParticularLecture extends StatefulWidget {
   final String fullName;
   final String batch;
   final String rollNo;
+  final String ay;
+  final String dept;
   final String optionalSubject; // Pass empty string if not applicable
 
   const ParticularLecture({
@@ -24,6 +26,8 @@ class ParticularLecture extends StatefulWidget {
     required this.batch,
     required this.optionalSubject,
     required this.fullName,
+    required this.ay,
+    required this.dept,
   });
 
   @override
@@ -84,6 +88,8 @@ class _ParticularLectureState extends State<ParticularLecture> {
       if (isDLOCOrILOC) {
         query = firestore
             .collection('attendance')
+            .doc(widget.dept)
+            .collection(widget.ay)
             .doc(widget.year)
             .collection(widget.sem)
             .doc(widget.sub)
@@ -97,6 +103,8 @@ class _ParticularLectureState extends State<ParticularLecture> {
       } else {
         query = firestore
             .collection('attendance')
+            .doc(widget.dept)
+            .collection(widget.ay)
             .doc(widget.year)
             .collection(widget.sem)
             .doc(widget.sub)
@@ -183,6 +191,8 @@ class _ParticularLectureState extends State<ParticularLecture> {
           attendanceData: attendanceData,
           rollNo: widget.rollNo,
           fullName: widget.fullName,
+          ay: widget.ay,
+          dept: widget.dept,
         ),
       ),
     );

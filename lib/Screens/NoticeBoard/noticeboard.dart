@@ -12,8 +12,14 @@ final logger = Logger();
 
 class NoticeBoard extends StatefulWidget {
   final String year;
+  final String dept;
+  final String ay;
 
-  const NoticeBoard({super.key, required this.year});
+  const NoticeBoard({
+    super.key,
+    required this.year,
+    required this.dept,
+    required this.ay});
 
   @override
   State<NoticeBoard> createState() => _NoticeBoardState();
@@ -58,6 +64,8 @@ class _NoticeBoardState extends State<NoticeBoard> {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('notices')
+          .doc(widget.dept)
+          .collection(widget.ay)
           .doc('ALL') // Fetch ALL notices
           .collection('details')
           .snapshots(),
@@ -65,6 +73,8 @@ class _NoticeBoardState extends State<NoticeBoard> {
         return StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
               .collection('notices')
+              .doc(widget.dept)
+              .collection(widget.ay)
               .doc(widget.year) // Fetch Batch notices (BE, SE, TE)
               .collection('details')
               .snapshots(),

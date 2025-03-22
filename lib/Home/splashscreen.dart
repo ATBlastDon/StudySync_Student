@@ -16,6 +16,8 @@ class _SplashScreenState extends State<SplashScreen> {
   bool _showSplash = true;
   String year = ""; // Define year here with a default value
   String sem = "";
+  String dept = "";
+  String ay = "";
 
   @override
   void initState() {
@@ -30,13 +32,15 @@ class _SplashScreenState extends State<SplashScreen> {
     if (isLoggedIn) {
       year = prefs.getString('year') ?? ""; // Retrieve year, default to "BE"
       sem = prefs.getString('sem') ?? "";
+      dept = prefs.getString('dept') ?? "";
+      ay = prefs.getString('ay') ?? "";
 
       // User is already logged in, navigate to StudentInternal screen
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => StudentInternal(year: year, sem: sem,),
+          builder: (context) => StudentInternal(year: year, sem: sem, dept: dept, ay: ay),
         ),
       );
     } else {

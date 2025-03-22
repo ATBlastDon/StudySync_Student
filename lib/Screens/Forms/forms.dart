@@ -7,7 +7,10 @@ class Forms extends StatefulWidget {
   final String year;
   final String rollNo;
   final String sem;
-  const Forms({super.key, required this.year, required this.rollNo, required this.sem});
+  final String ay;
+  final String dept;
+
+  const Forms({super.key, required this.year, required this.rollNo, required this.sem, required this.ay, required this.dept});
 
   @override
   State<Forms> createState() => _FormsState();
@@ -133,6 +136,8 @@ class _FormsState extends State<Forms> {
         child: StreamBuilder(
           stream: FirebaseFirestore.instance
               .collection('leave_forms')
+              .doc(widget.dept)
+              .collection(widget.ay)
               .doc(widget.year)
               .collection(widget.sem)
               .doc('forms')
@@ -587,6 +592,8 @@ class _FormsState extends State<Forms> {
     try {
       final docRef = FirebaseFirestore.instance
           .collection('leave_forms')
+          .doc(widget.dept)
+          .collection(widget.ay)
           .doc(widget.year)
           .collection(widget.sem)
           .doc('forms')

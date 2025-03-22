@@ -8,6 +8,8 @@ class AttendanceHome extends StatefulWidget {
   final String sem;
   final String rollNo;
   final String batch;
+  final String ay;
+  final String dept;
   final String fullName;
 
 
@@ -18,6 +20,8 @@ class AttendanceHome extends StatefulWidget {
     required this.rollNo,
     required this.batch,
     required this.fullName,
+    required this.ay,
+    required this.dept,
 
   });
 
@@ -159,6 +163,8 @@ class _AttendanceHomeState extends State<AttendanceHome> {
                                   rollNo: widget.rollNo,
                                   batch: widget.batch,
                                   fullName: widget.fullName,
+                                  ay: widget.ay,
+                                  dept: widget.dept,
                                 ),
                               ),
                             );
@@ -217,6 +223,8 @@ class _AttendanceHomeState extends State<AttendanceHome> {
                                   rollNo: widget.rollNo,
                                   batch: widget.batch,
                                   fullName: widget.fullName,
+                                  ay: widget.ay,
+                                  dept: widget.dept,
                                 ),
                               ),
                             );

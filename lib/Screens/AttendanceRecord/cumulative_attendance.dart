@@ -10,6 +10,8 @@ class CumulativeAttendance extends StatefulWidget {
   final String batch;
   final String sem;
   final String fullName;
+  final String ay;
+  final String dept;
 
   const CumulativeAttendance({
     super.key,
@@ -18,6 +20,8 @@ class CumulativeAttendance extends StatefulWidget {
     required this.year,
     required this.batch,
     required this.sem,
+    required this.ay,
+    required this.dept,
   });
 
   @override
@@ -49,7 +53,7 @@ class _CumulativeAttendanceState extends State<CumulativeAttendance> {
     try {
       DocumentSnapshot snapshot = await FirebaseFirestore.instance
           .collection('subjects')
-          .doc('all_subjects')
+          .doc(widget.dept)
           .get();
       if (snapshot.exists) {
         setState(() {
@@ -128,6 +132,8 @@ class _CumulativeAttendanceState extends State<CumulativeAttendance> {
     try {
       QuerySnapshot querySnapshot = await FirebaseFirestore.instance
           .collection('students')
+          .doc(widget.dept)
+          .collection(widget.ay)
           .doc(year)
           .collection(sem)
           .where('approvalStatus', isEqualTo: 'approved')
@@ -176,6 +182,8 @@ class _CumulativeAttendanceState extends State<CumulativeAttendance> {
             selectedSubjects: selectedSubjects,
             rollNo: widget.rollNo,
             fullName: widget.fullName,
+            ay: widget.ay,
+            dept: widget.dept,
             batch: widget.batch,
           ),
         ),

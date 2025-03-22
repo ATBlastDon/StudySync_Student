@@ -13,6 +13,8 @@ class ParticularSheet extends StatefulWidget {
   final String type;
   final String fullName;
   final String optionalSubject;
+  final String ay;
+  final String dept;
   final String batch;
   final DateTime fromDate;
   final DateTime toDate;
@@ -32,6 +34,8 @@ class ParticularSheet extends StatefulWidget {
     required this.attendanceData,
     required this.rollNo,
     required this.fullName,
+    required this.ay,
+    required this.dept,
   });
 
   @override
@@ -67,6 +71,8 @@ class _ParticularSheetState extends State<ParticularSheet> {
           // For Lab, filter by batch.
           docSnapshot = await FirebaseFirestore.instance
               .collection('optional_subjects')
+              .doc(widget.dept)
+              .collection(widget.ay)
               .doc(widget.year)
               .collection(widget.sem)
               .doc(widget.sub)
@@ -87,6 +93,8 @@ class _ParticularSheetState extends State<ParticularSheet> {
           // For Theory, no batch filtering is needed.
           docSnapshot = await FirebaseFirestore.instance
               .collection('optional_subjects')
+              .doc(widget.dept)
+              .collection(widget.ay)
               .doc(widget.year)
               .collection(widget.sem)
               .doc(widget.sub)
@@ -98,6 +106,8 @@ class _ParticularSheetState extends State<ParticularSheet> {
         if (!docSnapshot!.exists) {
           docSnapshot = await FirebaseFirestore.instance
               .collection('students')
+              .doc(widget.dept)
+              .collection(widget.ay)
               .doc(widget.year)
               .collection(widget.sem)
               .doc(widget.rollNo)
@@ -107,6 +117,8 @@ class _ParticularSheetState extends State<ParticularSheet> {
         // No optional subject; fetch from main 'students' collection.
         docSnapshot = await FirebaseFirestore.instance
             .collection('students')
+            .doc(widget.dept)
+            .collection(widget.ay)
             .doc(widget.year)
             .collection(widget.sem)
             .doc(widget.rollNo)
@@ -177,6 +189,8 @@ class _ParticularSheetState extends State<ParticularSheet> {
       // For DLOC subjects
       docRef = firestore
           .collection('attendance_record')
+          .doc(widget.dept)
+          .collection(widget.ay)
           .doc(widget.year)
           .collection(widget.sem)
           .doc(widget.sub)
@@ -190,6 +204,8 @@ class _ParticularSheetState extends State<ParticularSheet> {
       // For ILOC subjects
       docRef = firestore
           .collection('attendance_record')
+          .doc(widget.dept)
+          .collection(widget.ay)
           .doc(widget.year)
           .collection(widget.sem)
           .doc(widget.sub)
@@ -203,6 +219,8 @@ class _ParticularSheetState extends State<ParticularSheet> {
       // For regular subjects
       docRef = firestore
           .collection('attendance_record')
+          .doc(widget.dept)
+          .collection(widget.ay)
           .doc(widget.year)
           .collection(widget.sem)
           .doc(widget.sub)

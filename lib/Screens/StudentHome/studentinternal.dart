@@ -29,7 +29,15 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 class StudentInternal extends StatefulWidget {
   final String year;
   final String sem;
-  const StudentInternal({super.key, required this.year, required this.sem});
+  final String dept;
+  final String ay;
+  const StudentInternal({
+    super.key,
+    required this.year,
+    required this.sem,
+    required this.dept,
+    required this.ay
+  });
 
   @override
   State<StudentInternal> createState() => _StudentInternalState();
@@ -121,6 +129,8 @@ class _StudentInternalState extends State<StudentInternal> {
       QuerySnapshot<Map<String, dynamic>> querySnapshot =
       await FirebaseFirestore.instance
           .collection('students')
+          .doc(widget.dept)
+          .collection(widget.ay)
           .doc(widget.year)
           .collection(widget.sem)
           .where('email', isEqualTo: email)
@@ -167,6 +177,8 @@ class _StudentInternalState extends State<StudentInternal> {
                   missingRequirements: missingReq,
                   year: widget.year,
                   sem: widget.sem,
+                  dept: widget.dept,
+                  ay: widget.ay,
                   rollNo: _userRollNo!,
                   batch: _userBatch!,
                   studentEmail: _email,
@@ -202,6 +214,8 @@ class _StudentInternalState extends State<StudentInternal> {
       DocumentSnapshot<Map<String, dynamic>> doc =
       await FirebaseFirestore.instance
           .collection('students')
+          .doc(widget.dept)
+          .collection(widget.ay)
           .doc(widget.year)
           .collection(widget.sem)
           .doc(_userRollNo!)
@@ -232,6 +246,8 @@ class _StudentInternalState extends State<StudentInternal> {
       DocumentSnapshot<Map<String, dynamic>> documentSnapshot =
       await FirebaseFirestore.instance
           .collection('students')
+          .doc(widget.dept)
+          .collection(widget.ay)
           .doc(widget.year)
           .collection(widget.sem)
           .doc("records")
@@ -317,6 +333,7 @@ class _StudentInternalState extends State<StudentInternal> {
                       currentUserEmail: _email,
                       year: widget.year,
                       sem: widget.sem,
+                      dept: widget.dept, ay: widget.ay
                     ),
                   ),
                 );
@@ -353,9 +370,12 @@ class _StudentInternalState extends State<StudentInternal> {
                   onTap: () => _showZoomedProfile(context),
                   child: CircleAvatar(
                     backgroundColor: Colors.white,
-                    backgroundImage: _userProfilePhotoUrl != null
+                    backgroundImage: (_userProfilePhotoUrl != null && _userProfilePhotoUrl!.isNotEmpty)
                         ? CachedNetworkImageProvider(_userProfilePhotoUrl!)
                         : null,
+                    child: (_userProfilePhotoUrl == null || _userProfilePhotoUrl!.isEmpty)
+                        ? const Icon(Icons.person, size: 50, color: Colors.grey)
+                        : null, // Show a placeholder icon if no profile photo
                   ),
                 ),
               ),
@@ -381,6 +401,8 @@ class _StudentInternalState extends State<StudentInternal> {
                       builder: (context) => StudentProfile(
                         studentmail: _email,
                         studentyear: widget.year,
+                        dept: widget.dept,
+                        ay: widget.ay,
                         sem: widget.sem,
                       ),
                     ),
@@ -405,6 +427,8 @@ class _StudentInternalState extends State<StudentInternal> {
                         rollNo: _userRollNo!,
                         batch: _userBatch!,
                         fullName: _userFullName!,
+                        ay: widget.ay,
+                        dept: widget.dept,
                       ),
                     ),
                   );
@@ -445,6 +469,8 @@ class _StudentInternalState extends State<StudentInternal> {
                         rollNo: _userRollNo!,
                         batch: _userBatch!,
                         fullName: _userFullName!,
+                        dept: widget.dept,
+                        ay: widget.ay,
                       ),
                     ),
                   );
@@ -467,6 +493,8 @@ class _StudentInternalState extends State<StudentInternal> {
                         sem: widget.sem,
                         rollNo: _userRollNo!,
                         batch: _userBatch!,
+                        dept: widget.dept,
+                        ay: widget.ay,
                       ),
                     ),
                   );
@@ -507,6 +535,8 @@ class _StudentInternalState extends State<StudentInternal> {
                         rollNo: _userRollNo!,
                         name: _userFullName!,
                         mentor: _userMentor!,
+                        dept: widget.dept,
+                        ay: widget.ay
                       ),
                     ),
                   );
@@ -528,6 +558,8 @@ class _StudentInternalState extends State<StudentInternal> {
                         year: widget.year,
                         rollNo: _userRollNo!,
                         sem: widget.sem,
+                        dept: widget.dept,
+                        ay: widget.ay
                       ),
                     ),
                   );
@@ -549,6 +581,9 @@ class _StudentInternalState extends State<StudentInternal> {
                         year: widget.year,
                         rollNo: _userRollNo!,
                         sem: widget.sem,
+                        dept: widget.dept,
+                        ay: widget.ay,
+
                       ),
                     ),
                   );
@@ -651,11 +686,11 @@ class _StudentInternalState extends State<StudentInternal> {
               child: _selectedSection == 'students'
                   ? FadeIn(
                 duration: const Duration(milliseconds: 500),
-                child: StudentsContent(_email, widget.year, sem: widget.sem),
+                child: StudentsContent(_email, widget.year, sem: widget.sem, dept: widget.dept, ay: widget.ay),
               )
                   : FadeIn(
                 duration: const Duration(milliseconds: 500),
-                child: TeachersContent(_email, widget.year, sem: widget.sem),
+                child: TeachersContent(_email, widget.year, sem: widget.sem, dept: widget.dept, ay: widget.ay),
               ),
             ),
           ),
@@ -683,7 +718,7 @@ class _StudentInternalState extends State<StudentInternal> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => NoticeBoard(year: widget.year),
+                        builder: (context) => NoticeBoard(year: widget.year, dept: widget.dept, ay: widget.ay,),
                       ),
                     );
                   },
@@ -718,7 +753,10 @@ class _StudentInternalState extends State<StudentInternal> {
                       _userRollNo!,
                       widget.sem,
                       _userBatch!,
-                      _userFullName!),
+                      _userFullName!,
+                      widget.dept,
+                      widget.ay
+                  ),
                   tooltip: 'Scan QR Code',
                   backgroundColor: Colors.transparent,
                   elevation: 5,
@@ -771,7 +809,9 @@ void _openAttendanceAnnouncement(
     String rollNo,
     String sem,
     String batch,
-    String fullName) {
+    String fullName,
+    String dept,
+    String ay) {
   Navigator.push(
     context,
     MaterialPageRoute(
@@ -781,6 +821,8 @@ void _openAttendanceAnnouncement(
         sem: sem,
         batch: batch,
         fullName: fullName,
+        dept: dept,
+        ay: ay,
       ),
     ),
   );

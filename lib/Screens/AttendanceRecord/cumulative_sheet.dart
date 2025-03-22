@@ -11,6 +11,8 @@ class CumulativeSheet extends StatefulWidget {
   final String rollNo;        // Single student's roll number
   final String fullName;
   final String batch;
+  final String ay;
+  final String dept;
   /// Teacher‐selected subjects (a combined list of regular subjects and optional subject category keys)
   final List<String> selectedSubjects;
 
@@ -22,6 +24,8 @@ class CumulativeSheet extends StatefulWidget {
     required this.fullName,
     required this.selectedSubjects,
     required this.batch,
+    required this.ay,
+    required this.dept,
   });
 
   @override
@@ -64,7 +68,7 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
     try {
       DocumentSnapshot snapshot = await FirebaseFirestore.instance
           .collection('subjects')
-          .doc('all_subjects')
+          .doc(widget.dept)
           .get();
       if (snapshot.exists) {
         setState(() {
@@ -82,7 +86,9 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
   List<String> _getOptionalKeys() {
     List<String> optionalKeys = [];
     if (subjectsMapping.isNotEmpty) {
-      final semMap = (subjectsMapping[widget.selectedClass] as Map<String, dynamic>?)?[widget.selectedSem] as Map<String, dynamic>? ?? {};
+      final semMap = (subjectsMapping[widget.selectedClass] as Map<
+          String,
+          dynamic>?)?[widget.selectedSem] as Map<String, dynamic>? ?? {};
       final dlocMap = semMap['dloc'] as Map<String, dynamic>? ?? {};
       final ilocMap = semMap['iloc'] as Map<String, dynamic>? ?? {};
       optionalKeys = [...dlocMap.keys, ...ilocMap.keys];
@@ -112,6 +118,8 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
           }
           QuerySnapshot lecturesSnapshot = await firestore
               .collection('attendance')
+              .doc(widget.dept)
+              .collection(widget.ay)
               .doc(widget.selectedClass)
               .collection(widget.selectedSem)
               .doc(subject)
@@ -131,6 +139,8 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
             totalLectures++; // Count valid lecture.
             DocumentSnapshot presentSnapshot = await firestore
                 .collection('attendance_record')
+                .doc(widget.dept)
+                .collection(widget.ay)
                 .doc(widget.selectedClass)
                 .collection(widget.selectedSem)
                 .doc(subject)
@@ -165,6 +175,8 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
     try {
       DocumentSnapshot doc = await firestore
           .collection('students')
+          .doc(widget.dept)
+          .collection(widget.ay)
           .doc(widget.selectedClass)
           .collection(widget.selectedSem)
           .doc(rollNo)
@@ -193,7 +205,8 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
     // Determine optional subject keys from the Firebase mapping.
     List<String> optionalKeys = _getOptionalKeys();
     // From the teacher–selected subjects, pick those that are optional.
-    List<String> optionalSubjects = widget.selectedSubjects.where((s) => optionalKeys.contains(s)).toList();
+    List<String> optionalSubjects = widget.selectedSubjects.where((s) =>
+        optionalKeys.contains(s)).toList();
 
     for (String category in optionalSubjects) {
       // Get the student's chosen subject for this optional category.
@@ -212,6 +225,8 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
         try {
           QuerySnapshot lecturesSnapshot = await firestore
               .collection('attendance')
+              .doc(widget.dept)
+              .collection(widget.ay)
               .doc(widget.selectedClass)
               .collection(widget.selectedSem)
               .doc(category)
@@ -230,6 +245,8 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
             totalLectures++;
             DocumentSnapshot presentDoc = await firestore
                 .collection('attendance_record')
+                .doc(widget.dept)
+                .collection(widget.ay)
                 .doc(widget.selectedClass)
                 .collection(widget.selectedSem)
                 .doc(category)
@@ -284,6 +301,8 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
       studentRecord['overall'] = overallPercentage;
       await firestore
           .collection("students")
+          .doc(widget.dept)
+          .collection(widget.ay)
           .doc(widget.selectedClass)
           .collection(widget.selectedSem)
           .doc("records")
@@ -344,7 +363,8 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
       count++;
       tableData.add([
         subject,
-        "Present: $present, Total: $total, Percentage: ${percentage.toStringAsFixed(1)}%"
+        "Present: $present, Total: $total, Percentage: ${percentage
+            .toStringAsFixed(1)}%"
       ]);
     }
     double overallPercentage = count > 0 ? (sumPercentages / count) : 0;
@@ -371,7 +391,8 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
               headerStyle: pw.TextStyle(
                   fontWeight: pw.FontWeight.bold, fontSize: 10),
               cellStyle: const pw.TextStyle(fontSize: 10),
-              headerDecoration: const pw.BoxDecoration(color: PdfColors.green100),
+              headerDecoration: const pw.BoxDecoration(
+                  color: PdfColors.green100),
               border: pw.TableBorder.all(color: PdfColors.grey),
               cellHeight: 25,
             ),
@@ -410,10 +431,10 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.upload,color: Colors.black),
+            icon: const Icon(Icons.upload, color: Colors.black),
             tooltip: "Upload Attendance Data",
             onPressed: () async {
-              if(!mounted) return;
+              if (!mounted) return;
               ScaffoldMessengerState scaffold = ScaffoldMessenger.of(context);
               await _updateFirebaseRecords();
               scaffold.showSnackBar(
@@ -423,7 +444,7 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.print,color: Colors.black),
+            icon: const Icon(Icons.print, color: Colors.black),
             tooltip: "Print Attendance",
             onPressed: _printPdf,
           ),
@@ -484,7 +505,8 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
                 )),
             const SizedBox(height: 16),
             Column(
-              mainAxisSize: MainAxisSize.min, // Ensures the Column takes only necessary space
+              mainAxisSize: MainAxisSize.min,
+              // Ensures the Column takes only necessary space
               children: [
                 // Percentage Text
                 Text(
@@ -497,27 +519,23 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
                   ),
                 ),
 
-                SizedBox(height: 8), // Space between text and progress bar
+                SizedBox(height: 8),
+                // Space between text and progress bar
 
                 // Linear Progress Indicator
                 LinearProgressIndicator(
-                  value: (data['percentage'] / 100).clamp(0.0, 1.0), // Ensures value is between 0 and 1
+                  value: (data['percentage'] / 100).clamp(0.0, 1.0),
+                  // Ensures value is between 0 and 1
                   backgroundColor: Colors.green[100],
                   color: _getProgressColor(data['percentage'], isDark),
-                  minHeight: 12, // Adjust thickness of progress bar
-                  borderRadius: BorderRadius.circular(8), // Optional: Adds rounded edges
+                  minHeight: 12,
+                  // Adjust thickness of progress bar
+                  borderRadius: BorderRadius.circular(
+                      8), // Optional: Adds rounded edges
                 ),
 
-                SizedBox(height: 8), // Space between progress bar and class details
-
-                // Class details
-                Text(
-                  '${data['present']}/${data['total']} classes',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontFamily: 'Outfit',
-                    color: Colors.grey[600],
-                  ),
-                ),
+                SizedBox(height: 8),
+                // Space between progress bar and class details
               ],
             ),
           ],
@@ -560,16 +578,19 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
                     label: Text('${percentage.toStringAsFixed(1)}%',
                         style: TextStyle(
                           fontFamily: 'Outfit',
-                          color: _getProgressColor(percentage.toDouble(), isDark),
+                          color: _getProgressColor(
+                              percentage.toDouble(), isDark),
                         )),
-                    backgroundColor: _getProgressColor(percentage.toDouble(), isDark).withValues(alpha: 0.1),
+                    backgroundColor: _getProgressColor(
+                        percentage.toDouble(), isDark).withValues(alpha: 0.1),
 
                   ),
                 ],
               ),
               const SizedBox(height: 12),
               LinearProgressIndicator(
-                value: (percentage / 100).toDouble(),  // Ensure it's a double
+                value: (percentage / 100).toDouble(),
+                // Ensure it's a double
                 backgroundColor: Colors.grey[400],
                 color: _getProgressColor(percentage.toDouble(), isDark),
                 minHeight: 8,
@@ -627,22 +648,21 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
   }
 
   Map<String, dynamic> _calculateOverallPercentage() {
-    int totalPresent = 0;
-    int totalClasses = 0;
+    double sumPercentage = 0.0;
+    int subjectCount = 0;
 
-    for (var data in attendanceData[widget.rollNo]!.values) {
-      totalPresent += data['present']!;
-      totalClasses += data['total']!;
-    }
+    attendanceData[widget.rollNo]!.forEach((subject, data) {
+      int present = data['present']!;
+      int total = data['total']!;
+      // Calculate subject percentage (using 0 if total is 0)
+      double subjectPercentage = total > 0 ? (present / total * 100) : 0;
+      sumPercentage += subjectPercentage;
+      subjectCount++; // count every subject, even if total is 0
+    });
 
-    final percentage = totalClasses > 0
-        ? (totalPresent / totalClasses * 100)
-        : 0.0;
-
+    double overallPercentage = subjectCount > 0 ? (sumPercentage / subjectCount) : 0.0;
     return {
-      'present': totalPresent,
-      'total': totalClasses,
-      'percentage': percentage,
+      'percentage': overallPercentage,
     };
   }
 }

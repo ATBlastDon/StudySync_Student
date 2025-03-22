@@ -9,9 +9,11 @@ class SearchScreen extends StatefulWidget {
   final String currentUserEmail;
   final String year;
   final String sem;
+  final String ay;
+  final String dept;
 
   // Constructor to receive the current user's email
-  const SearchScreen({super.key, required this.currentUserEmail, required this.year, required this.sem});
+  const SearchScreen({super.key, required this.currentUserEmail, required this.year, required this.sem, required this.ay, required this.dept});
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -31,6 +33,8 @@ class _SearchScreenState extends State<SearchScreen> {
 
     final studentsQuery = FirebaseFirestore.instance
         .collection('students')
+        .doc(widget.dept)
+        .collection(widget.ay)
         .doc(widget.year)
         .collection(widget.sem)
         .get(); // Fetch all students for the given year
@@ -177,7 +181,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     children: [
                       GestureDetector(
                         onTap: () async {
-                          await navigateToChatScreen(result['role'], widget.currentUserEmail, result['email'], result['fullName'], widget.year , widget.sem);
+                          await navigateToChatScreen(result['role'], widget.currentUserEmail, result['email'], result['fullName'], widget.year , widget.sem, widget.ay, widget.dept);
                         },
                         child: Padding(
                           padding: const EdgeInsets.symmetric(vertical: 4.0), // Reduced vertical padding
@@ -221,7 +225,7 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  Future<void> navigateToChatScreen(String role, String currentUserEmail, String peerUserEmail, String chatUserName, String year, String sem) async {
+  Future<void> navigateToChatScreen(String role, String currentUserEmail, String peerUserEmail, String chatUserName, String year, String sem, String ay, String dept) async {
     if (role == 'Student' || role == 'Teacher') {
       await Navigator.push(
         context,
@@ -232,6 +236,8 @@ class _SearchScreenState extends State<SearchScreen> {
             chatusername: chatUserName, // Pass the searched user's name
             year: year,
             sem: sem,
+            ay: ay,
+            dept: dept,
           ),
         ),
       );

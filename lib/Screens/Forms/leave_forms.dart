@@ -12,6 +12,8 @@ class LeaveForms extends StatefulWidget {
   final String rollNo;
   final String name;
   final String mentor;
+  final String ay;
+  final String dept;
 
   const LeaveForms({
     super.key,
@@ -20,6 +22,8 @@ class LeaveForms extends StatefulWidget {
     required this.rollNo,
     required this.name,
     required this.mentor,
+    required this.ay,
+    required this.dept,
 
   });
 
@@ -104,6 +108,8 @@ class _LeaveFormsState extends State<LeaveForms> {
       try {
         await FirebaseFirestore.instance
             .collection('leave_forms')
+            .doc(widget.dept)
+            .collection(widget.ay)
             .doc(widget.year)
             .collection(widget.sem)
             .doc('forms')

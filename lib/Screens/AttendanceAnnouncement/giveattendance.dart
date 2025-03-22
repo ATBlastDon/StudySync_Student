@@ -13,6 +13,8 @@ class GiveAttendance extends StatefulWidget {
   final String type;
   final String batch;
   final String rollNo;
+  final String dept;
+  final String ay;
   final String year;
   final String sem;
   final String created;
@@ -30,6 +32,8 @@ class GiveAttendance extends StatefulWidget {
     required this.created,
     required this.optionalSubject,
     required this.fullName,
+    required this.dept,
+    required this.ay,
   });
 
   @override
@@ -128,6 +132,8 @@ class _GiveAttendanceState extends State<GiveAttendance> {
       if (widget.subjectName.startsWith('DLOC') || widget.subjectName.startsWith('ILOC')) {
         attendanceDocRef = FirebaseFirestore.instance
             .collection('attendance_record')
+            .doc(widget.dept)
+            .collection(widget.ay)
             .doc(widget.year)
             .collection(widget.sem)
             .doc(widget.subjectName)
@@ -140,6 +146,8 @@ class _GiveAttendanceState extends State<GiveAttendance> {
       } else {
         attendanceDocRef = FirebaseFirestore.instance
             .collection('attendance_record')
+            .doc(widget.dept)
+            .collection(widget.ay)
             .doc(widget.year)
             .collection(widget.sem)
             .doc(widget.subjectName)
@@ -164,12 +172,12 @@ class _GiveAttendanceState extends State<GiveAttendance> {
       String filePath;
       if (widget.subjectName.startsWith('DLOC') || widget.subjectName.startsWith('ILOC')) {
         if (widget.optionalSubject != 'N/A') {
-          filePath = 'attendance_record/${widget.year}/${widget.sem}/${widget.subjectName}/${widget.optionalSubject}/${widget.type}/${widget.created}/${widget.rollNo}/attendance.jpg';
+          filePath = 'attendance_record/${widget.dept}/${widget.ay}/${widget.year}/${widget.sem}/${widget.subjectName}/${widget.optionalSubject}/${widget.type}/${widget.created}/${widget.rollNo}/attendance.jpg';
         } else {
-          filePath = 'attendance_record/${widget.year}/${widget.sem}/${widget.subjectName}/${widget.type}/${widget.created}/${widget.rollNo}/attendance.jpg';
+          filePath = 'attendance_record/${widget.dept}/${widget.ay}/${widget.year}/${widget.sem}/${widget.subjectName}/${widget.type}/${widget.created}/${widget.rollNo}/attendance.jpg';
         }
       } else {
-        filePath = 'attendance_record/${widget.year}/${widget.sem}/${widget.subjectName}/${widget.type}/${widget.created}/${widget.rollNo}/attendance.jpg';
+        filePath = 'attendance_record/${widget.dept}/${widget.ay}/${widget.year}/${widget.sem}/${widget.subjectName}/${widget.type}/${widget.created}/${widget.rollNo}/attendance.jpg';
       }
 
       await FirebaseStorage.instance.ref(filePath).putFile(compressedImageFile);
@@ -179,6 +187,8 @@ class _GiveAttendanceState extends State<GiveAttendance> {
       if (widget.subjectName.startsWith('DLOC') || widget.subjectName.startsWith('ILOC')) {
         attendanceCollection = FirebaseFirestore.instance
             .collection('attendance_record')
+            .doc(widget.dept)
+            .collection(widget.ay)
             .doc(widget.year)
             .collection(widget.sem)
             .doc(widget.subjectName)
@@ -190,6 +200,8 @@ class _GiveAttendanceState extends State<GiveAttendance> {
       } else {
         attendanceCollection = FirebaseFirestore.instance
             .collection('attendance_record')
+            .doc(widget.dept)
+            .collection(widget.ay)
             .doc(widget.year)
             .collection(widget.sem)
             .doc(widget.subjectName)
@@ -206,6 +218,8 @@ class _GiveAttendanceState extends State<GiveAttendance> {
         'type': widget.type,
         'batch': widget.batch,
         'rollNo': widget.rollNo,
+        'dept': widget.dept,
+        'ay': widget.ay,
         'imageUrl': downloadUrl,
         'approvalStatus': 'pending',
         'fullName': widget.fullName,
@@ -253,7 +267,7 @@ class _GiveAttendanceState extends State<GiveAttendance> {
                 Navigator.of(context).pop();
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => StudentInternal(year: widget.year, sem: widget.sem)),
+                  MaterialPageRoute(builder: (context) => StudentInternal(year: widget.year, sem: widget.sem, dept: widget.dept, ay: widget.ay,)),
                 );
               },
             ),

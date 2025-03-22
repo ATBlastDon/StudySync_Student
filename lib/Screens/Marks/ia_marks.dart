@@ -9,6 +9,9 @@ class IaMarks extends StatefulWidget {
   final String rollNo;
   final String batch;
   final String fullName;
+  final String ay;
+  final String dept;
+
 
   const IaMarks({
     super.key,
@@ -17,6 +20,8 @@ class IaMarks extends StatefulWidget {
     required this.rollNo,
     required this.batch,
     required this.fullName,
+    required this.ay,
+    required this.dept,
   });
 
   @override
@@ -54,7 +59,7 @@ class _IaMarksState extends State<IaMarks> {
     try {
       DocumentSnapshot snapshot = await FirebaseFirestore.instance
           .collection('subjects')
-          .doc('all_subjects')
+          .doc(widget.dept)
           .get();
       if (snapshot.exists) {
         setState(() {
@@ -97,6 +102,8 @@ class _IaMarksState extends State<IaMarks> {
     try {
       final docRef = FirebaseFirestore.instance
           .collection("students")
+          .doc(widget.dept)
+          .collection(widget.ay)
           .doc(widget.year)
           .collection(widget.sem)
           .doc(widget.rollNo)
@@ -125,6 +132,8 @@ class _IaMarksState extends State<IaMarks> {
         DocumentSnapshot docSnapshot = await FirebaseFirestore.instance
             .collection("marks")
             .doc('ia_marks')
+            .collection(widget.dept)
+            .doc(widget.ay)
             .collection(widget.year)
             .doc(widget.sem)
             .collection(subject)
@@ -175,6 +184,8 @@ class _IaMarksState extends State<IaMarks> {
       await FirebaseFirestore.instance
           .collection("marks")
           .doc('ia_marks')
+          .collection(widget.dept)
+          .doc(widget.ay)
           .collection(widget.year)
           .doc(widget.sem)
           .collection(subject)

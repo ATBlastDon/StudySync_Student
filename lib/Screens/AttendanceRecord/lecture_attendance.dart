@@ -10,6 +10,8 @@ class LectureAttendance extends StatefulWidget {
   final String fullName;
   final String rollNo;
   final String batch;
+  final String ay;
+  final String dept;
 
   const LectureAttendance({
     super.key,
@@ -18,6 +20,8 @@ class LectureAttendance extends StatefulWidget {
     required this.rollNo,
     required this.batch,
     required this.fullName,
+    required this.ay,
+    required this.dept,
   });
 
   @override
@@ -48,7 +52,7 @@ class _LectureAttendanceState extends State<LectureAttendance> {
     try {
       DocumentSnapshot snapshot = await FirebaseFirestore.instance
           .collection('subjects')
-          .doc('all_subjects')
+          .doc(widget.dept)
           .get();
       if (snapshot.exists) {
         setState(() {
@@ -117,6 +121,8 @@ class _LectureAttendanceState extends State<LectureAttendance> {
           // Path: attendance/{year}/{sem}/{subject}/{optionalSubject}/{lab_or_theory}
           attendanceQuery = FirebaseFirestore.instance
               .collection("attendance")
+              .doc(widget.dept)
+              .collection(widget.ay)
               .doc(widget.year)
               .collection(widget.sem)
               .doc(selectedSubject!) // The base optional subject key.
@@ -127,6 +133,8 @@ class _LectureAttendanceState extends State<LectureAttendance> {
           // Default path: attendance/{year}/{sem}/{subject}/{lab_or_theory}
           attendanceQuery = FirebaseFirestore.instance
               .collection("attendance")
+              .doc(widget.dept)
+              .collection(widget.ay)
               .doc(widget.year)
               .collection(widget.sem)
               .doc(selectedSubject!)
@@ -155,6 +163,8 @@ class _LectureAttendanceState extends State<LectureAttendance> {
               'year': widget.year,
               'sem': widget.sem,
               'subject': selectedSubject,
+              'ay': widget.ay,
+              'dept': widget.dept,
               'optional_sub': selectedOptionalSubject ?? 'N/A',
               'type': selectedLabOrTheory,
               'batch': data['batch'],
@@ -488,6 +498,8 @@ class _LectureAttendanceState extends State<LectureAttendance> {
                                       rollNo: widget.rollNo,
                                       fullName: widget.fullName,
                                       batch: widget.batch,
+                                      ay: widget.ay,
+                                      dept: widget.dept,
                                     ),
                                   ),
                                 );
