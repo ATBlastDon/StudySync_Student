@@ -183,7 +183,6 @@ class _StudentRegisterState extends State<StudentRegister> {
                                       },
                                       items: [
                                         "CSE(AIML)",
-                                        "MCA",
                                         "Mechanical",
                                         "Chemical",
                                         "IT",

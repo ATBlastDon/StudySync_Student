@@ -175,7 +175,6 @@ class _StudentLoginState extends State<StudentLogin> {
                               },
                               items: [
                                 "CSE(AIML)",
-                                "MCA",
                                 "Mechanical",
                                 "Chemical",
                                 "IT",

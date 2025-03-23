@@ -109,7 +109,6 @@ class _ForgotPasswordState extends State<ForgotPassword> {
                   },
                   items: [
                     "CSE(AIML)",
-                    "MCA",
                     "Mechanical",
                     "Chemical",
                     "IT",
