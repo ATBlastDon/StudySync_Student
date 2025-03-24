@@ -23,10 +23,13 @@ class _FaceScanScreenState extends State<FaceScanScreen> {
   bool _isCameraInitialized = false;
   bool _isProcessing = false;
 
+  // Thresholds for eye status (adjust as needed).
+  final double openThreshold = 0.7;
+  final double closedThreshold = 0.3;
+
   @override
   void initState() {
     super.initState();
-    // Lock orientation to portrait.
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp])
         .then((_) => _initializeCamera());
   }
@@ -51,9 +54,8 @@ class _FaceScanScreenState extends State<FaceScanScreen> {
             (camera) => camera.lensDirection == CameraLensDirection.front,
         orElse: () => cameras.first,
       );
-      _cameraController = CameraController(
-          frontCamera, ResolutionPreset.medium,
-          enableAudio: false);
+      _cameraController =
+          CameraController(frontCamera, ResolutionPreset.medium, enableAudio: false);
       await _cameraController!.initialize();
       setState(() {
         _isCameraInitialized = true;
@@ -70,7 +72,6 @@ class _FaceScanScreenState extends State<FaceScanScreen> {
   @override
   void dispose() {
     _cameraController?.dispose();
-    // Restore orientation preferences if needed.
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.landscapeRight,
       DeviceOrientation.landscapeLeft,
@@ -80,54 +81,62 @@ class _FaceScanScreenState extends State<FaceScanScreen> {
     super.dispose();
   }
 
-
-  Future<void> _captureAndScanFace() async {
-    if (_cameraController == null || !_cameraController!.value.isInitialized) return;
-
-    setState(() {
-      _isProcessing = true;
-    });
-
+  /// Capture a face image and return its embedding and image file.
+  /// [expectOpen] determines whether to verify that eyes are open (true) or closed (false).
+  Future<Map<String, dynamic>?> _captureFaceAndImage({required bool expectOpen}) async {
+    if (_cameraController == null || !_cameraController!.value.isInitialized) {
+      return null;
+    }
     try {
-      // Capture image from the camera.
       XFile capturedImage = await _cameraController!.takePicture();
       File imageFile = File(capturedImage.path);
-
-      // Prepare image for face detection.
       final inputImage = InputImage.fromFile(imageFile);
+      // Enable classification for eye open probabilities.
       final options = FaceDetectorOptions(
         performanceMode: FaceDetectorMode.accurate,
         enableContours: false,
         enableLandmarks: true,
+        enableClassification: true,
       );
       final faceDetector = FaceDetector(options: options);
       final faces = await faceDetector.processImage(inputImage);
       faceDetector.close();
-
       if (faces.isEmpty) {
-        setState(() {
-          _isProcessing = false;
-        });
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("No face detected. Please try again.")),
-        );
-        return;
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("No face detected. Please try again.")),
+          );
+        }
+        return null;
       }
-
       Face face = faces.first;
-
-      // Decode image using the image package.
+      // Verify eye status.
+      if (face.leftEyeOpenProbability == null || face.rightEyeOpenProbability == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Unable to determine eye status. Please try again.")),
+          );
+        }
+        return null;
+      }
+      double leftProb = face.leftEyeOpenProbability!;
+      double rightProb = face.rightEyeOpenProbability!;
+      if (expectOpen) {
+        // For open eyes, both probabilities must be above the open threshold.
+        if (leftProb < openThreshold || rightProb < openThreshold) {
+          return null;
+        }
+      } else {
+        // For closed eyes, both probabilities must be below the closed threshold.
+        if (leftProb > closedThreshold || rightProb > closedThreshold) {
+          return null;
+        }
+      }
+      // Decode image.
       final Uint8List imageBytes = await imageFile.readAsBytes();
       img.Image? originalImage = img.decodeImage(imageBytes);
-      if (originalImage == null) {
-        setState(() {
-          _isProcessing = false;
-        });
-        return;
-      }
-
-      // Align the face using eye landmarks.
+      if (originalImage == null) return null;
+      // Align face using eye landmarks.
       final leftEye = face.landmarks[FaceLandmarkType.leftEye];
       final rightEye = face.landmarks[FaceLandmarkType.rightEye];
       if (leftEye != null && rightEye != null) {
@@ -136,8 +145,7 @@ class _FaceScanScreenState extends State<FaceScanScreen> {
         double angle = atan2(deltaY.toDouble(), deltaX.toDouble()) * (180 / pi);
         originalImage = img.copyRotate(originalImage, angle: -angle);
       }
-
-      // Crop the face using the detected bounding box.
+      // Crop the face using the bounding box.
       int x = face.boundingBox.left.toInt();
       int y = face.boundingBox.top.toInt();
       int w = face.boundingBox.width.toInt();
@@ -147,57 +155,23 @@ class _FaceScanScreenState extends State<FaceScanScreen> {
       if (x + w > originalImage.width) w = originalImage.width - x;
       if (y + h > originalImage.height) h = originalImage.height - y;
       img.Image faceCrop = img.copyCrop(originalImage, x: x, y: y, width: w, height: h);
-
-      // Extract embedding from the face crop.
-      List<double> currentEmbedding = await _runModelOnImage(faceCrop);
-
-      // Retrieve stored face embedding.
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? storedEmbeddingStr = prefs.getString('face_embedding');
-      if (storedEmbeddingStr == null) {
-        setState(() {
-          _isProcessing = false;
-        });
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("No registered face found.")),
-        );
-        return;
-      }
-      List<double> storedEmbedding =
-      storedEmbeddingStr.split(',').map((e) => double.parse(e)).toList();
-
-      // Compare embeddings using cosine similarity.
-      double similarity = _calculateCosineSimilarity(currentEmbedding, storedEmbedding);
-      const double threshold = 0.6; // Adjust threshold as needed.
-      if (similarity < threshold) {
-        setState(() {
-          _isProcessing = false;
-        });
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Face does not match. Please try again.")),
-        );
-        return;
-      }
-
-      setState(() {
-        _isProcessing = false;
-      });
-      if (!mounted) return;
-      Navigator.of(context).pop(imageFile);
+      // Run TFLite model to extract embedding.
+      List<double> embedding = await _runModelOnImage(faceCrop);
+      return {
+        'embedding': embedding,
+        'file': imageFile,
+      };
     } catch (e) {
-      setState(() {
-        _isProcessing = false;
-      });
-      debugPrint("Error during face scanning: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Error during face scanning. Please try again.")),
-      );
+      if (mounted) {
+        debugPrint("Error during face capture: $e");
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Error during face capture.")),
+        );
+      }
+      return null;
     }
   }
 
-  /// Preprocesses the face image and returns the embedding.
   Future<List<double>> _runModelOnImage(img.Image faceImage) async {
     img.Image resizedImage = img.copyResize(faceImage, width: 112, height: 112);
     var input = List.generate(
@@ -209,7 +183,6 @@ class _FaceScanScreenState extends State<FaceScanScreen> {
       ),
       growable: false,
     );
-
     for (int i = 0; i < 112; i++) {
       for (int j = 0; j < 112; j++) {
         final pixel = resizedImage.getPixel(j, i);
@@ -219,12 +192,10 @@ class _FaceScanScreenState extends State<FaceScanScreen> {
         input[0][i][j] = [r, g, b];
       }
     }
-
     var output = List.generate(1, (_) => List.filled(128, 0.0));
     Interpreter interpreter = await Interpreter.fromAsset('assets/facenet.tflite');
     interpreter.run(input, output);
     interpreter.close();
-
     return output[0];
   }
 
@@ -240,6 +211,217 @@ class _FaceScanScreenState extends State<FaceScanScreen> {
     normA = sqrt(normA);
     normB = sqrt(normB);
     return dotProduct / (normA * normB);
+  }
+
+  Future<void> _captureAndScanFace() async {
+    if (_cameraController == null || !_cameraController!.value.isInitialized) return;
+    setState(() {
+      _isProcessing = true;
+    });
+
+    // Step 1: Capture open-eyes scan.
+    Map<String, dynamic>? openFaceData =
+    await _captureFaceAndImage(expectOpen: true);
+    if (openFaceData == null) {
+      setState(() {
+        _isProcessing = false;
+      });
+      // Show failure dialog for open eyes scan.
+      if(!mounted) return;
+      await showDialog(
+        context: context,
+        barrierDismissible: false, // Prevents closing by tapping outside
+        builder: (dialogContext) {
+          return Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
+            elevation: 8,
+            backgroundColor: Colors.white,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(color: Colors.grey.withValues(alpha: 0.2), blurRadius: 12)
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Icon(
+                    Icons.error_outline,
+                    size: 56,
+                    color: Colors.red.shade700,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Scan Failure',
+                    style: TextStyle(
+                      fontFamily: 'Outfit',
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Text(
+                      'Face does not match. Please try again with open eyes.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: 'Outfit',
+                        fontSize: 16,
+                        color: Colors.grey,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: <Widget>[
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.of(dialogContext).pop();
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red.shade600,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            elevation: 2,
+                            shadowColor: Colors.red.shade100,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            'OK',
+                            style: TextStyle(
+                              fontFamily: 'Outfit',
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+      return;
+    }
+
+    List<double> scannedOpenEmbedding = openFaceData['embedding'];
+
+    // Retrieve stored open eyes embedding.
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? storedOpenStr = prefs.getString('face_embedding_open');
+    if (storedOpenStr == null) {
+      setState(() {
+        _isProcessing = false;
+      });
+      if(!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("No registered open eyes face found.")),
+      );
+      return;
+    }
+    List<double> storedOpenEmbedding =
+    storedOpenStr.split(',').map((e) => double.parse(e)).toList();
+
+    // Compare open embeddings.
+    double openSimilarity = _calculateCosineSimilarity(scannedOpenEmbedding, storedOpenEmbedding);
+    const double threshold = 0.6;
+    if (openSimilarity < threshold) {
+      setState(() {
+        _isProcessing = false;
+      });
+      if(!mounted) return;
+      await showDialog(
+        context: context,
+        builder: (dialogContext) {
+          return AlertDialog(
+            title: const Text("Scan Failure"),
+            content: const Text("Open eyes face does not match. Please try again."),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text("Ok"),
+              ),
+            ],
+          );
+        },
+      );
+      return;
+    }
+
+    // Step 2: Instruct user to close eyes.
+    if(!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Please close your eyes and hold steady...")),
+    );
+    await Future.delayed(const Duration(seconds: 1));
+
+    // Capture closed-eyes scan.
+    Map<String, dynamic>? closedFaceData =
+    await _captureFaceAndImage(expectOpen: false);
+    if (closedFaceData == null) {
+      setState(() {
+        _isProcessing = false;
+      });
+      if(!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Closed eyes face does not match. Scan failed.")),
+      );
+      return;
+    }
+    List<double> scannedClosedEmbedding = closedFaceData['embedding'];
+
+    // Retrieve stored closed eyes embedding.
+    String? storedClosedStr = prefs.getString('face_embedding_closed');
+    if (storedClosedStr == null) {
+      setState(() {
+        _isProcessing = false;
+      });
+      if(!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("No registered closed eyes face found.")),
+      );
+      return;
+    }
+    List<double> storedClosedEmbedding =
+    storedClosedStr.split(',').map((e) => double.parse(e)).toList();
+
+    // Compare closed embeddings.
+    double closedSimilarity =
+    _calculateCosineSimilarity(scannedClosedEmbedding, storedClosedEmbedding);
+    if (closedSimilarity < threshold) {
+      setState(() {
+        _isProcessing = false;
+      });
+      if(!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Closed eyes face does not match. Scan failed.")),
+      );
+      return;
+    }
+
+    // Both open and closed eyes embeddings matched.
+    setState(() {
+      _isProcessing = false;
+    });
+    // Instead of popping the screen, call your attendance function.
+    File openEyesImage = openFaceData['file'];
+    if(!mounted) return;
+    Navigator.of(context).pop(openEyesImage);
   }
 
   @override
@@ -294,17 +476,11 @@ class _FaceScanScreenState extends State<FaceScanScreen> {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(20),
-                      // Mirror preview if needed.
                       child: Transform.scale(
                         scaleX: -1.0,
-                        // Use FittedBox to fill the container in portrait mode.
-                        child: FittedBox(
-                          fit: BoxFit.cover,
-                          child: SizedBox(
-                            width: _cameraController!.value.previewSize!.height,
-                            height: _cameraController!.value.previewSize!.width,
-                            child: CameraPreview(_cameraController!),
-                          ),
+                        child: AspectRatio(
+                          aspectRatio: _cameraController!.value.aspectRatio,
+                          child: CameraPreview(_cameraController!),
                         ),
                       ),
                     ),

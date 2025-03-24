@@ -10,20 +10,43 @@ class Forms extends StatefulWidget {
   final String ay;
   final String dept;
 
-  const Forms({super.key, required this.year, required this.rollNo, required this.sem, required this.ay, required this.dept});
+  const Forms({
+    super.key,
+    required this.year,
+    required this.rollNo,
+    required this.sem,
+    required this.ay,
+    required this.dept,
+  });
 
   @override
   State<Forms> createState() => _FormsState();
 }
 
 class _FormsState extends State<Forms> {
+  // This flag determines whether a notice exists.
+  // Change this value as per your requirements.
+  final bool _hasNotice = false;
 
   void _showNoticeDialogue() {
+    if (!_hasNotice) {
+      // If there is no notice, show a SnackBar message.
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('There is no message'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    // Otherwise, show the notice dialog.
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
           titlePadding: const EdgeInsets.fromLTRB(20.0, 20.0, 20.0, 0.0),
           contentPadding: const EdgeInsets.fromLTRB(20.0, 20.0, 20.0, 0.0),
           title: Row(
@@ -49,7 +72,8 @@ class _FormsState extends State<Forms> {
                 children: <TextSpan>[
                   TextSpan(
                     text: "Tap on a Card: ",
-                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold, color: Colors.black),
                   ),
                   TextSpan(
                     text:
@@ -57,7 +81,8 @@ class _FormsState extends State<Forms> {
                   ),
                   TextSpan(
                     text: "Editing a Request: ",
-                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold, color: Colors.black),
                   ),
                   TextSpan(
                     text:
@@ -65,7 +90,8 @@ class _FormsState extends State<Forms> {
                   ),
                   TextSpan(
                     text: "Status: ",
-                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold, color: Colors.black),
                   ),
                   TextSpan(
                     text:
@@ -92,8 +118,6 @@ class _FormsState extends State<Forms> {
       },
     );
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -155,6 +179,19 @@ class _FormsState extends State<Forms> {
             }
 
             var leaveForms = snapshot.data!.docs;
+            // Check if there are no submitted forms.
+            if (leaveForms.isEmpty) {
+              return const Center(
+                child: Text(
+                  'There is No Submitted Forms',
+                  style: TextStyle(
+                    fontFamily: 'Outfit',
+                    fontSize: 16,
+                  ),
+                ),
+              );
+            }
+
             return ListView.separated(
               padding: const EdgeInsets.all(16),
               itemCount: leaveForms.length,
@@ -162,7 +199,8 @@ class _FormsState extends State<Forms> {
               itemBuilder: (context, index) {
                 var leaveForm = leaveForms[index];
                 final status = leaveForm['status'];
-                final submittedAt = (leaveForm['submittedAt'] as Timestamp).toDate();
+                final submittedAt =
+                (leaveForm['submittedAt'] as Timestamp).toDate();
                 final theme = Theme.of(context);
 
                 return _buildLeaveCard(leaveForm, status, submittedAt, theme);
@@ -174,7 +212,8 @@ class _FormsState extends State<Forms> {
     );
   }
 
-  Widget _buildLeaveCard(QueryDocumentSnapshot leaveForm, String status, DateTime submittedAt, ThemeData theme) {
+  Widget _buildLeaveCard(QueryDocumentSnapshot leaveForm, String status,
+      DateTime submittedAt, ThemeData theme) {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(
@@ -192,7 +231,8 @@ class _FormsState extends State<Forms> {
               _buildUserInfoRow(leaveForm),
               const SizedBox(height: 12),
               _buildReasonSection(leaveForm),
-              if (leaveForm['imageUrl'] != null && leaveForm['imageUrl'].isNotEmpty)
+              if (leaveForm['imageUrl'] != null &&
+                  leaveForm['imageUrl'].isNotEmpty)
                 _buildImagePreview(leaveForm),
               const SizedBox(height: 12),
               _buildStatusRow(status, submittedAt, theme),
@@ -209,8 +249,11 @@ class _FormsState extends State<Forms> {
         CircleAvatar(
           backgroundColor: Colors.teal.shade100,
           child: Text(
-            leaveForm['rollNo'].toString().substring(leaveForm['rollNo'].length - 2),
-            style: const TextStyle(color: Colors.teal,fontFamily: 'Outfit'),
+            leaveForm['rollNo']
+                .toString()
+                .substring(leaveForm['rollNo'].length - 2),
+            style: const TextStyle(
+                color: Colors.teal, fontFamily: 'Outfit'),
           ),
         ),
         const SizedBox(width: 12),
@@ -289,7 +332,8 @@ class _FormsState extends State<Forms> {
     );
   }
 
-  Widget _buildStatusRow(String status, DateTime submittedAt, ThemeData theme) {
+  Widget _buildStatusRow(
+      String status, DateTime submittedAt, ThemeData theme) {
     final statusColor = _getStatusColor(status);
     final formattedDate = DateFormat('MMM dd, yyyy').format(submittedAt);
     final formattedTime = DateFormat('hh:mm a').format(submittedAt);
@@ -298,7 +342,8 @@ class _FormsState extends State<Forms> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          padding:
+          const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
             color: statusColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(20),
@@ -307,7 +352,8 @@ class _FormsState extends State<Forms> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(_getStatusIcon(status), size: 16, color: statusColor),
+              Icon(_getStatusIcon(status),
+                  size: 16, color: statusColor),
               const SizedBox(width: 6),
               Text(
                 status.toUpperCase(),
@@ -381,7 +427,8 @@ class _FormsState extends State<Forms> {
     final statusColor = _getStatusColor(leaveForm['status']);
 
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape:
+      RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       elevation: 8,
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -396,7 +443,6 @@ class _FormsState extends State<Forms> {
                   fontFamily: 'Outfit',
                   color: Colors.teal.shade700,
                   fontWeight: FontWeight.w600,
-
                 ),
               ),
             ),
@@ -420,7 +466,8 @@ class _FormsState extends State<Forms> {
               leaveForm['reason'],
               style: theme.textTheme.bodyMedium,
             ),
-            if (leaveForm['imageUrl'] != null && leaveForm['imageUrl'].isNotEmpty)
+            if (leaveForm['imageUrl'] != null &&
+                leaveForm['imageUrl'].isNotEmpty)
               _buildDialogImage(leaveForm['imageUrl']),
             const Divider(height: 30),
             _buildStatusChip(leaveForm['status'], statusColor),
@@ -430,7 +477,10 @@ class _FormsState extends State<Forms> {
               children: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Close',style: TextStyle(fontFamily: "Outfit"),),
+                  child: const Text(
+                    'Close',
+                    style: TextStyle(fontFamily: "Outfit"),
+                  ),
                 ),
                 const SizedBox(width: 10),
                 ElevatedButton(
@@ -441,7 +491,11 @@ class _FormsState extends State<Forms> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  child: const Text('Edit', style: TextStyle(color: Colors.white,fontFamily: 'Outfit',)),
+                  child: const Text(
+                    'Edit',
+                    style: TextStyle(
+                        color: Colors.white, fontFamily: 'Outfit'),
+                  ),
                 ),
               ],
             ),
@@ -472,7 +526,8 @@ class _FormsState extends State<Forms> {
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(fontWeight: FontWeight.w500,fontFamily: 'Outfit',),
+              style: const TextStyle(
+                  fontWeight: FontWeight.w500, fontFamily: 'Outfit'),
             ),
           ),
         ],
@@ -528,7 +583,8 @@ class _FormsState extends State<Forms> {
     showDialog(
       context: context,
       builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape:
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Column(
@@ -577,7 +633,11 @@ class _FormsState extends State<Forms> {
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                    child: const Text('Save Changes', style: TextStyle(color: Colors.white,fontFamily: 'Outfit',)),
+                    child: const Text(
+                      'Save Changes',
+                      style: TextStyle(
+                          color: Colors.white, fontFamily: 'Outfit'),
+                    ),
                   ),
                 ],
               ),

@@ -20,8 +20,13 @@ class FaceRegistrationScreen extends StatefulWidget {
 class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
   CameraController? _cameraController;
   bool _isCameraInitialized = false;
-  String? _faceEmbeddingStr;
+  String? _faceEmbeddingOpenStr;
+  String? _faceEmbeddingClosedStr;
   bool _alreadyRegistered = false;
+
+  // Thresholds for eye open classification.
+  final double openThreshold = 0.7;
+  final double closedThreshold = 0.3;
 
   @override
   void initState() {
@@ -34,9 +39,11 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
 
   Future<void> _checkExistingRegistration() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    if (prefs.containsKey('face_embedding')) {
+    if (prefs.containsKey('face_embedding_open') &&
+        prefs.containsKey('face_embedding_closed')) {
       setState(() {
-        _faceEmbeddingStr = prefs.getString('face_embedding');
+        _faceEmbeddingOpenStr = prefs.getString('face_embedding_open');
+        _faceEmbeddingClosedStr = prefs.getString('face_embedding_closed');
         _alreadyRegistered = true;
       });
     }
@@ -53,28 +60,28 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
       if (!granted) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Camera permission is required.",style: TextStyle(fontFamily: "Outfit"),)),
+          const SnackBar(
+            content: Text(
+              "Camera permission is required.",
+              style: TextStyle(fontFamily: "Outfit"),
+            ),
+          ),
         );
         return;
       }
-
       final cameras = await availableCameras();
       final frontCamera = cameras.firstWhere(
             (camera) => camera.lensDirection == CameraLensDirection.front,
         orElse: () => cameras.first,
       );
-
       _cameraController = CameraController(
         frontCamera,
         ResolutionPreset.medium,
         enableAudio: false,
       );
-
       await _cameraController!.initialize();
-
       // Lock the capture orientation to portrait.
       await _cameraController!.lockCaptureOrientation(DeviceOrientation.portraitUp);
-
       setState(() {
         _isCameraInitialized = true;
       });
@@ -82,7 +89,9 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
       debugPrint('Error initializing camera: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error initializing camera: $e",style: TextStyle(fontFamily: "Outfit"))),
+        SnackBar(
+          content: Text("Error initializing camera: $e", style: TextStyle(fontFamily: "Outfit")),
+        ),
       );
     }
   }
@@ -100,12 +109,14 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
     super.dispose();
   }
 
-
-  Future<void> _captureAndRegisterFace() async {
+  /// Capture a face image and return its embedding.
+  ///
+  /// The [expectOpen] parameter specifies whether to validate that the face has open eyes (true)
+  /// or closed eyes (false) using classification probabilities.
+  Future<List<double>?> _captureFace({required bool expectOpen}) async {
     if (_cameraController == null || !_cameraController!.value.isInitialized) {
-      return;
+      return null;
     }
-
     try {
       // Capture image from camera.
       XFile capturedImage = await _cameraController!.takePicture();
@@ -116,27 +127,69 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
       final options = FaceDetectorOptions(
         performanceMode: FaceDetectorMode.accurate,
         enableContours: false,
-        enableLandmarks: true, // Enable landmarks for alignment.
+        enableLandmarks: true,
+        enableClassification: true, // Enable classification for eye probabilities.
       );
       final faceDetector = FaceDetector(options: options);
       final faces = await faceDetector.processImage(inputImage);
       faceDetector.close();
 
       if (faces.isEmpty) {
-        if (!mounted) return;
+        if (!mounted) return null;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("No face detected. Please try again.",style: TextStyle(fontFamily: "Outfit"))),
+          const SnackBar(
+            content: Text("No face detected. Please try again.", style: TextStyle(fontFamily: "Outfit")),
+          ),
         );
-        return;
+        return null;
       }
 
       Face face = faces.first;
+
+      // Check for eye status.
+      if (face.leftEyeOpenProbability == null || face.rightEyeOpenProbability == null) {
+        if (!mounted) return null;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Unable to determine eye status. Please try again.", style: TextStyle(fontFamily: "Outfit")),
+          ),
+        );
+        return null;
+      }
+      double leftProb = face.leftEyeOpenProbability!;
+      double rightProb = face.rightEyeOpenProbability!;
+
+      if (expectOpen) {
+        if (leftProb < openThreshold || rightProb < openThreshold) {
+          // If expected open but eyes are not sufficiently open.
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("Please keep your eyes open.", style: TextStyle(fontFamily: "Outfit")),
+              ),
+            );
+          }
+          return null;
+        }
+      } else {
+        if (leftProb > closedThreshold || rightProb > closedThreshold) {
+          // If expected closed but eyes are still open.
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("Please close your eyes.", style: TextStyle(fontFamily: "Outfit")),
+              ),
+            );
+          }
+          return null;
+        }
+      }
 
       // Decode image using the image package.
       final Uint8List imageBytes = await imageFile.readAsBytes();
       img.Image? originalImage = img.decodeImage(imageBytes);
       if (originalImage == null) {
-        return;
+        return null;
       }
 
       // Align the face using eye landmarks.
@@ -162,26 +215,17 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
 
       // Extract face embedding using the TFLite model.
       List<double> embedding = await _runModelOnImage(faceCrop);
-
-      // Save the embedding locally.
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String embeddingStr = embedding.join(',');
-      await prefs.setString('face_embedding', embeddingStr);
-
-      setState(() {
-        _faceEmbeddingStr = embeddingStr;
-        _alreadyRegistered = true;
-      });
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Face registered successfully!",style: TextStyle(fontFamily: "Outfit"))),
-      );
+      return embedding;
     } catch (e) {
-      debugPrint("Error during face registration: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Error during face registration.",style: TextStyle(fontFamily: "Outfit"))),
-      );
+      if (mounted) {
+        debugPrint("Error during face capture: $e");
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Error during face capture.", style: TextStyle(fontFamily: "Outfit")),
+          ),
+        );
+      }
+      return null;
     }
   }
 
@@ -197,7 +241,6 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
       ),
       growable: false,
     );
-
     for (int i = 0; i < 112; i++) {
       for (int j = 0; j < 112; j++) {
         final pixel = resizedImage.getPixel(j, i);
@@ -207,13 +250,137 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
         input[0][i][j] = [r, g, b];
       }
     }
-
     var output = List.generate(1, (_) => List.filled(128, 0.0));
     Interpreter interpreter = await Interpreter.fromAsset('assets/facenet.tflite');
     interpreter.run(input, output);
     interpreter.close();
-
     return output[0];
+  }
+
+  /// Main registration process.
+  /// First, capture open-eyes embedding (checking that eyes are indeed open),
+  /// then prompt for closed-eyes capture (ensuring eyes are closed).
+  Future<void> _captureAndRegisterFace() async {
+    // Step 1: Capture open-eyes face embedding.
+    List<double>? openEmbedding = await _captureFace(expectOpen: true);
+    if (openEmbedding == null) return;
+
+    // Inform user that step 1 is complete and prompt for step 2.
+    if (!mounted) return;
+    bool? continueStep2 = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          elevation: 8,
+          backgroundColor: Colors.white,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.check_circle_outline,
+                  size: 56,
+                  color: Colors.green.shade700,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Step 1 Completed',
+                  style: TextStyle(
+                    fontFamily: 'Outfit',
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black87,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Text(
+                    'Your face has been scanned successfully with open eyes. Now, please close your eyes and tap Continue.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'Outfit',
+                      fontSize: 16,
+                      color: Colors.grey,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 32),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        icon: const Icon(
+                          Icons.arrow_forward,
+                          size: 20,
+                          color: Colors.white,
+                        ),
+                        label: const Text(
+                          'Continue',
+                          style: TextStyle(
+                            fontFamily: 'Outfit',
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue.shade600,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          elevation: 2,
+                          shadowColor: Colors.blue.shade100,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.of(dialogContext).pop(true);
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    if (continueStep2 != true) return;
+
+    // Wait 2 seconds for the user to close their eyes.
+    await Future.delayed(const Duration(seconds: 2));
+
+    // Step 2: Capture closed-eyes face embedding.
+    List<double>? closedEmbedding = await _captureFace(expectOpen: false);
+    if (closedEmbedding == null) return;
+
+    // Save both embeddings locally.
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String openEmbeddingStr = openEmbedding.join(',');
+    String closedEmbeddingStr = closedEmbedding.join(',');
+    await prefs.setString('face_embedding_open', openEmbeddingStr);
+    await prefs.setString('face_embedding_closed', closedEmbeddingStr);
+
+    setState(() {
+      _faceEmbeddingOpenStr = openEmbeddingStr;
+      _faceEmbeddingClosedStr = closedEmbeddingStr;
+      _alreadyRegistered = true;
+    });
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Face registered successfully!", style: TextStyle(fontFamily: "Outfit")),
+      ),
+    );
   }
 
   void _showDeleteDialog() {
@@ -228,13 +395,6 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
           backgroundColor: Colors.white,
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(color: Colors.grey.withValues(alpha: 0.2), blurRadius: 12)
-              ],
-            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -326,7 +486,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
                         ),
                         onPressed: () {
                           Navigator.of(dialogContext, rootNavigator: true).pop();
-                          _deleteFaceEmbedding();
+                          _deleteFaceEmbeddings();
                         },
                       ),
                     ),
@@ -340,17 +500,19 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
     );
   }
 
-
-  Future<void> _deleteFaceEmbedding() async {
+  Future<void> _deleteFaceEmbeddings() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.remove('face_embedding');
+    await prefs.remove('face_embedding_open');
+    await prefs.remove('face_embedding_closed');
     setState(() {
-      _faceEmbeddingStr = null;
+      _faceEmbeddingOpenStr = null;
+      _faceEmbeddingClosedStr = null;
       _alreadyRegistered = false;
     });
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Face embedding deleted.",style: TextStyle(fontFamily: "Outfit"))),
+      const SnackBar(
+          content: Text("Face embeddings deleted.", style: TextStyle(fontFamily: "Outfit"))),
     );
   }
 
@@ -475,7 +637,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
                 borderRadius: BorderRadius.circular(20),
                 child: _isCameraInitialized
                     ? Transform.scale(
-                  scaleX: -1.0, // Mirror horizontally for the front camera.
+                  scaleX: -1.0, // Mirror for front camera.
                   child: AspectRatio(
                     aspectRatio: _cameraController!.value.aspectRatio,
                     child: CameraPreview(_cameraController!),
@@ -495,7 +657,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
           padding: const EdgeInsets.all(20),
           child: Column(
             children: [
-              if (_faceEmbeddingStr != null)
+              if (_faceEmbeddingOpenStr != null && _faceEmbeddingClosedStr != null)
                 FadeInUp(
                   duration: const Duration(milliseconds: 800),
                   child: Container(
