@@ -60,6 +60,8 @@ class _StudentInternalState extends State<StudentInternal> {
 
   // Notification plugin instance
   late FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
+  bool _isLoading = false;
+
 
   @override
   void initState() {
@@ -115,6 +117,10 @@ class _StudentInternalState extends State<StudentInternal> {
 
 
   Future<void> fetchUserData() async {
+    setState(() {
+      _isLoading = true; // Start loading
+    });
+
     User? user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       setState(() {
@@ -122,6 +128,10 @@ class _StudentInternalState extends State<StudentInternal> {
       });
       await fetchUserInfo(user.email!);
     }
+
+    setState(() {
+      _isLoading = false; // Stop loading after fetching data
+    });
   }
 
   Future<void> fetchUserInfo(String email) async {
@@ -297,6 +307,12 @@ class _StudentInternalState extends State<StudentInternal> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: const Center(child: CircularProgressIndicator(color: Colors.black,)),
+      );
+    }
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
@@ -344,6 +360,7 @@ class _StudentInternalState extends State<StudentInternal> {
           ),
         ],
       ),
+
       drawer: Drawer(
         backgroundColor: Colors.white,
         child: ListView(
