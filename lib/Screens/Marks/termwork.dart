@@ -57,29 +57,7 @@ class _StudentTermWorkState extends State<StudentTermWork> {
   @override
   void initState() {
     super.initState();
-    // First, load the optional subjects mapping from Firebase.
-    _fetchOptionalMapping().then((_) {
-      _loadSubjectList();
-    });
-  }
-
-  /// Fetch the optional subjects mapping from Firestore.
-  /// Assumes the document structure under "subjects/all_subjects" contains keys like:
-  /// { "TE": { "5": { "dloc": { "DLOC1": [ ... ] } } }, "BE": { "7": { "dloc": {...}, "iloc": {...} }, ... }
-  Future<void> _fetchOptionalMapping() async {
-    try {
-      DocumentSnapshot snapshot =
-      await _firestore.collection('subjects').doc(widget.dept).get();
-      if (snapshot.exists) {
-        setState(() {
-          optionalMapping = snapshot.data() as Map<String, dynamic>;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        errorMessage = "Error fetching optional subjects mapping: $e";
-      });
-    }
+    _loadSubjectList();
   }
 
   // Load subjects exclusively from Firestore.
@@ -137,13 +115,6 @@ class _StudentTermWorkState extends State<StudentTermWork> {
           config["crosswordCount"] ?? 0,
         );
         await _fetchStudentMarks();
-      } else if (_isDlocSubject()) {
-        // If the configuration is missing but the subject is an optional one,
-        // initialize with default values.
-        _initializeMaps(0, 0, 0);
-        await _fetchStudentMarks();
-      } else {
-        setState(() => errorMessage = "Configuration missing for $selectedSubject");
       }
     } catch (e) {
       setState(() => errorMessage = "Error loading config: $e");
@@ -151,27 +122,6 @@ class _StudentTermWorkState extends State<StudentTermWork> {
       setState(() => isLoading = false);
     }
   }
-
-  /// Checks if the selected subject is a DLOC/ILOC (optional) subject using the Firebase mapping.
-  bool _isDlocSubject() {
-    if (optionalMapping.isNotEmpty &&
-        optionalMapping.containsKey(widget.year) &&
-        (optionalMapping[widget.year] as Map<String, dynamic>).containsKey(widget.sem)) {
-      final semData = (optionalMapping[widget.year] as Map<String, dynamic>)[widget.sem] as Map<String, dynamic>;
-      if (selectedSubject != null) {
-        if (semData.containsKey("dloc")) {
-          final dlocMap = semData["dloc"] as Map<String, dynamic>;
-          if (dlocMap.containsKey(selectedSubject)) return true;
-        }
-        if (semData.containsKey("iloc")) {
-          final ilocMap = semData["iloc"] as Map<String, dynamic>;
-          if (ilocMap.containsKey(selectedSubject)) return true;
-        }
-      }
-    }
-    return false;
-  }
-
 
   // Initialize the maps that will hold the marks.
   void _initializeMaps(int exp, int ass, int cross) {
