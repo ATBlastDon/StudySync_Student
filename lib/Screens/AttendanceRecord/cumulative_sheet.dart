@@ -284,11 +284,32 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
       Map<String, dynamic> subjectsData = {};
       double sumPercentages = 0.0;
       int count = 0;
+
       attendanceData[rollNo]!.forEach((subject, data) {
+        String subjectKeyForSaving = subject;
+        // If this subject is an optional one (DLOC/ILOC), update it with the student's chosen subject.
+        if (subject.toUpperCase().startsWith("DLOC") ||
+            subject.toUpperCase().startsWith("ILOC")) {
+          // Assume the subject key format is "CATEGORY (Mode)" e.g. "DLOC5 (Theory)".
+          List<String> parts = subject.split(" ");
+          String category = parts.first; // e.g. "DLOC5"
+          String modePart = parts.length > 1 ? parts.sublist(1).join(" ") : "";
+          // Check if the student has a stored optional selection for this category.
+          if (studentOptionalSelections.containsKey(category)) {
+            String optionalSubject = studentOptionalSelections[category]!;
+            subjectKeyForSaving = optionalSubject + (modePart.isNotEmpty ? " " + modePart : "");
+          } else {
+            // If no optional selection is recorded, you may choose to skip saving this subject.
+            // Uncomment the next line to skip, or leave it to use the default subject key.
+            // return;
+          }
+        }
+
         int present = data['present']!;
         int total = data['total']!;
         double percentage = total > 0 ? (present / total * 100) : 0;
-        subjectsData[subject] = {
+
+        subjectsData[subjectKeyForSaving] = {
           'present': present,
           'total': total,
           'percentage': percentage,
@@ -296,9 +317,11 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
         sumPercentages += percentage;
         count++;
       });
+
       double overallPercentage = count > 0 ? (sumPercentages / count) : 0;
       studentRecord['subjects'] = subjectsData;
       studentRecord['overall'] = overallPercentage;
+
       await firestore
           .collection("students")
           .doc(widget.dept)
