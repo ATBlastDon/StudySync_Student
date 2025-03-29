@@ -20,9 +20,9 @@ import 'package:studysync_student/Screens/NoticeBoard/noticeboard.dart';
 import 'package:studysync_student/Screens/Security/privacysecurity.dart';
 import 'package:studysync_student/Screens/StudentHome/missing_screen.dart';
 import 'package:studysync_student/Screens/StudentHome/student_content.dart';
+import 'package:studysync_student/Screens/StudentHome/student_links.dart';
 import 'package:studysync_student/Screens/StudentHome/studentprofile.dart';
 import 'package:studysync_student/Screens/StudentHome/teacher_content.dart';
-import 'package:studysync_student/Screens/WebView/mywebview.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
@@ -52,7 +52,6 @@ class _StudentInternalState extends State<StudentInternal> {
   String _email = '';
   String? _userRollNo;
   String? _userProfilePhotoUrl;
-  static const String famt = 'https://famt.akronsystems.com/pLogin.aspx';
 
   // Connectivity flag and subscription
   bool _isConnected = true;
@@ -519,23 +518,6 @@ class _StudentInternalState extends State<StudentInternal> {
               ),
             ),
             FadeInLeft(
-              duration: const Duration(milliseconds: 800),
-              child: ListTile(
-                title: const Text(
-                  'FAMT Login',
-                  style: TextStyle(fontFamily: 'Outfit'),
-                ),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const MyWebView(url: famt),
-                    ),
-                  );
-                },
-              ),
-            ),
-            FadeInLeft(
               duration: const Duration(milliseconds: 900),
               child: ListTile(
                 title: const Text(
@@ -578,6 +560,23 @@ class _StudentInternalState extends State<StudentInternal> {
                         dept: widget.dept,
                         ay: widget.ay
                       ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            FadeInLeft(
+              duration: const Duration(milliseconds: 800),
+              child: ListTile(
+                title: const Text(
+                  'Links',
+                  style: TextStyle(fontFamily: 'Outfit'),
+                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const StudentLinkPage(),
                     ),
                   );
                 },
