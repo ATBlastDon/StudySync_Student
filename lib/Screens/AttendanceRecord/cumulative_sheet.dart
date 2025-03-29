@@ -421,7 +421,7 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
             ),
       ),
     );
-    String fileName = "${widget.fullName}_Cumulative_Attendance_Record.pdf";
+    String fileName = "${widget.fullName}_${widget.dept}-${widget.ay}_Cumulative_Attendance_Record.pdf";
     await Printing.layoutPdf(name: fileName, onLayout: (format) => doc.save());
   }
 

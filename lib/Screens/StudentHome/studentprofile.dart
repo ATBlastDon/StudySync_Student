@@ -1343,10 +1343,10 @@ class _StudentProfileState extends State<StudentProfile> {
                           Expanded(
                             child: DropdownButtonFormField<Map<String, String>>(
                               value: selectedMentor,
-                              hint: const Text("Select Mentor", style: TextStyle(fontFamily: "Outfit")),
+                              hint: const Text("Select Class Teacher", style: TextStyle(fontFamily: "Outfit")),
                               style: TextStyle(fontFamily: "Outfit", color: Colors.black),
                               decoration: InputDecoration(
-                                labelText: "Mentor",
+                                labelText: "Class Teacher",
                                 labelStyle: TextStyle(fontFamily: "Outfit"),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
@@ -1382,7 +1382,7 @@ class _StudentProfileState extends State<StudentProfile> {
                         style: TextStyle(fontFamily: 'Outfit'),
                         controller: mentorController,
                         decoration: InputDecoration(
-                          labelText: "Mentor",
+                          labelText: "Class Teacher",
                           labelStyle: TextStyle(fontFamily: "Outfit"),
                           suffixIcon: IconButton(
                             icon: const Icon(Icons.edit, color: Colors.teal),

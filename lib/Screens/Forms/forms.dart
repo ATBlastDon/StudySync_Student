@@ -24,23 +24,8 @@ class Forms extends StatefulWidget {
 }
 
 class _FormsState extends State<Forms> {
-  // This flag determines whether a notice exists.
-  // Change this value as per your requirements.
-  final bool _hasNotice = false;
 
   void _showNoticeDialogue() {
-    if (!_hasNotice) {
-      // If there is no notice, show a SnackBar message.
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('There is no message'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      return;
-    }
-
-    // Otherwise, show the notice dialog.
     showDialog(
       context: context,
       builder: (context) {

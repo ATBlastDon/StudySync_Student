@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:otp/otp.dart';
 import 'package:studysync_student/Screens/AttendanceAnnouncement/giveattendance.dart';
 
 class Passwordscanner extends StatefulWidget {
@@ -12,11 +13,9 @@ class Passwordscanner extends StatefulWidget {
   final String ay;
   final String year;
   final String sem;
-  final String pass;
   final String created;
   final String optionalSubject;
   final String fullName;
-
 
   const Passwordscanner({
     super.key,
@@ -26,13 +25,11 @@ class Passwordscanner extends StatefulWidget {
     required this.rollNo,
     required this.year,
     required this.sem,
-    required this.pass,
     required this.created,
     required this.optionalSubject,
     required this.fullName,
     required this.dept,
     required this.ay,
-
   });
 
   @override
@@ -40,11 +37,87 @@ class Passwordscanner extends StatefulWidget {
 }
 
 class _PasswordscannerState extends State<Passwordscanner> {
+  // Shared secret must be the same as the generator.
+  final String sharedSecret = "AAAWEWEWWEERTYUI";
+
+  /// Generate the OTP based on a given time offset (in seconds)
+  String generateOTP({int offsetSeconds = 0}) {
+    int currentMillis = DateTime.now().millisecondsSinceEpoch + (offsetSeconds * 1000);
+    return OTP.generateTOTPCodeString(
+      sharedSecret,
+      currentMillis,
+      interval: 5,
+      length: 6,
+    );
+  }
+
+  /// Decrypt function for XOR encryption.
+  String _customDecrypt(String encryptedData) {
+    String decryptionKey = "AAAWEWEWWEERTYUI";
+    List<int> encryptedChars = encryptedData.codeUnits;
+    List<int> keyChars = decryptionKey.codeUnits;
+    List<int> decryptedChars = List.filled(encryptedChars.length, 0);
+
+    for (int i = 0; i < encryptedChars.length; i++) {
+      decryptedChars[i] = encryptedChars[i] ^ keyChars[i % keyChars.length];
+    }
+
+    return String.fromCharCodes(decryptedChars);
+  }
+
+  void _checkPermissionAndStartScanner(BuildContext context) async {
+    var status = await Permission.camera.status;
+    if (!status.isGranted) {
+      // Ask for camera permission if not granted.
+      status = await Permission.camera.request();
+    }
+    if (status.isGranted) {
+      if (context.mounted) {
+        _startQRCodeScanner(context);
+      }
+    } else {
+      if (context.mounted) {
+        _showPermissionDeniedDialog(context);
+      }
+    }
+  }
+
+  void _startQRCodeScanner(BuildContext context) async {
+    String scannedValue = await FlutterBarcodeScanner.scanBarcode(
+      "#ff6666", // The line color
+      "Cancel", // Cancel button text
+      true, // Show flash button
+      ScanMode.QR, // QR code mode
+    );
+
+    if (scannedValue != "-1") {
+      // Decrypt the scanned QR code data.
+      String decryptedOTP = _customDecrypt(scannedValue);
+
+      // Compute the expected OTP for current time window.
+      String expectedOTP = generateOTP();
+      // Optionally, allow a slight window (check previous and next 5-second intervals)
+      String previousOTP = generateOTP(offsetSeconds: -5);
+      String nextOTP = generateOTP(offsetSeconds: 5);
+
+      if (decryptedOTP == expectedOTP ||
+          decryptedOTP == previousOTP ||
+          decryptedOTP == nextOTP) {
+        if (context.mounted) {
+          _showSuccessDialog(context);
+        }
+      } else {
+        if (context.mounted) {
+          _showFailureDialog(context);
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        centerTitle: true,
         title: const Text(
           'S C A N   Q R',
           style: TextStyle(
@@ -54,6 +127,7 @@ class _PasswordscannerState extends State<Passwordscanner> {
             color: Colors.black,
           ),
         ),
+        centerTitle: true,
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
@@ -81,18 +155,18 @@ class _PasswordscannerState extends State<Passwordscanner> {
                 ),
               ),
               const SizedBox(height: 30),
-              Text.rich(
-                const TextSpan(
+              const Text.rich(
+                TextSpan(
                   style: TextStyle(
                     fontFamily: 'Outfit',
                     fontSize: 16,
                   ),
                   children: <TextSpan>[
                     TextSpan(
-                      text: "Note: ", // Make "Note:" bold
+                      text: "Note: ",
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: Colors.black, // Or keep it grey if you prefer
+                        color: Colors.black,
                       ),
                     ),
                     TextSpan(
@@ -138,7 +212,7 @@ class _PasswordscannerState extends State<Passwordscanner> {
                             fontFamily: 'Outfit',
                             fontWeight: FontWeight.w600,
                             fontSize: 20,
-                            color: Colors.black, // Ensures contrast and readability
+                            color: Colors.black,
                           ),
                         ),
                       ),
@@ -153,62 +227,6 @@ class _PasswordscannerState extends State<Passwordscanner> {
     );
   }
 
-  void _checkPermissionAndStartScanner(BuildContext context) async {
-    var status = await Permission.camera.status;
-    if (!status.isGranted) {
-      // Ask for camera permission if not granted
-      status = await Permission.camera.request();
-    }
-    if (status.isGranted) {
-      if (context.mounted) {
-        _startQRCodeScanner(context);
-      }
-    } else {
-      if (context.mounted) {
-        _showPermissionDeniedDialog(context);
-      }
-    }
-  }
-
-  void _startQRCodeScanner(BuildContext context) async {
-    String scannedValue = await FlutterBarcodeScanner.scanBarcode(
-      "#ff6666", // The line color
-      "Cancel",  // The text for the cancel button
-      true,      // Whether to show the flash button
-      ScanMode.QR, // Mode (can be QR or barcode)
-    );
-
-    if (scannedValue != "-1") {
-      // Decrypt the scanned QR code data
-      String decryptedPassword = _customDecrypt(scannedValue);
-
-      // Check if the decrypted password matches the stored password
-      if (decryptedPassword == widget.pass) {
-        if (context.mounted){
-          _showSuccessDialog(context);
-        }
-      } else {
-        if(context.mounted){
-          _showFailureDialog(context);
-        }
-      }
-    }
-  }
-
-  // Decryption function using XOR
-  String _customDecrypt(String encryptedData) {
-    String decryptionKey = "AAAWEWEWWEERTYUI";
-    List<int> encryptedChars = encryptedData.codeUnits;
-    List<int> keyChars = decryptionKey.codeUnits;
-    List<int> decryptedChars = List.filled(encryptedChars.length, 0);
-
-    for (int i = 0; i < encryptedChars.length; i++) {
-      decryptedChars[i] = encryptedChars[i] ^ keyChars[i % keyChars.length];
-    }
-
-    return String.fromCharCodes(decryptedChars);
-  }
-
   void _showSuccessDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -220,12 +238,15 @@ class _PasswordscannerState extends State<Passwordscanner> {
           elevation: 8,
           backgroundColor: Colors.white,
           child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+            padding:
+            const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
-                BoxShadow(color: Colors.grey.withValues(alpha: 0.2), blurRadius: 12)
+                BoxShadow(
+                    color: Colors.grey.withValues(alpha: 0.2),
+                    blurRadius: 12)
               ],
             ),
             child: Column(
@@ -286,17 +307,17 @@ class _PasswordscannerState extends State<Passwordscanner> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => GiveAttendance(
-                        subjectName: widget.subjectName,
-                        type: widget.type,
-                        batch: widget.batch,
-                        rollNo: widget.rollNo,
-                        dept: widget.dept,
-                        optionalSubject: widget.optionalSubject,
-                        year: widget.year,
-                        sem: widget.sem,
-                        created: widget.created,
-                        fullName: widget.fullName,
-                        ay: widget.ay,
+                          subjectName: widget.subjectName,
+                          type: widget.type,
+                          batch: widget.batch,
+                          rollNo: widget.rollNo,
+                          dept: widget.dept,
+                          optionalSubject: widget.optionalSubject,
+                          year: widget.year,
+                          sem: widget.sem,
+                          created: widget.created,
+                          fullName: widget.fullName,
+                          ay: widget.ay,
                         ),
                       ),
                     );
@@ -321,12 +342,15 @@ class _PasswordscannerState extends State<Passwordscanner> {
           elevation: 8,
           backgroundColor: Colors.white,
           child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+            padding:
+            const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
-                BoxShadow(color: Colors.grey.withValues(alpha: 0.2), blurRadius: 12)
+                BoxShadow(
+                    color: Colors.grey.withValues(alpha: 0.2),
+                    blurRadius: 12)
               ],
             ),
             child: Column(
@@ -399,7 +423,10 @@ class _PasswordscannerState extends State<Passwordscanner> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text("Permission Denied", style: TextStyle(fontFamily: "Outfit")),
-          content: const Text("Camera permission is required to scan QR codes. Please enable it in the system settings.", style: TextStyle(fontFamily: "Outfit")),
+          content: const Text(
+            "Camera permission is required to scan QR codes. Please enable it in the system settings.",
+            style: TextStyle(fontFamily: "Outfit"),
+          ),
           actions: [
             TextButton(
               child: const Text("OK", style: TextStyle(fontFamily: "Outfit")),

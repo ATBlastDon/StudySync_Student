@@ -233,7 +233,6 @@ class ListOfAttendance extends StatelessWidget {
                                 year: announcement['year'],
                                 optionalSubject: announcement['optional_sub'],
                                 sem: announcement['sem'],
-                                pass: announcement['password'],
                                 created: DateFormat('yyyy-MM-dd HH:mm:ss')
                                     .format(announcement['created_at']),
                                 fullName: announcement['fullName'],

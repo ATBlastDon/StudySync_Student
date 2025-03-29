@@ -380,7 +380,7 @@ class _ParticularSheetState extends State<ParticularSheet> {
     // Send the PDF document to the printer.
     await Printing.layoutPdf(
       onLayout: (PdfPageFormat format) async => pdf.save(),
-      name: 'Attendance_Sheet',
+      name: '${widget.fullName}-Attendance_Sheet',
     );
   }
 

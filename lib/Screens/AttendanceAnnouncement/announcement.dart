@@ -215,7 +215,6 @@ class _AttendanceAnnouncementState extends State<AttendanceAnnouncement> {
           'optional_sub': selectedOptionalSubject ?? "N/A",
           'type': selectedType,
           'batch': data['batch'],
-          'password': data['password'],
           'created_at': createdAt,
           'expires_at': expiresAt,
         });
