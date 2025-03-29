@@ -576,10 +576,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
                   ),
                 )
                     : const Center(
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2.0,
-                  ),
+                  child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2.0,),
                 ),
               ),
             ),

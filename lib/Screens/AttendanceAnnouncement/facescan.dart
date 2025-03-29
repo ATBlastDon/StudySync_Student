@@ -492,7 +492,7 @@ class _FaceScanScreenState extends State<FaceScanScreen> {
                 child: Column(
                   children: [
                     _isProcessing
-                        ? const CircularProgressIndicator()
+                        ? const CircularProgressIndicator(color: Colors.black,)
                         : FadeInUp(
                       duration: const Duration(milliseconds: 1000),
                       child: Padding(
@@ -553,7 +553,7 @@ class _FaceScanScreenState extends State<FaceScanScreen> {
               ),
             ],
           )
-              : const Center(child: CircularProgressIndicator()),
+              : const Center(child: CircularProgressIndicator(color: Colors.black,)),
         ),
       ),
     );

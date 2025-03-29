@@ -277,7 +277,7 @@ class _AttendanceAnnouncementState extends State<AttendanceAnnouncement> {
       ),
       backgroundColor: Colors.white,
       body: isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: Colors.black,))
           : SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 40),
@@ -437,7 +437,7 @@ class _AttendanceAnnouncementState extends State<AttendanceAnnouncement> {
                 ),
               ),
               const SizedBox(height: 30),
-              if (isLoading) const CircularProgressIndicator(),
+              if (isLoading) const CircularProgressIndicator(color: Colors.black,),
             ],
           ),
         ),

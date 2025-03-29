@@ -640,7 +640,7 @@ class _ChatScreenState extends State<ChatScreen> {
                             width: 50,
                             height: 50,
                             child: CircularProgressIndicator(
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
                             ),
                           ),
                         ),

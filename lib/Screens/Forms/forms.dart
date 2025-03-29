@@ -309,6 +309,7 @@ class _FormsState extends State<Forms> {
             child: CircularProgressIndicator(
               value: progress.progress,
               strokeWidth: 2,
+              color: Colors.black,
             ),
           ),
           errorWidget: (_, __, ___) => const Icon(Icons.error),
@@ -532,7 +533,7 @@ class _FormsState extends State<Forms> {
           placeholder: (_, __) => Container(
             height: 180,
             color: Colors.grey.shade200,
-            child: const Center(child: CircularProgressIndicator()),
+            child: const Center(child: CircularProgressIndicator(color: Colors.black,)),
           ),
         ),
       ),

@@ -211,6 +211,7 @@ class _MissingRequirementsScreenState extends State<MissingRequirementsScreen> {
                     value: (3 - totalTasks) / 3,
                     strokeWidth: 10,
                     backgroundColor: _pageColor,
+                    color: Colors.black,
                     valueColor: AlwaysStoppedAnimation<Color>(_progressColor),
                   ),
                 ),

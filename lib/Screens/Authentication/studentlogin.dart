@@ -525,7 +525,7 @@ class _StudentLoginState extends State<StudentLogin> {
       barrierDismissible: false,
       builder: (BuildContext context) {
         return const Center(
-          child: CircularProgressIndicator(),
+          child: CircularProgressIndicator(color: Colors.black,),
         );
       },
     );

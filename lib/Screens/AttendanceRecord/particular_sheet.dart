@@ -516,7 +516,7 @@ class _ParticularSheetState extends State<ParticularSheet> {
           backgroundColor: Colors.grey[100],
 
         ),
-        body: const Center(child: CircularProgressIndicator()),
+        body: const Center(child: CircularProgressIndicator(color: Colors.black,)),
       );
     }
 

@@ -474,7 +474,7 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
         ],
       ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: Colors.black,))
           : _buildAttendanceBody(theme, isDark),
     );
   }

@@ -81,7 +81,7 @@ class _NoticeBoardState extends State<NoticeBoard> {
           builder: (context, batchSnapshot) {
             if (allSnapshot.connectionState == ConnectionState.waiting ||
                 batchSnapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
+              return const Center(child: CircularProgressIndicator(color: Colors.black,));
             }
 
             if (allSnapshot.hasError || batchSnapshot.hasError) {
