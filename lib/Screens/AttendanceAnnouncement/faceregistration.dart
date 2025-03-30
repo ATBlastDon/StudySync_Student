@@ -364,6 +364,7 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
     String closedEmbeddingStr = closedEmbedding.join(',');
     await prefs.setString('face_embedding_open', openEmbeddingStr);
     await prefs.setString('face_embedding_closed', closedEmbeddingStr);
+    await prefs.setInt('registration_timestamp', DateTime.now().millisecondsSinceEpoch);
 
     setState(() {
       _faceEmbeddingOpenStr = openEmbeddingStr;
@@ -533,18 +534,41 @@ class _FaceRegistrationScreenState extends State<FaceRegistrationScreen> {
 
   Future<void> _deleteFaceEmbeddings() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
+    int? registrationTimestamp = prefs.getInt('registration_timestamp');
+
+    if (registrationTimestamp != null) {
+      int oneWeekMs = 7 * 24 * 60 * 60 * 1000;
+      int currentTime = DateTime.now().millisecondsSinceEpoch;
+      int elapsed = currentTime - registrationTimestamp;
+      if (elapsed < oneWeekMs) {
+        // Notify the user that deletion is not allowed yet.
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("You can only delete the face data after 1 week has passed.", style: TextStyle(fontFamily: "Outfit")),
+            ),
+          );
+        }
+        return;
+      }
+    }
+
+    // Proceed with deletion.
     await prefs.remove('face_embedding_open');
     await prefs.remove('face_embedding_closed');
+    await prefs.remove('registration_timestamp');
     setState(() {
       _faceEmbeddingOpenStr = null;
       _faceEmbeddingClosedStr = null;
       _alreadyRegistered = false;
     });
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-          content: Text("Face embeddings deleted.", style: TextStyle(fontFamily: "Outfit"))),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Face embeddings deleted.", style: TextStyle(fontFamily: "Outfit")),
+        ),
+      );
+    }
   }
 
   void _showNoticeDialogue() {
