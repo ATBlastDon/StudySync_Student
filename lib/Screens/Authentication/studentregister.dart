@@ -9,6 +9,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:studysync_student/Screens/Authentication/password_field.dart';
 import 'package:studysync_student/Screens/Authentication/studentlogin.dart';
 import 'package:studysync_student/Screens/NoticeBoard/noticeboard.dart';
 
@@ -778,6 +779,8 @@ class _StudentRegisterState extends State<StudentRegister> {
         "mentor":"none",
       });
 
+      await _notificationAdd(dept, ay, year, sem, rollNo);
+
       logger.i("Profile photo uploaded successfully for roll number: $rollNo");
     } catch (e, stackTrace) {
       logger.e("Failed to upload profile photo for roll number: $rollNo", error: e, stackTrace: stackTrace);
@@ -825,66 +828,29 @@ class _StudentRegisterState extends State<StudentRegister> {
       },
     );
   }
-}
 
-class PasswordField extends StatefulWidget {
-  final TextEditingController controller;
-  final String labelText;
-  final String hintText;
-
-  const PasswordField({super.key, required this.controller, this.labelText = 'Password', required this.hintText});
-
-  @override
-  State<PasswordField> createState() => _PasswordFieldState();
-}
-
-class _PasswordFieldState extends State<PasswordField> {
-  bool _obscureText = true;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text(
-          widget.labelText,
-          style: const TextStyle(
-            fontFamily: 'Outfit',
-            fontSize: 15,
-            fontWeight: FontWeight.w400,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 5),
-        TextField(
-          controller: widget.controller,
-          obscureText: _obscureText,
-          style: TextStyle(fontFamily: "Outfit"),
-          decoration: InputDecoration(
-            hintText: widget.hintText, // Display the hint text here
-            hintStyle: TextStyle(fontFamily: "Outfit"),
-            contentPadding:
-            const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
-            enabledBorder: OutlineInputBorder(
-              borderSide: BorderSide(color: Colors.grey.shade400),
-            ),
-            border: OutlineInputBorder(
-              borderSide: BorderSide(color: Colors.grey.shade400),
-            ),
-            suffixIcon: IconButton(
-              icon: Icon(
-                _obscureText ? Icons.visibility_off : Icons.visibility,
-                color: Colors.grey,
-              ),
-              onPressed: () {
-                setState(() {
-                  _obscureText = !_obscureText;
-                });
-              },
-            ),
-          ),
-        ),
-      ],
-    );
+  Future<void> _notificationAdd(String dept, String ay, String year, String sem, String rollNo) async {
+    String notificationId = FirebaseFirestore.instance.collection('notifications').doc().id;
+    String fullName = "${_fnameController.text.trim()} ${_mnameController.text.trim()} ${_snameController.text.trim()}";
+    await FirebaseFirestore.instance
+        .collection('notifications')
+        .doc("ApproveStudent")
+        .collection("requests")
+        .doc(notificationId)
+        .set({
+      'title': 'Notification of Student Approval Request',
+      'name': fullName,
+      'sentAt': DateTime.now(),
+      'dept': dept,
+      'ay': ay,
+      'year': year,
+      'sem': sem,
+      'rollNo': rollNo,
+      'status': 'pending',
+      'notificationId': notificationId,
+    });
   }
+
+
+
 }

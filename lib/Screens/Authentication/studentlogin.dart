@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:studysync_student/Screens/Authentication/forgotpassword.dart';
+import 'package:studysync_student/Screens/Authentication/password_field.dart';
 import 'package:studysync_student/Screens/Authentication/studentregister.dart';
 import 'package:studysync_student/Screens/StudentHome/studentinternal.dart';
 
@@ -91,7 +92,7 @@ class _StudentLoginState extends State<StudentLogin> {
     return KeyboardVisibilityBuilder(
       builder: (context, isKeyboardVisible) {
         return Scaffold(
-          resizeToAvoidBottomInset: false,
+          resizeToAvoidBottomInset: true,
           backgroundColor: Colors.white,
           appBar: AppBar(
             elevation: 0,
@@ -348,7 +349,7 @@ class _StudentLoginState extends State<StudentLogin> {
                         duration: const Duration(milliseconds: 1000),
                         child: PasswordField(
                           controller: _passwordController,
-                          labelText: "Password",
+                          labelText: "Password", hintText: 'Enter Your Password',
                         ),
                       ),
                     ],
@@ -615,67 +616,6 @@ class _StudentLoginState extends State<StudentLogin> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const StudentRegister()),
-    );
-  }
-}
-
-class PasswordField extends StatefulWidget {
-  final TextEditingController controller;
-  final String labelText;
-  final String hintText;
-
-  const PasswordField({super.key, required this.controller, this.labelText = 'Password', this.hintText = 'Enter Your Password'});
-
-  @override
-  State<PasswordField> createState() => _PasswordFieldState();
-}
-
-class _PasswordFieldState extends State<PasswordField> {
-  bool _obscureText = true;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text(
-          widget.labelText,
-          style: const TextStyle(
-            fontFamily: 'Outfit',
-            fontSize: 15,
-            fontWeight: FontWeight.w400,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 5),
-        TextField(
-          controller: widget.controller,
-          obscureText: _obscureText,
-          style: TextStyle(fontFamily: "Outfit"),
-          decoration: InputDecoration(
-            hintText: widget.hintText,
-            hintStyle: TextStyle(fontFamily: "Outfit"),
-            contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
-            enabledBorder: OutlineInputBorder(
-              borderSide: BorderSide(color: Colors.grey.shade400),
-            ),
-            border: OutlineInputBorder(
-              borderSide: BorderSide(color: Colors.grey.shade400),
-            ),
-            suffixIcon: IconButton(
-              icon: Icon(
-                _obscureText ? Icons.visibility_off : Icons.visibility,
-                color: Colors.grey,
-              ),
-              onPressed: () {
-                setState(() {
-                  _obscureText = !_obscureText;
-                });
-              },
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

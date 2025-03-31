@@ -60,6 +60,7 @@ class _StudentInternalState extends State<StudentInternal> {
   // Notification plugin instance
   late FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
   bool _isLoading = false;
+  bool isUpdating = false;
 
 
   @override
@@ -576,7 +577,10 @@ class _StudentInternalState extends State<StudentInternal> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const StudentLinkPage(),
+                      builder: (context) => StudentLinkPage(
+                        dept: widget.dept,
+                        sem: widget.sem,
+                        year: widget.year,),
                     ),
                   );
                 },
@@ -712,78 +716,156 @@ class _StudentInternalState extends State<StudentInternal> {
           ),
         ],
       ),
-      floatingActionButton: Stack(
-        children: [
-          Positioned(
-            bottom: 10,
-            left: 36,
-            child: BounceInUp(
-              key: const ValueKey('fab1'),
-              duration: const Duration(milliseconds: 500),
-              child: Container(
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: [Colors.greenAccent, Colors.teal],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: FloatingActionButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => NoticeBoard(year: widget.year, dept: widget.dept, ay: widget.ay,),
+      // Inside your StudentInternal widget build method, where the floatingActionButton is defined.
+        floatingActionButton: Stack(
+          children: [
+            // NoticeBoard FloatingActionButton wrapped in StreamBuilder.
+            Positioned(
+              bottom: 10,
+              left: 40,
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('notifications')
+                    .doc("noticeboard")
+                    .collection("notices")
+                    .where('dept', isEqualTo: widget.dept)
+                    .where('ay', isEqualTo: widget.ay)
+                    .where('batch', whereIn: [widget.year, 'ALL'])
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  bool hasNewNotice = false;
+                  if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+                    final unreadDocs = snapshot.data!.docs.where((doc) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      final List<dynamic> readBy = data['readby'] ?? [];
+                      return !readBy.contains(_userRollNo);
+                    }).toList();
+                    hasNewNotice = unreadDocs.isNotEmpty;
+                  }
+
+                  return Stack(
+                    children: [
+                      BounceInUp(
+                        key: const ValueKey('fab1'),
+                        duration: const Duration(milliseconds: 500),
+                        child: Container(
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              colors: [Colors.greenAccent, Colors.teal],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                          child: FloatingActionButton(
+                            onPressed: () async {
+                              setState(() => isUpdating = true); // Update global state
+                              try {
+                                QuerySnapshot qs = await FirebaseFirestore.instance
+                                    .collection('notifications')
+                                    .doc("noticeboard")
+                                    .collection("notices")
+                                    .where('dept', isEqualTo: widget.dept)
+                                    .where('ay', isEqualTo: widget.ay)
+                                    .where('batch', whereIn: [widget.year, 'ALL'])
+                                    .get();
+
+                                for (var doc in qs.docs) {
+                                  final data = doc.data() as Map<String, dynamic>;
+                                  final List<dynamic> readBy = data['readby'] ?? [];
+                                  if (!readBy.contains(_userRollNo)) {
+                                    await doc.reference.update({
+                                      'readby': FieldValue.arrayUnion([_userRollNo])
+                                    });
+                                  }
+                                }
+                              } finally {
+                                setState(() => isUpdating = false); // Reset state after update
+                              }
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => NoticeBoard(
+                                    year: widget.year,
+                                    dept: widget.dept,
+                                    ay: widget.ay,
+                                  ),
+                                ),
+                              );
+                            },
+                            tooltip: 'Notice Board',
+                            backgroundColor: Colors.transparent,
+                            elevation: 5,
+                            shape: const CircleBorder(),
+                            child: isUpdating
+                                ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white, // Use white for better visibility
+                              ),
+                            )
+                                : const Icon(Icons.feed, color: Colors.white),
+                          ),
+                        ),
                       ),
-                    );
-                  },
-                  tooltip: 'Notice Board',
-                  backgroundColor: Colors.transparent,
-                  elevation: 5,
-                  shape: const CircleBorder(),
-                  child: const Icon(Icons.feed, color: Colors.white),
+                      if (hasNewNotice)
+                        Positioned(
+                          bottom: 40,
+                          left: 40,
+                          child: Container(
+                            width: 12,
+                            height: 12,
+                            decoration: const BoxDecoration(
+                              color: Colors.redAccent,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
+            ),
+            // Second FloatingActionButton (fab2) outside the stream builder.
+            Positioned(
+              bottom: 10,
+              right: 10,
+              child: BounceInUp(
+                key: const ValueKey('fab2'),
+                duration: const Duration(milliseconds: 500),
+                child: Container(
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: [Colors.greenAccent, Colors.teal],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                  child: FloatingActionButton(
+                    onPressed: () => _openAttendanceAnnouncement(
+                        context,
+                        widget.year,
+                        _userRollNo!,
+                        widget.sem,
+                        _userBatch!,
+                        _userFullName!,
+                        widget.dept,
+                        widget.ay),
+                    tooltip: 'Scan QR Code',
+                    backgroundColor: Colors.transparent,
+                    elevation: 5,
+                    shape: const CircleBorder(),
+                    child:
+                    const Icon(Icons.announcement_outlined, color: Colors.white),
+                  ),
                 ),
               ),
             ),
-          ),
-          Positioned(
-            bottom: 10,
-            right: 10,
-            child: BounceInUp(
-              key: const ValueKey('fab2'),
-              duration: const Duration(milliseconds: 500),
-              child: Container(
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: [Colors.greenAccent, Colors.teal],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: FloatingActionButton(
-                  onPressed: () => _openAttendanceAnnouncement(
-                      context,
-                      widget.year,
-                      _userRollNo!,
-                      widget.sem,
-                      _userBatch!,
-                      _userFullName!,
-                      widget.dept,
-                      widget.ay
-                  ),
-                  tooltip: 'Scan QR Code',
-                  backgroundColor: Colors.transparent,
-                  elevation: 5,
-                  shape: const CircleBorder(),
-                  child: const Icon(Icons.announcement_outlined, color: Colors.white),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+          ],
+        )
     );
   }
 

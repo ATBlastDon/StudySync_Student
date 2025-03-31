@@ -4,12 +4,20 @@ import 'package:studysync_student/Screens/WebView/mywebview.dart';
 import 'package:animate_do/animate_do.dart';
 
 class StudentLinkPage extends StatelessWidget {
-  const StudentLinkPage({super.key});
+  final String dept;
+  final String sem;
+  final String year;
+
+  const StudentLinkPage({super.key,
+    required this.dept,
+    required this.sem,
+    required this.year
+  });
 
   @override
   Widget build(BuildContext context) {
     final CollectionReference linksRef =
-    FirebaseFirestore.instance.collection('links');
+    FirebaseFirestore.instance.collection('links').doc(dept).collection(year).doc(sem).collection('details');
 
     return Scaffold(
       appBar: AppBar(
@@ -37,7 +45,7 @@ class StudentLinkPage extends StatelessWidget {
         ),
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: linksRef.orderBy('createdAt', descending: true).snapshots(),
+        stream: linksRef.orderBy('timestamp', descending: true).snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return Center(
