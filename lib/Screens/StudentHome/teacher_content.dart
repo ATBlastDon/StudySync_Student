@@ -104,6 +104,9 @@ class TeachersContent extends StatelessWidget {
                           if (messageType == 1) {
                             lastMessage = "Image";
                           }
+                          if (messageType == 2) {
+                            lastMessage = "PDF";
+                          }
                           String prefix = lastMsgDoc['idFrom'] == currentUserEmail ? "You: " : "New: ";
                           return Text(
                             "$prefix$lastMessage",

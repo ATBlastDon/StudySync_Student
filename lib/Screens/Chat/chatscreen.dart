@@ -1,14 +1,22 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:intl/intl.dart';
+import 'package:studysync_student/Screens/Chat/full_screen_image.dart';
+import 'package:studysync_student/Screens/Chat/upload_with_progress.dart';
 import 'package:studysync_student/Screens/Chat/wallpaper.dart';
+import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
+
 
 class ChatScreen extends StatefulWidget {
   final String currentUseremail;
@@ -40,7 +48,6 @@ class _ChatScreenState extends State<ChatScreen> {
   final int _limit = 20; // Limit for initial load of messages
   late String _studentName = '';
   late String _studentProfilePhotoUrl = '';
-  File? _imageFile;
   String? backgroundImageUrl;
 
 
@@ -127,6 +134,97 @@ class _ChatScreenState extends State<ChatScreen> {
                 label: const Text("Send", style: TextStyle(fontFamily: "Outfit", color: Colors.white)), // Text with icon
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
+                ),
+              ),
+            ],
+          );
+        },
+      );
+    }
+  }
+
+  Future<void> _getPdf() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf'],
+    );
+    if (result != null && result.files.single.path != null) {
+      File pdfFile = File(result.files.single.path!);
+      if (!mounted) return;
+      // Compute PDF metadata before showing the dialog.
+      String pdfName = pdfFile.path.split('/').last;
+      int fileSizeBytes = await pdfFile.length();
+      String fileSize = "${(fileSizeBytes / (1024 * 1024)).toStringAsFixed(2)} MB";
+
+      if(!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Prominent PDF icon
+                const Icon(
+                  Icons.picture_as_pdf,
+                  size: 64,
+                  color: Colors.red,
+                ),
+                const SizedBox(height: 16),
+                // Display file name
+                Text(
+                  pdfName,
+                  style: const TextStyle(
+                    fontFamily: "Outfit",
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                // Display file size
+                Text(
+                  fileSize,
+                  style: const TextStyle(
+                    fontFamily: "Outfit",
+                    fontSize: 16,
+                    color: Colors.grey,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  "Send this PDF file?",
+                  style: TextStyle(
+                    fontFamily: "Outfit",
+                    fontSize: 16,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+            actions: <Widget>[
+              TextButton.icon(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.cancel, color: Colors.red),
+                label: const Text(
+                  "Cancel",
+                  style: TextStyle(fontFamily: "Outfit", color: Colors.red),
+                ),
+              ),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _sendPdfMessage(pdfFile);
+                },
+                icon: const Icon(Icons.send, color: Colors.white),
+                label: const Text(
+                  "Send",
+                  style: TextStyle(fontFamily: "Outfit", color: Colors.white),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.lightBlueAccent,
                 ),
               ),
             ],
@@ -331,11 +429,11 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildInput() {
     return Container(
       margin: const EdgeInsets.all(8.0),
-      padding: const EdgeInsets.symmetric(horizontal: 8), // Add horizontal padding
+      padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
-        color: Colors.white, // Background color for the input area
-        borderRadius: BorderRadius.circular(12.0), // Rounded corners for the whole input area
-        boxShadow: [ // Add a subtle shadow
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12.0),
+        boxShadow: [
           BoxShadow(
             color: Colors.grey.withValues(alpha: 0.3),
             spreadRadius: 1,
@@ -347,33 +445,156 @@ class _ChatScreenState extends State<ChatScreen> {
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.image, color: Colors.green),
-            onPressed: () {
-              _getImage();
-            },
+            icon: const Icon(Icons.attach_file, color: Colors.lightBlueAccent),
+            onPressed: _showAttachmentMenu,
           ),
           Expanded(
             child: TextField(
-              style: TextStyle(fontFamily: "Outfit"),
+              style: const TextStyle(fontFamily: "Outfit"),
               controller: _textEditingController,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 hintText: 'Type a message...',
-                hintStyle: const TextStyle(fontFamily: 'Outfit', color: Colors.grey), // Style the hint text
-                border: InputBorder.none, // Remove the border from the TextField
-                contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16), // Adjust padding inside TextField
+                hintStyle: TextStyle(fontFamily: 'Outfit', color: Colors.grey),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
               ),
             ),
           ),
-          IconButton( // Use IconButton instead of FloatingActionButton for consistency
-            icon: const Icon(Icons.send_rounded, color: Colors.green), // Use a rounded send icon
-            onPressed: () {
-              _sendMessage(0);
-            },
+          IconButton(
+            icon: const Icon(Icons.send_rounded, color: Colors.lightBlueAccent),
+            onPressed: () => _sendTextMessage(),
           ),
         ],
       ),
     );
   }
+
+  // Show the attachment menu as a modal bottom sheet.
+  void _showAttachmentMenu() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24.0)),
+      ),
+      builder: (BuildContext context) {
+        return SizedBox(
+          height: 320,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 16, bottom: 8),
+                child: Text(
+                  "Share Content",
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontFamily: "Outfit",
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey[800],
+                  ),
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: GridView.count(
+                  padding: const EdgeInsets.all(24),
+                  crossAxisCount: 3,
+                  mainAxisSpacing: 16,
+                  crossAxisSpacing: 16,
+                  children: [
+                    _buildAttachItem("Gallery", Icons.photo_library_rounded,
+                        Colors.purple, _getImage),
+                    _buildAttachItem("Camera", Icons.camera_alt_rounded,
+                        Colors.red, _pickFromCamera),
+                    _buildAttachItem("Document", Icons.description_rounded,
+                        Colors.orange, _getPdf),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildAttachItem(String label, IconData icon, Color color, VoidCallback onTap) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(40),
+        onTap: onTap,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                size: 30,
+                color: color,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontFamily: "Outfit",
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey[800],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+
+  Future<void> _pickFromCamera() async {
+    Navigator.pop(context); // Close the bottom sheet
+    final pickedFile = await ImagePicker().pickImage(source: ImageSource.camera);
+    if (pickedFile != null) {
+      File imageFile = File(pickedFile.path);
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text("Preview", style: TextStyle(fontFamily: "Outfit", fontSize: 18)),
+            content: Image.file(imageFile),
+            actions: <Widget>[
+              TextButton.icon(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                icon: const Icon(Icons.cancel, color: Colors.red),
+                label: const Text("Cancel", style: TextStyle(fontFamily: "Outfit", color: Colors.red)),
+              ),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _sendImageMessage(imageFile);
+                },
+                icon: const Icon(Icons.send, color: Colors.white),
+                label: const Text("Send", style: TextStyle(fontFamily: "Outfit", color: Colors.white)),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.lightBlueAccent),
+              ),
+            ],
+          );
+        },
+      );
+    }
+  }
+
 
   void _showPopupMenu(BuildContext context) {
     final RenderBox overlay =
@@ -444,76 +665,135 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  void _sendMessage(int messageType) async {
+  // Unified send message method.
+  void _sendTextMessage() async {
     String messageContent = _textEditingController.text.trim();
-    if (messageContent.isNotEmpty || messageType == 1) {
+    if (messageContent.isNotEmpty) {
       _textEditingController.clear();
+      DocumentReference messageRef = FirebaseFirestore.instance
+          .collection('messages')
+          .doc(groupChatId)
+          .collection("chats")
+          .doc(DateTime.now().millisecondsSinceEpoch.toString());
+
+      await messageRef.set({
+        'idFrom': widget.currentUseremail,
+        'idTo': widget.peerUseremail,
+        'timestamp': DateTime.now(),
+        'content': messageContent,
+        'type': 0, // 0 for text message
+        'status': 'unread',
+      });
+
+      _listScrollController.animateTo(
+        0.0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Nothing to send', style: TextStyle(fontFamily: "Outfit")),
+        ),
+      );
+    }
+  }
+
+  // Send image message.
+  Future<void> _sendImageMessage(File imageFile) async {
+    try {
+      String path = 'messages/images/$groupChatId/${DateTime.now().millisecondsSinceEpoch}';
+      String imageUrl = await uploadFileWithProgress(
+        context: context,
+        file: imageFile,
+        path: path,
+      );
+
       DocumentReference messageRef = FirebaseFirestore.instance
           .collection('messages')
           .doc(groupChatId)
           .collection('chats')
           .doc(DateTime.now().millisecondsSinceEpoch.toString());
 
-      if (messageType == 1 && _imageFile != null) {
-        // Upload image to storage and get URL
-        String imageUrl = await _uploadImageToStorage(_imageFile!);
-        messageContent = imageUrl;
-      }
-
-      messageRef.set({
+      await messageRef.set({
         'idFrom': widget.currentUseremail,
         'idTo': widget.peerUseremail,
         'timestamp': DateTime.now(),
-        'content': messageContent,
-        'type': messageType,
+        'content': imageUrl,
+        'type': 1,
         'status': 'unread',
       });
-      _listScrollController.animateTo(0.0, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Nothing to send',style: TextStyle(fontFamily: "Outfit",))));
+
+      if (_listScrollController.hasClients) {
+        _listScrollController.animateTo(
+          0.0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    } catch (e) {
+      Fluttertoast.showToast(msg: "Error sending image: $e");
     }
   }
 
-  void _sendImageMessage(File imageFile) async {
-    final imageUrl = await _uploadImageToStorage(imageFile);
 
-    DocumentReference messageRef = FirebaseFirestore.instance
-        .collection('messages')
-        .doc(groupChatId)
-        .collection('chats')
-        .doc(DateTime.now().millisecondsSinceEpoch.toString());
-
-    messageRef.set({
-      'idFrom': widget.currentUseremail,
-      'idTo': widget.peerUseremail,
-      'timestamp': DateTime.now(),
-      'content': imageUrl,
-      'type': 1, // 1 for image message type
-      'status': 'unread',
-    });
-
-    _listScrollController.animateTo(0.0, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
-  }
-
-
-  Future<String> _uploadImageToStorage(File imageFile) async {
+// Send PDF message: Upload the PDF and then save the message with metadata.
+  Future<void> _sendPdfMessage(File pdfFile) async {
     try {
-      // Get a reference to the Firebase Storage location
-      Reference ref = FirebaseStorage.instance.ref().child('images/${DateTime.now().millisecondsSinceEpoch}');
+      String path = 'messages/pdf/$groupChatId/${DateTime.now().millisecondsSinceEpoch}';
+      String pdfUrl = await uploadFileWithProgress(
+        context: context,
+        file: pdfFile,
+        path: path,
+      );
 
-      // Upload the file to Firebase Storage
-      UploadTask uploadTask = ref.putFile(imageFile);
+      // Extract PDF metadata.
+      String pdfName = pdfFile.path.split('/').last;
+      int sizeInBytes = await pdfFile.length();
+      double sizeInMB = sizeInBytes / (1024 * 1024);
+      String pdfSize = "${sizeInMB.toStringAsFixed(2)} MB";
 
-      // Get the download URL once the upload is complete
-      TaskSnapshot snapshot = await uploadTask;
-      String downloadUrl = await snapshot.ref.getDownloadURL();
+      DocumentReference messageRef = FirebaseFirestore.instance
+          .collection('messages')
+          .doc(groupChatId)
+          .collection("chats")
+          .doc(DateTime.now().millisecondsSinceEpoch.toString());
 
-      // Return the URL of the uploaded image
-      return downloadUrl;
-    } catch (error) {
-      // Handle any errors that occur during the upload process
-      return ''; // Return an empty string if an error occurs
+      await messageRef.set({
+        'idFrom': widget.currentUseremail,
+        'idTo': widget.peerUseremail,
+        'timestamp': DateTime.now(),
+        'content': pdfUrl,
+        'type': 2,
+        'status': 'unread',
+        'pdfName': pdfName,
+        'pdfSize': pdfSize,
+      });
+
+      if (_listScrollController.hasClients) {
+        _listScrollController.animateTo(
+          0.0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    } catch (e) {
+      Fluttertoast.showToast(msg: "Error sending PDF: $e");
     }
+  }
+
+
+  String _getGroupChatId(String currentUserId, String peerUserId) {
+    return currentUserId.hashCode <= peerUserId.hashCode
+        ? '$currentUserId-$peerUserId'
+        : '$peerUserId-$currentUserId';
+  }
+
+  @override
+  void dispose() {
+    _textEditingController.dispose();
+    _listScrollController.dispose();
+    super.dispose();
   }
 
   Widget buildItem(DocumentSnapshot document) {
@@ -690,7 +970,96 @@ class _ChatScreenState extends State<ChatScreen> {
           ],
         );
         break;
-      default:
+      case 2: // PDF message
+        final Map<String, dynamic> data = document.data() as Map<String, dynamic>;
+        final String pdfUrl = data['content'];
+        final String pdfName = data.containsKey('pdfName') ? data['pdfName'] : 'Document.pdf';
+        final String pdfSize = data.containsKey('pdfSize') ? data['pdfSize'] : 'Unknown size';
+
+        messageWidget = Card(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          color: Colors.white,
+          elevation: 4,
+          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header row: PDF icon with a colored background and file name.
+                Row(
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.redAccent.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.all(8),
+                      child: const Icon(Icons.picture_as_pdf, color: Colors.red, size: 32),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        pdfName,
+                        style: const TextStyle(
+                          fontFamily: 'Outfit',
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                // File size display.
+                Text(
+                  pdfSize,
+                  style: const TextStyle(
+                    fontFamily: 'Outfit',
+                    fontSize: 14,
+                    color: Colors.black,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Action buttons row.
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: () => _openPdf(pdfUrl, pdfName),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.greenAccent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      icon: const Icon(Icons.visibility, size: 20, color: Colors.black,),
+                      label: const Text('View', style: TextStyle(fontFamily: 'Outfit',color: Colors.black)),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      onPressed: () => _savePdf(pdfUrl, pdfName),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orangeAccent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      icon: const Icon(Icons.download, size: 20, color: Colors.black),
+                      label: const Text('Download', style: TextStyle(fontFamily: 'Outfit',color: Colors.black)),
+                    ),
+                  ],
+                )
+              ],
+            ),
+          ),
+        );
+        break;
+        default:
         messageWidget = Container();
     }
 
@@ -705,14 +1074,120 @@ class _ChatScreenState extends State<ChatScreen> {
         : messageWidget;
   }
 
+  Future<void> _savePdf(String pdfUrl, String pdfName) async {
+    try {
+      // Create the GET request.
+      final request = http.Request('GET', Uri.parse(pdfUrl));
+      final response = await http.Client().send(request);
+      final contentLength = response.contentLength;
+
+      // Create a notifier to track progress.
+      final progressNotifier = ValueNotifier<double>(0.0);
+      List<int> bytes = [];
+      int received = 0;
+
+      // Create a completer that completes when download finishes.
+      final completer = Completer<void>();
+
+      // Listen to the response stream.
+      final subscription = response.stream.listen(
+            (List<int> newBytes) {
+          bytes.addAll(newBytes);
+          received += newBytes.length;
+          if (contentLength != null) {
+            progressNotifier.value = received / contentLength;
+          }
+        },
+        onDone: () {
+          completer.complete();
+        },
+        onError: (e) {
+          completer.completeError(e);
+        },
+        cancelOnError: true,
+      );
+
+      // Show progress dialog (non-blocking).
+      if(!mounted) return;
+      final dialogFuture = showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
+            content: SizedBox(
+              height: 100,
+              child: ValueListenableBuilder<double>(
+                valueListenable: progressNotifier,
+                builder: (context, value, child) {
+                  return Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text("Downloading... ${(value * 100).toStringAsFixed(0)}%", style: TextStyle(fontFamily: "Outfit")),
+                      const SizedBox(height: 16),
+                      LinearProgressIndicator(value: value),
+                    ],
+                  );
+                },
+              ),
+            ),
+          );
+        },
+      );
+
+      // Wait for download completion.
+      await completer.future;
+      // Once complete, dismiss the progress dialog.
+      if(!mounted) return;
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+      await subscription.cancel();
+
+      // Save the file in the desired location.
+      Directory? downloadsDirectory;
+      if (Platform.isAndroid) {
+        // For Android, use the external storage Download folder.
+        downloadsDirectory = Directory('/storage/emulated/0/Download/Attendance/pdf');
+      } else {
+        // For other platforms (e.g., iOS), attempt to get the downloads directory.
+        downloadsDirectory = await getDownloadsDirectory();
+      }
+
+      if (downloadsDirectory != null) {
+        if (!await downloadsDirectory.exists()) {
+          await downloadsDirectory.create(recursive: true);
+        }
+        final filePath = '${downloadsDirectory.path}/$pdfName';
+        final file = File(filePath);
+        await file.writeAsBytes(bytes);
+        Fluttertoast.showToast(msg: "Saved to $filePath");
+      } else {
+        Fluttertoast.showToast(msg: "Unable to get the downloads directory");
+      }
+      // Await the dialogFuture in case it's still active.
+      await dialogFuture;
+    } catch (e) {
+      Fluttertoast.showToast(msg: "Error saving PDF: $e");
+    }
+  }
+
+  Future<void> _openPdf(String pdfUrl, String pdfName) async {
+    final Uri url = Uri.parse(pdfUrl);
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      Fluttertoast.showToast(msg: "Could not launch PDF");
+    }
+  }
+
+
   Future<void> _confirmDeleteMessage(DocumentSnapshot document) async {
-    bool? confirm = await showDialog<bool>( // Specify return type <bool>
+    bool? confirm = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
           title: Row(
             children: const [
-              Icon(Icons.delete_outline, color: Colors.red, size: 28), // Red delete icon
+              Icon(Icons.delete_outline, color: Colors.red, size: 28),
               SizedBox(width: 12),
               Text('Delete Message', style: TextStyle(fontFamily: 'Outfit', fontWeight: FontWeight.w600)),
             ],
@@ -721,17 +1196,12 @@ class _ChatScreenState extends State<ChatScreen> {
             padding: EdgeInsets.only(top: 8.0),
             child: Text('Are you sure you want to delete this message?', style: TextStyle(fontFamily: 'Outfit')),
           ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16.0),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
           actions: <Widget>[
             TextButton.icon(
               onPressed: () => Navigator.of(context).pop(false),
               icon: const Icon(Icons.cancel_outlined, color: Colors.grey),
               label: const Text('Cancel', style: TextStyle(fontFamily: 'Outfit', color: Colors.grey)),
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.grey,
-              ),
             ),
             ElevatedButton.icon(
               onPressed: () => Navigator.of(context).pop(true),
@@ -739,20 +1209,29 @@ class _ChatScreenState extends State<ChatScreen> {
               label: const Text('Delete', style: TextStyle(fontFamily: 'Outfit', color: Colors.white)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
-                textStyle: const TextStyle(fontFamily: "Outfit"),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8.0),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
               ),
             ),
           ],
         );
       },
     );
-
-
     if (confirm == true) {
       try {
+        final Map<String, dynamic> data = document.data() as Map<String, dynamic>;
+        // If the message is an image (1) or a PDF (2), attempt to delete from storage.
+        if (data['type'] == 1 || data['type'] == 2) {
+          String fileUrl = data['content'];
+          try {
+            debugPrint("Attempting to delete file at URL: $fileUrl");
+            await FirebaseStorage.instance.refFromURL(fileUrl).delete();
+            debugPrint("File deleted successfully.");
+          } catch (e) {
+            // Log the error details for further troubleshooting.
+            debugPrint("Error deleting file from storage: $e");
+          }
+        }
+        // Delete the Firestore document regardless.
         await FirebaseFirestore.instance
             .collection('messages')
             .doc(groupChatId)
@@ -764,93 +1243,5 @@ class _ChatScreenState extends State<ChatScreen> {
         Fluttertoast.showToast(msg: 'Error deleting message: $e');
       }
     }
-  }
-
-
-  String _getGroupChatId(String currentUserId, String peerUserId) {
-    return currentUserId.hashCode <= peerUserId.hashCode ? '$currentUserId-$peerUserId' : '$peerUserId-$currentUserId';
-  }
-
-  @override
-  void dispose() {
-    _textEditingController.dispose();
-    _listScrollController.dispose();
-    super.dispose();
-  }
-}
-
-class FullScreenImage extends StatelessWidget {
-  final String url;
-  const FullScreenImage({super.key, required this.url});
-
-  Future<void> _downloadImage(String imageUrl) async {
-    final DateFormat formatter = DateFormat('yyyy-MM-dd_HH-mm-ss');
-    final String timestamp = formatter.format(DateTime.now());
-    const savedDir = '/storage/emulated/0/Download/Attendance/Images';
-    final fileName = 'attendance_$timestamp.jpg';
-
-    // Check if the directory exists, if not, create it
-    final Directory directory = Directory(savedDir);
-    if (!await directory.exists()) {
-      await directory.create(recursive: true);
-    }
-
-    // Enqueue the download task
-    await FlutterDownloader.enqueue(
-      url: imageUrl,
-      savedDir: savedDir,
-      fileName: fileName,
-      showNotification: false, // Set this to false to disable the notification
-    );
-
-
-    // Display toast message when the image is saved
-    Fluttertoast.showToast(
-      msg: "Image saved successfully",
-      toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.BOTTOM,
-      timeInSecForIosWeb: 1,
-      backgroundColor: Colors.green,
-      textColor: Colors.white,
-      fontSize: 16.0,
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black87,
-      body: GestureDetector(
-        onTap: () => Navigator.pop(context),
-        child: Stack(
-          children: [
-            InteractiveViewer(
-              panEnabled: true,
-              minScale: 0.5,
-              maxScale: 4.0,
-              child: Center(
-                child: Hero(
-                  tag: url,
-                  child: CachedNetworkImage(
-                    imageUrl: url,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              top: MediaQuery.of(context).padding.top + 16,
-              right: 16,
-              child: FloatingActionButton(
-                backgroundColor: Colors.black54,
-                mini: true,
-                onPressed: () => _downloadImage(url),
-                child: Icon(Icons.download_rounded, color: Colors.white),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

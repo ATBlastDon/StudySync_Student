@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:studysync_student/AboutUs/aboutteam.dart';
 import 'package:studysync_student/Home/opening.dart';
 import 'package:studysync_student/Screens/Authentication/studentlogin.dart';
@@ -12,10 +11,6 @@ void main() async {
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform, // Use the generated Firebase options
-  );
-
-  FlutterDownloader.initialize(
-    debug: true, // Set to false in production
   );
 
   runApp(const MyApp());

@@ -1,12 +1,10 @@
-import 'dart:io';
 import 'package:animate_do/animate_do.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_downloader/flutter_downloader.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
+import 'package:studysync_student/Screens/Chat/full_screen_image.dart';
 
 final logger = Logger();
 
@@ -163,7 +161,7 @@ class _NoticeBoardState extends State<NoticeBoard> {
                         context,
                         MaterialPageRoute(
                           builder: (context) => FullScreenImage(
-                            imageUrl: notices[index].imageUrl!,
+                            url: notices[index].imageUrl!,
                           ),
                         ),
                       );
@@ -494,97 +492,6 @@ class NoticeTile extends StatelessWidget {
                 ),
               ),
             ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class FullScreenImage extends StatelessWidget {
-  final String imageUrl;
-
-  const FullScreenImage({super.key, required this.imageUrl});
-
-  Future<void> _downloadImage(String imageUrl) async {
-    final DateFormat formatter = DateFormat('yyyy-MM-dd_HH-mm-ss');
-    final String timestamp = formatter.format(DateTime.now());
-    const savedDir = '/storage/emulated/0/Download/Attendance/Images';
-    final fileName = 'attendance_$timestamp.jpg';
-
-    final Directory directory = Directory(savedDir);
-    if (!await directory.exists()) {
-      await directory.create(recursive: true);
-    }
-
-    await FlutterDownloader.enqueue(
-      url: imageUrl,
-      savedDir: savedDir,
-      fileName: fileName,
-      showNotification: true,
-      openFileFromNotification: true,
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: Center(
-        child: GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Wrap InteractiveViewer with a FadeIn animation.
-              Expanded(
-                child: FadeIn(
-                  duration: const Duration(milliseconds: 500),
-                  child: InteractiveViewer(
-                    child: Image.network(
-                      imageUrl,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton.icon(
-                onPressed: () async {
-                  await _downloadImage(imageUrl);
-                  Fluttertoast.showToast(
-                    msg: "Download started",
-                    toastLength: Toast.LENGTH_SHORT,
-                    gravity: ToastGravity.BOTTOM,
-                    timeInSecForIosWeb: 1,
-                    backgroundColor: Colors.grey,
-                    textColor: Colors.white,
-                    fontSize: 16.0,
-                  );
-                },
-                icon: const Icon(Icons.download, color: Colors.black),
-                label: const Text(
-                  'Download Image',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontFamily: "Outfit",
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.greenAccent,
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 40),
-            ],
           ),
         ),
       ),
