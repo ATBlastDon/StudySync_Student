@@ -243,8 +243,8 @@ class _StudentInternalState extends State<StudentInternal> {
       // Check global notification setting.
       DocumentSnapshot<Map<String, dynamic>> notificationSnapshot =
       await FirebaseFirestore.instance
-          .collection('students')
-          .doc("notification")
+          .collection("notifications")
+          .doc("warning_notification")
           .get();
       bool notificationEnabled = notificationSnapshot.data()?['value'] ?? false;
 

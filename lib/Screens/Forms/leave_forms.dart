@@ -130,6 +130,8 @@ class _LeaveFormsState extends State<LeaveForms> {
           'imageUrl': imageUrl,
         });
 
+        await _notificationAdd();
+
         _reasonController.clear();
         setState(() {
           _selectedImage = null;
@@ -137,12 +139,12 @@ class _LeaveFormsState extends State<LeaveForms> {
 
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Leave request submitted successfully!'),
+          content: Text('Leave request submitted successfully!', style: TextStyle(fontFamily: "Outfit"),),
         ));
       } catch (e) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Error submitting leave request'),
+          content: Text('Error submitting leave request', style: TextStyle(fontFamily: "Outfit")),
         ));
       } finally {
         setState(() {
@@ -151,6 +153,30 @@ class _LeaveFormsState extends State<LeaveForms> {
       }
     }
   }
+
+
+  Future<void> _notificationAdd() async {
+    String notificationId = FirebaseFirestore.instance.collection('notifications').doc().id;
+    await FirebaseFirestore.instance
+        .collection('notifications')
+        .doc("compensation")
+        .collection("requests")
+        .doc(notificationId)
+        .set({
+      'title': 'Notification of Compensation Request',
+      'from': widget.name,
+      'sentAt': DateTime.now(),
+      'dept': widget.dept,
+      'ay': widget.ay,
+      'year':widget.year,
+      'sem': widget.sem,
+      'rollNo': widget.rollNo,
+      'mentor': widget.mentor,
+      'status': 'unread',
+      'notificationId': notificationId,
+    });
+  }
+
 
   void _showNoticeDialogue() {
     showDialog(
