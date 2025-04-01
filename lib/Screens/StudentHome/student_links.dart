@@ -1,23 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:studysync_student/Screens/WebView/mywebview.dart';
 import 'package:animate_do/animate_do.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class StudentLinkPage extends StatelessWidget {
   final String dept;
+  final String ay;
   final String sem;
   final String year;
 
-  const StudentLinkPage({super.key,
+  const StudentLinkPage({
+    super.key,
     required this.dept,
+    required this.ay,
     required this.sem,
-    required this.year
+    required this.year,
   });
 
   @override
   Widget build(BuildContext context) {
-    final CollectionReference linksRef =
-    FirebaseFirestore.instance.collection('links').doc(dept).collection(year).doc(sem).collection('details');
+    final CollectionReference linksRef = FirebaseFirestore.instance
+        .collection('links')
+        .doc(dept)
+        .collection(ay)
+        .doc(year)
+        .collection(sem);
 
     return Scaffold(
       appBar: AppBar(
@@ -53,7 +60,11 @@ class StudentLinkPage extends StatelessWidget {
                 duration: const Duration(milliseconds: 600),
                 child: Text(
                   'Error: ${snapshot.error}',
-                  style: const TextStyle(fontFamily: 'Outfit',color: Colors.red, fontSize: 16),
+                  style: const TextStyle(
+                    fontFamily: 'Outfit',
+                    color: Colors.red,
+                    fontSize: 16,
+                  ),
                 ),
               ),
             );
@@ -64,7 +75,11 @@ class StudentLinkPage extends StatelessWidget {
                 duration: const Duration(milliseconds: 600),
                 child: const Text(
                   'No links available.',
-                  style: TextStyle(fontFamily: 'Outfit',fontSize: 18, color: Colors.grey),
+                  style: TextStyle(
+                    fontFamily: 'Outfit',
+                    fontSize: 18,
+                    color: Colors.grey,
+                  ),
                 ),
               ),
             );
@@ -80,7 +95,8 @@ class StudentLinkPage extends StatelessWidget {
               final String title = data['title'] ?? 'No Title';
               final String url = data['url'] ?? '';
               final String description = data['description'] ?? '';
-              final String link = data['url'] ?? '';
+              // 'link' is the same as url
+              final String link = url;
 
               return FadeInUp(
                 duration: Duration(milliseconds: 500 + (index * 100)),
@@ -93,14 +109,7 @@ class StudentLinkPage extends StatelessWidget {
                   child: InkWell(
                     borderRadius: BorderRadius.circular(12),
                     onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => Hero(
-                            tag: url, // Use URL as a unique Hero tag
-                            child: MyWebView(url: url),
-                          ),
-                        ),
-                      );
+                      _launchURL(url);
                     },
                     child: Container(
                       decoration: BoxDecoration(
@@ -175,5 +184,18 @@ class StudentLinkPage extends StatelessWidget {
         },
       ),
     );
+  }
+
+  void _launchURL(String url) async {
+    // Ensure URL starts with "https://"
+    if (!url.startsWith('http')) {
+      url = 'https://$url';
+    }
+
+    final Uri uri = Uri.parse(url);
+
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      debugPrint('Could not launch $url');
+    }
   }
 }

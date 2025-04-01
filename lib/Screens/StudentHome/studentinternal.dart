@@ -579,6 +579,7 @@ class _StudentInternalState extends State<StudentInternal> {
                     MaterialPageRoute(
                       builder: (context) => StudentLinkPage(
                         dept: widget.dept,
+                        ay: widget.ay,
                         sem: widget.sem,
                         year: widget.year,),
                     ),
