@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -17,6 +16,7 @@ import 'package:studysync_student/Screens/Forms/forms.dart';
 import 'package:studysync_student/Screens/Lecture/dloc.dart';
 import 'package:studysync_student/Screens/Marks/marks_home.dart';
 import 'package:studysync_student/Screens/NoticeBoard/noticeboard.dart';
+import 'package:studysync_student/Screens/Repeated_Functions/show_zoom_profile.dart';
 import 'package:studysync_student/Screens/Security/privacysecurity.dart';
 import 'package:studysync_student/Screens/StudentHome/missing_screen.dart';
 import 'package:studysync_student/Screens/StudentHome/student_content.dart';
@@ -384,15 +384,14 @@ class _StudentInternalState extends State<StudentInternal> {
               currentAccountPicture: FadeInUp(
                 duration: const Duration(milliseconds: 700),
                 child: GestureDetector(
-                  onTap: () => _showZoomedProfile(context),
+                  onTap: () {
+                    showZoomedProfile(context, _userProfilePhotoUrl);
+                  },
                   child: CircleAvatar(
                     backgroundColor: Colors.white,
-                    backgroundImage: (_userProfilePhotoUrl != null && _userProfilePhotoUrl!.isNotEmpty)
+                    backgroundImage: _userProfilePhotoUrl != null
                         ? CachedNetworkImageProvider(_userProfilePhotoUrl!)
                         : null,
-                    child: (_userProfilePhotoUrl == null || _userProfilePhotoUrl!.isEmpty)
-                        ? const Icon(Icons.person, size: 50, color: Colors.grey)
-                        : null, // Show a placeholder icon if no profile photo
                   ),
                 ),
               ),
@@ -759,30 +758,7 @@ class _StudentInternalState extends State<StudentInternal> {
                             ),
                           ),
                           child: FloatingActionButton(
-                            onPressed: () async {
-                              setState(() => isUpdating = true); // Update global state
-                              try {
-                                QuerySnapshot qs = await FirebaseFirestore.instance
-                                    .collection('notifications')
-                                    .doc("noticeboard")
-                                    .collection("notices")
-                                    .where('dept', isEqualTo: widget.dept)
-                                    .where('ay', isEqualTo: widget.ay)
-                                    .where('batch', whereIn: [widget.year, 'ALL'])
-                                    .get();
-
-                                for (var doc in qs.docs) {
-                                  final data = doc.data() as Map<String, dynamic>;
-                                  final List<dynamic> readBy = data['readby'] ?? [];
-                                  if (!readBy.contains(_userRollNo)) {
-                                    await doc.reference.update({
-                                      'readby': FieldValue.arrayUnion([_userRollNo])
-                                    });
-                                  }
-                                }
-                              } finally {
-                                setState(() => isUpdating = false); // Reset state after update
-                              }
+                            onPressed: () {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -790,6 +766,7 @@ class _StudentInternalState extends State<StudentInternal> {
                                     year: widget.year,
                                     dept: widget.dept,
                                     ay: widget.ay,
+                                    rollNo: _userRollNo!,
                                   ),
                                 ),
                               );
@@ -798,16 +775,7 @@ class _StudentInternalState extends State<StudentInternal> {
                             backgroundColor: Colors.transparent,
                             elevation: 5,
                             shape: const CircleBorder(),
-                            child: isUpdating
-                                ? const SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white, // Use white for better visibility
-                              ),
-                            )
-                                : const Icon(Icons.feed, color: Colors.white),
+                            child: const Icon(Icons.feed, color: Colors.white),
                           ),
                         ),
                       ),
@@ -867,37 +835,6 @@ class _StudentInternalState extends State<StudentInternal> {
             ),
           ],
         )
-    );
-  }
-
-  Future<void> _showZoomedProfile(BuildContext context) async {
-    return showDialog<void>(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                child: Container(color: Colors.black.withValues(alpha: 0.0)),
-              ),
-              FadeInUp(
-                duration: const Duration(milliseconds: 500),
-                child: CircleAvatar(
-                  radius: 150,
-                  backgroundColor: Colors.white,
-                  backgroundImage: _userProfilePhotoUrl != null
-                      ? CachedNetworkImageProvider(_userProfilePhotoUrl!)
-                      : null,
-                ),
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 }

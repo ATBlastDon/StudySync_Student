@@ -943,7 +943,7 @@ class _StudentProfileState extends State<StudentProfile> {
         }
         // Prepare new file name and storage path.
         String fileName = '${studentData!['rollNo']}.jpg';
-        String storagePath = 'Profile_Photos/Student/${widget.dept}/${widget.ay}/${widget.studentyear}/$widget.sem/$fileName';
+        String storagePath = 'Profile_Photos/Student/${widget.dept}/${widget.ay}/${widget.studentyear}/${widget.sem}/$fileName';
         firebase_storage.Reference ref =
         firebase_storage.FirebaseStorage.instance.ref().child(storagePath);
         // Upload the file.

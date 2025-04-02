@@ -9,9 +9,9 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:studysync_student/Screens/Authentication/password_field.dart';
 import 'package:studysync_student/Screens/Authentication/studentlogin.dart';
 import 'package:studysync_student/Screens/NoticeBoard/noticeboard.dart';
+import 'package:studysync_student/Screens/Repeated_Functions/password_field.dart';
 
 class StudentRegister extends StatefulWidget {
   const StudentRegister({super.key});

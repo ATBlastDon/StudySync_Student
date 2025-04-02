@@ -30,9 +30,9 @@ class _PasswordFieldState extends State<PasswordField> {
         ),
         const SizedBox(height: 5),
         TextField(
+          style: TextStyle(fontFamily: "Outfit"),
           controller: widget.controller,
           obscureText: _obscureText,
-          style: TextStyle(fontFamily: "Outfit"),
           decoration: InputDecoration(
             hintText: widget.hintText, // Display the hint text here
             hintStyle: TextStyle(fontFamily: "Outfit"),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:animate_do/animate_do.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:studysync_student/Screens/Repeated_Functions/launch_url.dart';
 
 class StudentLinkPage extends StatelessWidget {
   final String dept;
@@ -109,7 +109,7 @@ class StudentLinkPage extends StatelessWidget {
                   child: InkWell(
                     borderRadius: BorderRadius.circular(12),
                     onTap: () {
-                      _launchURL(url);
+                      launchURL(url);
                     },
                     child: Container(
                       decoration: BoxDecoration(
@@ -184,18 +184,5 @@ class StudentLinkPage extends StatelessWidget {
         },
       ),
     );
-  }
-
-  void _launchURL(String url) async {
-    // Ensure URL starts with "https://"
-    if (!url.startsWith('http')) {
-      url = 'https://$url';
-    }
-
-    final Uri uri = Uri.parse(url);
-
-    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      debugPrint('Could not launch $url');
-    }
   }
 }

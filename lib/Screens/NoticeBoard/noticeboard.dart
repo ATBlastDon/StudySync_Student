@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
-import 'package:studysync_student/Screens/Chat/full_screen_image.dart';
+import 'package:studysync_student/Screens/Repeated_Functions/full_screen_image.dart';
 
 final logger = Logger();
 
@@ -12,22 +12,96 @@ class NoticeBoard extends StatefulWidget {
   final String year;
   final String dept;
   final String ay;
+  final String rollNo;
 
   const NoticeBoard({
     super.key,
     required this.year,
     required this.dept,
-    required this.ay});
+    required this.ay,
+    required this.rollNo});
 
   @override
   State<NoticeBoard> createState() => _NoticeBoardState();
 }
 
 class _NoticeBoardState extends State<NoticeBoard> {
+  bool _isMarkingNotices = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _markNotices();
+  }
+
+  Future<void> _markNotices() async {
+    setState(() {
+      _isMarkingNotices = true;
+    });
+
+    QuerySnapshot snapshot = await FirebaseFirestore.instance
+        .collection('notifications')
+        .doc("noticeboard")
+        .collection("notices")
+        .where('dept', isEqualTo: widget.dept)
+        .where('ay', isEqualTo: widget.ay)
+        .where('batch', whereIn: [widget.year, 'ALL'])
+        .get();
+
+    for (var doc in snapshot.docs) {
+      final data = doc.data() as Map<String, dynamic>;
+      final List<dynamic> readBy = data['readby'] ?? [];
+
+      if (!readBy.contains(widget.rollNo)) {
+        await doc.reference.update({
+          'readby': FieldValue.arrayUnion([widget.rollNo])
+        });
+      }
+    }
+
+    setState(() {
+      _isMarkingNotices = false;
+    });
+  }
+
+
   @override
   Widget build(BuildContext context) {
+    // While marking is in progress, show a full screen CircularProgressIndicator.
+    if (_isMarkingNotices) {
+      return Scaffold(
+        appBar: AppBar(
+          centerTitle: true,
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.greenAccent, Colors.teal],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+          ),
+          backgroundColor: Colors.grey[100],
+          title: FadeInDown(
+            duration: const Duration(milliseconds: 500),
+            child: const Text(
+              'N O T I C E   B O A R D',
+              style: TextStyle(
+                fontFamily: 'Outfit',
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+          ),
+          elevation: 10,
+        ),
+        body: const Center(child: CircularProgressIndicator(color: Colors.black,)),
+      );
+    }
+
+    // Once marking is complete, show the notice list.
     return Scaffold(
-      // Use a gradient background on the AppBar
       appBar: AppBar(
         centerTitle: true,
         flexibleSpace: Container(
@@ -57,6 +131,7 @@ class _NoticeBoardState extends State<NoticeBoard> {
       body: _buildNoticeList(),
     );
   }
+
 
   Widget _buildNoticeList() {
     return StreamBuilder<QuerySnapshot>(

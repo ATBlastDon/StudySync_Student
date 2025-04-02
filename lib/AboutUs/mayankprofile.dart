@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
+import 'package:studysync_student/Screens/Repeated_Functions/launch_url.dart';
+import 'package:studysync_student/Screens/Repeated_Functions/show_zoom_profile.dart';
 
 class MayankProfile extends StatelessWidget {
   const MayankProfile({super.key});
@@ -13,7 +15,7 @@ class MayankProfile extends StatelessWidget {
         title: FadeInDown(
           duration: const Duration(milliseconds: 500),
           child: const Text(
-            'T E A M   M E M B E R',
+            'Mayank Mahesh Sagvekar',
             style: TextStyle(
               fontFamily: 'Outfit',
               fontSize: 18,
@@ -51,25 +53,19 @@ class MayankProfile extends StatelessWidget {
                   ),
                 ],
               ),
-              child: const CircleAvatar(
-                radius: 100,
-                backgroundImage: AssetImage('assets/profilephoto/Mayank.jpg'),
+              child: GestureDetector(
+                onTap: () {
+                  showZoomedProfile(context, 'assets/profilephoto/Mayank.jpg');
+                },
+                child: const CircleAvatar(
+                  radius: 100,
+                  backgroundImage: AssetImage('assets/profilephoto/Mayank.jpg'),
+                ),
               ),
             ),
             const SizedBox(height: 20),
             Column(
               children: const [
-                Text(
-                  'Mayank Mahesh Sagvekar',
-                  style: TextStyle(
-                    fontFamily: 'Outfit',
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.greenAccent,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                SizedBox(height: 5),
                 Text(
                   'Founder & CEO',
                   style: TextStyle(
@@ -100,6 +96,36 @@ class MayankProfile extends StatelessWidget {
               title: 'Tools',
               content: 'Android Studio, Visual Studio Code',
               icon: Icons.build_circle_outlined,
+            ),
+            const SizedBox(height: 20),
+            // Contacts row with PNG icons
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: Image.asset(
+                    'assets/icon/github.png',
+                    height: 30,
+                    width: 30,
+                  ),
+                  onPressed: () {
+                    launchURL('https://github.com/Mayank-Sagavekar');
+                  },
+                ),
+                const SizedBox(width: 20),
+                IconButton(
+                  icon: Image.asset(
+                    'assets/icon/linkedin.png',
+                    height: 30,
+                    width: 30,
+                  ),
+                  onPressed: () {
+                    // Launch the LinkedIn profile URL using the _launchURL helper from your separate file
+                    launchURL('https://in.linkedin.com/in/mayank-sagavekar');
+                  },
+                ),
+                const SizedBox(width: 20),
+              ],
             ),
           ],
         ),

@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:studysync_student/Screens/Chat/chatscreen.dart';
+import 'package:studysync_student/Screens/Repeated_Functions/show_zoom_profile.dart';
 
 /// Helper: Generate a unique chat id based on the two emails.
 String generateGroupChatId(String currentUserEmail, String peerUserEmail) {
@@ -79,10 +80,19 @@ class TeachersContent extends StatelessWidget {
               child: Column(
                 children: [
                   ListTile(
-                    leading: CircleAvatar(
-                      backgroundImage: profilePhotoUrl != null
-                          ? CachedNetworkImageProvider(profilePhotoUrl)
-                          : const AssetImage('assets/images/default_avatar.png') as ImageProvider,
+                    leading: GestureDetector(
+                      onTap: () {
+                        showZoomedProfile(
+                          context,
+                          profilePhotoUrl ?? 'assets/images/default_profile_image.png',
+                        );
+                      },
+                      child: CircleAvatar(
+                        radius: 20,
+                        backgroundImage: profilePhotoUrl != null
+                            ? CachedNetworkImageProvider(profilePhotoUrl)
+                            : const AssetImage('assets/images/default_profile_image.png') as ImageProvider,
+                      ),
                     ),
                     title: Text(
                       fullName,

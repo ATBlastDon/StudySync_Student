@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:studysync_student/Screens/Repeated_Functions/upload_with_progress.dart';
 
 class LeaveForms extends StatefulWidget {
   final String year;
@@ -80,31 +80,24 @@ class _LeaveFormsState extends State<LeaveForms> {
     }
   }
 
-  Future<String> _uploadImage(File image) async {
-    try {
-      final Reference ref = FirebaseStorage.instance
-          .ref()
-          .child('leave_forms/${DateTime.now().millisecondsSinceEpoch}');
-      await ref.putFile(image);
-      String downloadUrl = await ref.getDownloadURL();
-      return downloadUrl;
-    } catch (e) {
-      debugPrint("Error uploading image: $e");
-      return "";
-    }
-  }
-
   Future<void> _submit() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
         _isLoading = true;
       });
-      String documentId =
-          FirebaseFirestore.instance.collection('leave_forms').doc().id;
+
+      String documentId = FirebaseFirestore.instance.collection('leave_forms').doc().id;
       String? imageUrl;
+
+      // Upload image with real-time progress tracking
       if (_selectedImage != null) {
-        imageUrl = await _uploadImage(_selectedImage!);
+        imageUrl = await uploadFileWithProgress(
+          context: context,
+          file: _selectedImage!,
+          path: 'leave_forms/${DateTime.now().millisecondsSinceEpoch}.jpg',
+        );
       }
+
       try {
         await FirebaseFirestore.instance
             .collection('leave_forms')
@@ -138,14 +131,24 @@ class _LeaveFormsState extends State<LeaveForms> {
         });
 
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Leave request submitted successfully!', style: TextStyle(fontFamily: "Outfit"),),
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Leave request submitted successfully!',
+              style: TextStyle(fontFamily: "Outfit"),
+            ),
+          ),
+        );
       } catch (e) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Error submitting leave request', style: TextStyle(fontFamily: "Outfit")),
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Error submitting leave request',
+              style: TextStyle(fontFamily: "Outfit"),
+            ),
+          ),
+        );
       } finally {
         setState(() {
           _isLoading = false;

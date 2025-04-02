@@ -6,8 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:studysync_student/Screens/Authentication/forgotpassword.dart';
-import 'package:studysync_student/Screens/Authentication/password_field.dart';
 import 'package:studysync_student/Screens/Authentication/studentregister.dart';
+import 'package:studysync_student/Screens/Repeated_Functions/password_field.dart';
 import 'package:studysync_student/Screens/StudentHome/studentinternal.dart';
 
 class StudentLogin extends StatefulWidget {

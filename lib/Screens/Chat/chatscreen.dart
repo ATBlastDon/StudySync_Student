@@ -11,10 +11,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
-import 'package:studysync_student/Screens/Chat/full_screen_image.dart';
-import 'package:studysync_student/Screens/Chat/upload_with_progress.dart';
 import 'package:studysync_student/Screens/Chat/wallpaper.dart';
 import 'package:http/http.dart' as http;
+import 'package:studysync_student/Screens/Repeated_Functions/full_screen_image.dart';
+import 'package:studysync_student/Screens/Repeated_Functions/upload_with_progress.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 
