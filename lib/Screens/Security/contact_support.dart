@@ -1,5 +1,4 @@
 import 'package:animate_do/animate_do.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class ContactSupportScreen extends StatelessWidget {
@@ -46,7 +45,7 @@ class ContactSupportScreen extends StatelessWidget {
           ),
           SizedBox(height: 16),
           SupportCard(
-            icon: CupertinoIcons.clock,
+            icon: Icons.access_time_outlined,
             title: 'Support Hours',
             subtitle:
             'Monday to Friday: 9:00 AM – 9:00 PM\nSaturday: 10:00 AM – 2:00 PM\nSunday & Holidays: Closed',
