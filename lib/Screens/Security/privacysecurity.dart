@@ -157,7 +157,7 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
           FadeInUp(
             duration: const Duration(milliseconds: 600),
             child: ListTile(
-              leading: const Icon(Icons.delete_forever_sharp, color: Colors.black),
+              leading: const Icon(Icons.description_outlined, color: Colors.black),
               title: const Text(
                 'Terms and Conditions',
                 style: TextStyle(fontFamily: "Outfit", fontSize: 16),
@@ -182,7 +182,7 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
           FadeInUp(
             duration: const Duration(milliseconds: 600),
             child: ListTile(
-              leading: const Icon(Icons.delete_forever_sharp, color: Colors.black),
+              leading: const Icon(Icons.contact_support_outlined, color: Colors.black),
               title: const Text(
                 'Contact Us',
                 style: TextStyle(fontFamily: "Outfit", fontSize: 16),
