@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:studysync_student/Screens/Security/change_password.dart';
+import 'package:studysync_student/Screens/Security/contact_support.dart';
 import 'package:studysync_student/Screens/Security/delete_account.dart';
+import 'package:studysync_student/Screens/Security/terms_condtions.dart';
 
 class PrivacySettingsScreen extends StatefulWidget {
   final String year; // For example: BE, TE, or SE
@@ -145,6 +147,56 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                       dept: widget.dept,
                       ay: widget.ay,
 
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          const Divider(),
+          FadeInUp(
+            duration: const Duration(milliseconds: 600),
+            child: ListTile(
+              leading: const Icon(Icons.delete_forever_sharp, color: Colors.black),
+              title: const Text(
+                'Terms and Conditions',
+                style: TextStyle(fontFamily: "Outfit", fontSize: 16),
+              ),
+              subtitle: const Text(
+                'Read Terms and Conditions of the Project',
+                style: TextStyle(fontFamily: "Outfit", fontSize: 16),
+              ),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => TermsAndConditionsScreen(
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          const Divider(),
+          FadeInUp(
+            duration: const Duration(milliseconds: 600),
+            child: ListTile(
+              leading: const Icon(Icons.delete_forever_sharp, color: Colors.black),
+              title: const Text(
+                'Contact Us',
+                style: TextStyle(fontFamily: "Outfit", fontSize: 16),
+              ),
+              subtitle: const Text(
+                'Communicate and Feel Free to tell suggestions',
+                style: TextStyle(fontFamily: "Outfit", fontSize: 16),
+              ),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ContactSupportScreen(
                     ),
                   ),
                 );
