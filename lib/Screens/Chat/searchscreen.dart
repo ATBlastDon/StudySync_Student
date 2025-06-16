@@ -11,9 +11,18 @@ class SearchScreen extends StatefulWidget {
   final String sem;
   final String ay;
   final String dept;
+  final String clg;
 
   // Constructor to receive the current user's email
-  const SearchScreen({super.key, required this.currentUserEmail, required this.year, required this.sem, required this.ay, required this.dept});
+  const SearchScreen({
+    super.key,
+    required this.currentUserEmail,
+    required this.year,
+    required this.sem,
+    required this.ay,
+    required this.dept,
+    required this.clg
+  });
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -32,14 +41,22 @@ class _SearchScreenState extends State<SearchScreen> {
     }
 
     final studentsQuery = FirebaseFirestore.instance
-        .collection('students')
+        .collection('colleges')
+        .doc(widget.clg)
+        .collection('departments')
         .doc(widget.dept)
-        .collection(widget.ay)
-        .doc(widget.year)
-        .collection(widget.sem)
+        .collection('students')
+        .doc(widget.ay)
+        .collection(widget.year)
+        .doc(widget.sem)
+        .collection('details')
         .get(); // Fetch all students for the given year
 
     final teachersQuery = FirebaseFirestore.instance
+        .collection('colleges')
+        .doc(widget.clg)
+        .collection('departments')
+        .doc(widget.dept)
         .collection('teachers')
         .get(); // Fetch all teachers
 
@@ -181,7 +198,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     children: [
                       GestureDetector(
                         onTap: () async {
-                          await navigateToChatScreen(result['role'], widget.currentUserEmail, result['email'], result['fullName'], widget.year , widget.sem, widget.ay, widget.dept);
+                          await navigateToChatScreen(result['role'], widget.currentUserEmail, result['email'], result['fullName'], widget.year , widget.sem, widget.ay, widget.dept, widget.clg);
                         },
                         child: Padding(
                           padding: const EdgeInsets.symmetric(vertical: 4.0), // Reduced vertical padding
@@ -225,7 +242,7 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  Future<void> navigateToChatScreen(String role, String currentUserEmail, String peerUserEmail, String chatUserName, String year, String sem, String ay, String dept) async {
+  Future<void> navigateToChatScreen(String role, String currentUserEmail, String peerUserEmail, String chatUserName, String year, String sem, String ay, String dept, String clg) async {
     if (role == 'Student' || role == 'Teacher') {
       await Navigator.push(
         context,
@@ -238,6 +255,7 @@ class _SearchScreenState extends State<SearchScreen> {
             sem: sem,
             ay: ay,
             dept: dept,
+            clg: clg,
           ),
         ),
       );

@@ -14,6 +14,7 @@ class LeaveForms extends StatefulWidget {
   final String mentor;
   final String ay;
   final String dept;
+  final String clg;
 
   const LeaveForms({
     super.key,
@@ -24,7 +25,7 @@ class LeaveForms extends StatefulWidget {
     required this.mentor,
     required this.ay,
     required this.dept,
-
+    required this.clg,
   });
 
   @override
@@ -86,7 +87,7 @@ class _LeaveFormsState extends State<LeaveForms> {
         _isLoading = true;
       });
 
-      String documentId = FirebaseFirestore.instance.collection('leave_forms').doc().id;
+      String documentId = FirebaseFirestore.instance.collection('colleges').doc(widget.clg).collection('departments').doc(widget.dept).collection('leave_forms').doc(widget.ay).collection(widget.year).doc(widget.sem).collection('requests').doc().id;
       String? imageUrl;
 
       // Upload image with real-time progress tracking
@@ -94,19 +95,21 @@ class _LeaveFormsState extends State<LeaveForms> {
         imageUrl = await uploadFileWithProgress(
           context: context,
           file: _selectedImage!,
-          path: 'leave_forms/${DateTime.now().millisecondsSinceEpoch}.jpg',
+          path: '${widget.clg}/${widget.dept}/leave_forms/${widget.ay}/${widget.year}/${widget.sem}/${DateTime.now()}.jpg',
         );
       }
 
       try {
         await FirebaseFirestore.instance
-            .collection('leave_forms')
+            .collection('colleges')
+            .doc(widget.clg)
+            .collection('departments')
             .doc(widget.dept)
-            .collection(widget.ay)
-            .doc(widget.year)
-            .collection(widget.sem)
-            .doc('forms')
-            .collection('details')
+            .collection('leave_forms')
+            .doc(widget.ay)
+            .collection(widget.year)
+            .doc(widget.sem)
+            .collection('requests')
             .doc(documentId)
             .set({
           'fullName': widget.name,
@@ -121,6 +124,7 @@ class _LeaveFormsState extends State<LeaveForms> {
           'status': 'pending',
           'documentId': documentId,
           'imageUrl': imageUrl,
+          'clg': widget.clg,
         });
 
         await _notificationAdd();
@@ -177,6 +181,7 @@ class _LeaveFormsState extends State<LeaveForms> {
       'mentor': widget.mentor,
       'status': 'unread',
       'notificationId': notificationId,
+      'clg': widget.clg,
     });
   }
 

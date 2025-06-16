@@ -11,6 +11,7 @@ class IaMarks extends StatefulWidget {
   final String fullName;
   final String ay;
   final String dept;
+  final String clg;
 
 
   const IaMarks({
@@ -22,6 +23,7 @@ class IaMarks extends StatefulWidget {
     required this.fullName,
     required this.ay,
     required this.dept,
+    required this.clg,
   });
 
   @override
@@ -58,8 +60,12 @@ class _IaMarksState extends State<IaMarks> {
   Future<void> _fetchSubjectsMapping() async {
     try {
       DocumentSnapshot snapshot = await FirebaseFirestore.instance
-          .collection('subjects')
+          .collection('colleges')
+          .doc(widget.clg)
+          .collection('departments')
           .doc(widget.dept)
+          .collection('subjects')
+          .doc('details')
           .get();
       if (snapshot.exists) {
         setState(() {
@@ -101,11 +107,15 @@ class _IaMarksState extends State<IaMarks> {
   Future<void> _loadSelectedSubjects() async {
     try {
       final docRef = FirebaseFirestore.instance
-          .collection("students")
+          .collection('colleges')
+          .doc(widget.clg)
+          .collection('departments')
           .doc(widget.dept)
-          .collection(widget.ay)
-          .doc(widget.year)
-          .collection(widget.sem)
+          .collection("students")
+          .doc(widget.ay)
+          .collection(widget.year)
+          .doc(widget.sem)
+          .collection('details')
           .doc(widget.rollNo)
           .collection("optional_subjects")
           .doc(widget.sem);
@@ -130,13 +140,17 @@ class _IaMarksState extends State<IaMarks> {
       List<String> allSubjects = getAllSubjects();
       for (String subject in allSubjects) {
         DocumentSnapshot docSnapshot = await FirebaseFirestore.instance
+            .collection('colleges')
+            .doc(widget.clg)
+            .collection('departments')
+            .doc(widget.dept)
             .collection("marks")
             .doc('ia_marks')
-            .collection(widget.dept)
-            .doc(widget.ay)
-            .collection(widget.year)
-            .doc(widget.sem)
-            .collection(subject)
+            .collection(widget.ay)
+            .doc(widget.year)
+            .collection(widget.sem)
+            .doc(subject)
+            .collection('students')
             .doc(widget.rollNo)
             .get();
 
@@ -182,13 +196,17 @@ class _IaMarksState extends State<IaMarks> {
   void _saveAverageToFirestore(String subject) async {
     try {
       await FirebaseFirestore.instance
+          .collection('colleges')
+          .doc(widget.clg)
+          .collection('departments')
+          .doc(widget.dept)
           .collection("marks")
           .doc('ia_marks')
-          .collection(widget.dept)
-          .doc(widget.ay)
-          .collection(widget.year)
-          .doc(widget.sem)
-          .collection(subject)
+          .collection(widget.ay)
+          .doc(widget.year)
+          .collection(widget.sem)
+          .doc(subject)
+          .collection('students')
           .doc(widget.rollNo)
           .set({
         "IA-1": marksData[subject]?["IA-1"] ?? 0,

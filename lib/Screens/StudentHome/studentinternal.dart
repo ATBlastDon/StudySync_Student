@@ -20,7 +20,6 @@ import 'package:studysync_student/Screens/Repeated_Functions/show_zoom_profile.d
 import 'package:studysync_student/Screens/Security/privacysecurity.dart';
 import 'package:studysync_student/Screens/StudentHome/missing_screen.dart';
 import 'package:studysync_student/Screens/StudentHome/student_content.dart';
-import 'package:studysync_student/Screens/StudentHome/student_links.dart';
 import 'package:studysync_student/Screens/StudentHome/studentprofile.dart';
 import 'package:studysync_student/Screens/StudentHome/teacher_content.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -31,12 +30,15 @@ class StudentInternal extends StatefulWidget {
   final String sem;
   final String dept;
   final String ay;
+  final String clg;
+
   const StudentInternal({
     super.key,
     required this.year,
     required this.sem,
     required this.dept,
-    required this.ay
+    required this.ay,
+    required this.clg
   });
 
   @override
@@ -138,11 +140,15 @@ class _StudentInternalState extends State<StudentInternal> {
     try {
       QuerySnapshot<Map<String, dynamic>> querySnapshot =
       await FirebaseFirestore.instance
-          .collection('students')
+          .collection('colleges')
+          .doc(widget.clg)
+          .collection('departments')
           .doc(widget.dept)
-          .collection(widget.ay)
-          .doc(widget.year)
-          .collection(widget.sem)
+          .collection("students")
+          .doc(widget.ay)
+          .collection(widget.year)
+          .doc(widget.sem)
+          .collection('details')
           .where('email', isEqualTo: email)
           .get();
 
@@ -192,6 +198,7 @@ class _StudentInternalState extends State<StudentInternal> {
                   rollNo: _userRollNo!,
                   batch: _userBatch!,
                   studentEmail: _email,
+                  clg: widget.clg,
                   onRequirementsUpdated: () {
                     // Refresh user data after updates.
                     fetchUserData();
@@ -223,11 +230,15 @@ class _StudentInternalState extends State<StudentInternal> {
     try {
       DocumentSnapshot<Map<String, dynamic>> doc =
       await FirebaseFirestore.instance
-          .collection('students')
+          .collection('colleges')
+          .doc(widget.clg)
+          .collection('departments')
           .doc(widget.dept)
-          .collection(widget.ay)
-          .doc(widget.year)
-          .collection(widget.sem)
+          .collection("students")
+          .doc(widget.ay)
+          .collection(widget.year)
+          .doc(widget.sem)
+          .collection('details')
           .doc(_userRollNo!)
           .collection("optional_subjects")
           .doc(widget.sem)
@@ -255,13 +266,15 @@ class _StudentInternalState extends State<StudentInternal> {
       // Fetch the student's attendance record.
       DocumentSnapshot<Map<String, dynamic>> documentSnapshot =
       await FirebaseFirestore.instance
-          .collection('students')
+          .collection('colleges')
+          .doc(widget.clg)
+          .collection('departments')
           .doc(widget.dept)
-          .collection(widget.ay)
-          .doc(widget.year)
-          .collection(widget.sem)
-          .doc("records")
-          .collection("rollno")
+          .collection("students")
+          .doc(widget.ay)
+          .collection(widget.year)
+          .doc(widget.sem)
+          .collection("records")
           .doc(_userRollNo!)
           .get();
 
@@ -349,7 +362,9 @@ class _StudentInternalState extends State<StudentInternal> {
                       currentUserEmail: _email,
                       year: widget.year,
                       sem: widget.sem,
-                      dept: widget.dept, ay: widget.ay
+                      dept: widget.dept,
+                      ay: widget.ay,
+                      clg: widget.clg
                     ),
                   ),
                 );
@@ -420,6 +435,7 @@ class _StudentInternalState extends State<StudentInternal> {
                         dept: widget.dept,
                         ay: widget.ay,
                         sem: widget.sem,
+                        clg: widget.clg,
                       ),
                     ),
                   );
@@ -445,6 +461,7 @@ class _StudentInternalState extends State<StudentInternal> {
                         fullName: _userFullName!,
                         ay: widget.ay,
                         dept: widget.dept,
+                        clg: widget.clg,
                       ),
                     ),
                   );
@@ -487,6 +504,7 @@ class _StudentInternalState extends State<StudentInternal> {
                         fullName: _userFullName!,
                         dept: widget.dept,
                         ay: widget.ay,
+                        clg: widget.clg,
                       ),
                     ),
                   );
@@ -511,6 +529,7 @@ class _StudentInternalState extends State<StudentInternal> {
                         batch: _userBatch!,
                         dept: widget.dept,
                         ay: widget.ay,
+                        clg: widget.clg,
                       ),
                     ),
                   );
@@ -535,7 +554,8 @@ class _StudentInternalState extends State<StudentInternal> {
                         name: _userFullName!,
                         mentor: _userMentor!,
                         dept: widget.dept,
-                        ay: widget.ay
+                        ay: widget.ay,
+                        clg: widget.clg
                       ),
                     ),
                   );
@@ -558,29 +578,9 @@ class _StudentInternalState extends State<StudentInternal> {
                         rollNo: _userRollNo!,
                         sem: widget.sem,
                         dept: widget.dept,
-                        ay: widget.ay
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-            FadeInLeft(
-              duration: const Duration(milliseconds: 800),
-              child: ListTile(
-                title: const Text(
-                  'Links',
-                  style: TextStyle(fontFamily: 'Outfit'),
-                ),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => StudentLinkPage(
-                        dept: widget.dept,
                         ay: widget.ay,
-                        sem: widget.sem,
-                        year: widget.year,),
+                        clg: widget.clg,
+                      ),
                     ),
                   );
                 },
@@ -603,7 +603,7 @@ class _StudentInternalState extends State<StudentInternal> {
                         sem: widget.sem,
                         dept: widget.dept,
                         ay: widget.ay,
-
+                        clg: widget.clg,
                       ),
                     ),
                   );
@@ -706,11 +706,11 @@ class _StudentInternalState extends State<StudentInternal> {
               child: _selectedSection == 'students'
                   ? FadeIn(
                 duration: const Duration(milliseconds: 500),
-                child: StudentsContent(_email, widget.year, sem: widget.sem, dept: widget.dept, ay: widget.ay),
+                child: StudentsContent(sem: widget.sem, dept: widget.dept, ay: widget.ay, email: _email, clg: widget.clg, year: widget.year,),
               )
                   : FadeIn(
                 duration: const Duration(milliseconds: 500),
-                child: TeachersContent(_email, widget.year, sem: widget.sem, dept: widget.dept, ay: widget.ay),
+                child: TeachersContent(sem: widget.sem, dept: widget.dept, ay: widget.ay, email: _email, clg: widget.clg, year: widget.year,),
               ),
             ),
           ),
@@ -730,6 +730,7 @@ class _StudentInternalState extends State<StudentInternal> {
                     .collection("notices")
                     .where('dept', isEqualTo: widget.dept)
                     .where('ay', isEqualTo: widget.ay)
+                    .where('clg', isEqualTo: widget.clg)
                     .where('batch', whereIn: [widget.year, 'ALL'])
                     .snapshots(),
                 builder: (context, snapshot) {
@@ -767,6 +768,7 @@ class _StudentInternalState extends State<StudentInternal> {
                                     dept: widget.dept,
                                     ay: widget.ay,
                                     rollNo: _userRollNo!,
+                                    clg: widget.clg,
                                   ),
                                 ),
                               );
@@ -822,7 +824,9 @@ class _StudentInternalState extends State<StudentInternal> {
                         _userBatch!,
                         _userFullName!,
                         widget.dept,
-                        widget.ay),
+                        widget.ay,
+                        widget.clg
+                    ),
                     tooltip: 'Scan QR Code',
                     backgroundColor: Colors.transparent,
                     elevation: 5,
@@ -847,7 +851,8 @@ void _openAttendanceAnnouncement(
     String batch,
     String fullName,
     String dept,
-    String ay) {
+    String ay,
+    String clg) {
   Navigator.push(
     context,
     MaterialPageRoute(
@@ -859,6 +864,7 @@ void _openAttendanceAnnouncement(
         fullName: fullName,
         dept: dept,
         ay: ay,
+        clg: clg
       ),
     ),
   );

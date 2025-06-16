@@ -10,6 +10,7 @@ class StudentTermWork extends StatefulWidget {
   final String batch;
   final String ay;
   final String dept;
+  final String clg;
 
   const StudentTermWork({
     super.key,
@@ -17,7 +18,10 @@ class StudentTermWork extends StatefulWidget {
     required this.sem,
     required this.rollNo,
     required this.fullName,
-    required this.batch, required this.ay, required this.dept,
+    required this.batch,
+    required this.ay,
+    required this.dept,
+    required this.clg,
   });
 
   @override
@@ -65,13 +69,15 @@ class _StudentTermWorkState extends State<StudentTermWork> {
     setState(() => isLoading = true);
     try {
       final QuerySnapshot qs = await _firestore
+          .collection('colleges')
+          .doc(widget.clg)
+          .collection('departments')
+          .doc(widget.dept)
           .collection('marks')
           .doc("termwork_config")
-          .collection(widget.dept)
-          .doc(widget.ay)
-          .collection(widget.year)
-          .doc(widget.sem)
-          .collection('subjects')
+          .collection(widget.ay)
+          .doc(widget.year)
+          .collection(widget.sem)
           .get();
 
       final List<String> firestoreSubjects =
@@ -97,13 +103,15 @@ class _StudentTermWorkState extends State<StudentTermWork> {
     setState(() => isLoading = true);
     try {
       final DocumentSnapshot configSnapshot = await _firestore
+          .collection('colleges')
+          .doc(widget.clg)
+          .collection('departments')
+          .doc(widget.dept)
           .collection('marks')
           .doc("termwork_config")
-          .collection(widget.dept)
-          .doc(widget.ay)
-          .collection(widget.year)
-          .doc(widget.sem)
-          .collection('subjects')
+          .collection(widget.ay)
+          .doc(widget.year)
+          .collection(widget.sem)
           .doc(selectedSubject)
           .get();
 
@@ -166,13 +174,17 @@ class _StudentTermWorkState extends State<StudentTermWork> {
     setState(() => isLoading = true);
     try {
       final DocumentSnapshot marksSnapshot = await _firestore
+          .collection('colleges')
+          .doc(widget.clg)
+          .collection('departments')
+          .doc(widget.dept)
           .collection("marks")
           .doc("termwork_marks")
-          .collection(widget.dept)
-          .doc(widget.ay)
-          .collection(widget.year)
-          .doc(widget.sem)
-          .collection(selectedSubject!)
+          .collection(widget.ay)
+          .doc(widget.year)
+          .collection(widget.sem)
+          .doc(selectedSubject)
+          .collection('students')
           .doc(widget.rollNo)
           .get();
       if (marksSnapshot.exists) {
@@ -238,13 +250,17 @@ class _StudentTermWorkState extends State<StudentTermWork> {
       };
 
       await _firestore
-          .collection('marks')
-          .doc('termwork_marks')
-          .collection(widget.dept)
-          .doc(widget.ay)
-          .collection(widget.year)
-          .doc(widget.sem)
-          .collection(selectedSubject!)
+          .collection('colleges')
+          .doc(widget.clg)
+          .collection('departments')
+          .doc(widget.dept)
+          .collection("marks")
+          .doc("termwork_marks")
+          .collection(widget.ay)
+          .doc(widget.year)
+          .collection(widget.sem)
+          .doc(selectedSubject)
+          .collection('students')
           .doc(widget.rollNo)
           .set(data, SetOptions(merge: true));
 

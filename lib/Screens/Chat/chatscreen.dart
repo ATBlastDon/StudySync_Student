@@ -26,6 +26,7 @@ class ChatScreen extends StatefulWidget {
   final String ay;
   final String dept;
   final String sem;
+  final String clg;
 
   const ChatScreen({super.key,
     required this.currentUseremail,
@@ -35,6 +36,7 @@ class ChatScreen extends StatefulWidget {
     required this.sem,
     required this.ay,
     required this.dept,
+    required this.clg,
   });
 
   @override
@@ -71,15 +73,23 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> fetchStudentInfo() async {
     QuerySnapshot<Map<String, dynamic>> snapshotStudent =
     await FirebaseFirestore.instance
-        .collection('students')
+        .collection('colleges')
+        .doc(widget.clg)
+        .collection('departments')
         .doc(widget.dept)
-        .collection(widget.ay)
-        .doc(widget.year)
-        .collection(widget.sem)
+        .collection("students")
+        .doc(widget.ay)
+        .collection(widget.year)
+        .doc(widget.sem)
+        .collection('details')
         .where('email', isEqualTo: widget.peerUseremail)
         .get();
     QuerySnapshot<Map<String, dynamic>> snapshotTeacher =
     await FirebaseFirestore.instance
+        .collection('colleges')
+        .doc(widget.clg)
+        .collection('departments')
+        .doc(widget.dept)
         .collection('teachers')
         .where('email', isEqualTo: widget.peerUseremail)
         .get();
@@ -234,6 +244,8 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+
+  /// Clear Chat History Logic
   Future<void> clearChatHistory(BuildContext context, String groupChatId) async {
     bool confirmClear = await showDialog(
       context: context,
@@ -247,79 +259,80 @@ class _ChatScreenState extends State<ChatScreen> {
             ],
           ),
           content: const Padding(
-            padding: EdgeInsets.only(top: 8.0), // Add padding here
+            padding: EdgeInsets.only(top: 8.0),
             child: Text(
-              'Are you sure you want to clear this chat?\nClearChat Clears the Chats from Both end!!!',
+              'Are you sure you want to clear this chat?\nThis will remove the chat from both ends!',
               style: TextStyle(fontFamily: "Outfit"),
             ),
           ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16.0),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
           actions: <Widget>[
             TextButton.icon(
-              onPressed: () {
-                Navigator.of(context).pop(false);
-              },
+              onPressed: () => Navigator.of(context).pop(false),
               icon: const Icon(Icons.cancel_outlined, color: Colors.grey),
               label: const Text('No', style: TextStyle(fontFamily: "Outfit", color: Colors.grey)),
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.grey, // Text color
-              ),
             ),
             ElevatedButton.icon(
-              onPressed: () {
-                Navigator.of(context).pop(true);
-              },
+              onPressed: () => Navigator.of(context).pop(true),
               icon: const Icon(Icons.delete_forever, color: Colors.white),
               label: const Text('Yes', style: TextStyle(fontFamily: "Outfit", color: Colors.white)),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red, // Background color
-                textStyle: const TextStyle(fontFamily: "Outfit"),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8.0),
-                ),
+                backgroundColor: Colors.red,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
               ),
             ),
-          ],);
+          ],
+        );
       },
     );
 
     if (confirmClear == true) {
       try {
-        QuerySnapshot<Map<String, dynamic>> messagesSnapshot =
-        await FirebaseFirestore.instance
+        final firestore = FirebaseFirestore.instance;
+        final storage = FirebaseStorage.instance;
+
+        final messagesSnapshot = await firestore
+            .collection('colleges')
+            .doc(widget.clg)
+            .collection('departments')
+            .doc(widget.dept)
             .collection('messages')
             .doc(groupChatId)
             .collection('chats')
             .get();
 
-        List<QueryDocumentSnapshot<Map<String, dynamic>>> messages =
-            messagesSnapshot.docs;
+        WriteBatch batch = firestore.batch();
 
-        for (QueryDocumentSnapshot<Map<String, dynamic>> message in messages) {
-          await message.reference.delete();
+        for (var doc in messagesSnapshot.docs) {
+          final data = doc.data();
+
+          if (data['type'] == 1 || data['type'] == 2) {
+            String fileUrl = data['content'];
+            try {
+              debugPrint("Attempting to delete file at URL: $fileUrl");
+              await storage.refFromURL(fileUrl).delete();
+              debugPrint("File deleted successfully.");
+            } catch (e) {
+              debugPrint("Error deleting file from storage: $e");
+            }
+          }
+
+          // Queue Firestore document deletion
+          batch.delete(doc.reference);
         }
+
+        await batch.commit();
 
         Fluttertoast.showToast(
           msg: 'Chat cleared successfully',
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.CENTER,
-          timeInSecForIosWeb: 1,
           backgroundColor: Colors.lightBlueAccent,
           textColor: Colors.white,
-          fontSize: 16.0,
         );
       } catch (error) {
-        // Show an error message when an error occurs
         Fluttertoast.showToast(
           msg: 'Error occurred: $error',
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.CENTER,
-          timeInSecForIosWeb: 1,
           backgroundColor: Colors.red,
           textColor: Colors.white,
-          fontSize: 16.0,
         );
       }
     }
@@ -389,6 +402,10 @@ class _ChatScreenState extends State<ChatScreen> {
               Expanded(
                 child: StreamBuilder(
                   stream: FirebaseFirestore.instance
+                      .collection('colleges')
+                      .doc(widget.clg)
+                      .collection('departments')
+                      .doc(widget.dept)
                       .collection('messages')
                       .doc(groupChatId)
                       .collection('chats')
@@ -671,9 +688,13 @@ class _ChatScreenState extends State<ChatScreen> {
     if (messageContent.isNotEmpty) {
       _textEditingController.clear();
       DocumentReference messageRef = FirebaseFirestore.instance
+          .collection('colleges')
+          .doc(widget.clg)
+          .collection('departments')
+          .doc(widget.dept)
           .collection('messages')
           .doc(groupChatId)
-          .collection("chats")
+          .collection('chats')
           .doc(DateTime.now().millisecondsSinceEpoch.toString());
 
       await messageRef.set({
@@ -702,7 +723,7 @@ class _ChatScreenState extends State<ChatScreen> {
   // Send image message.
   Future<void> _sendImageMessage(File imageFile) async {
     try {
-      String path = 'messages/images/$groupChatId/${DateTime.now().millisecondsSinceEpoch}';
+      String path = '${widget.clg}/${widget.dept}/messages/images/$groupChatId/${DateTime.now().millisecondsSinceEpoch}';
       String imageUrl = await uploadFileWithProgress(
         context: context,
         file: imageFile,
@@ -710,6 +731,10 @@ class _ChatScreenState extends State<ChatScreen> {
       );
 
       DocumentReference messageRef = FirebaseFirestore.instance
+          .collection('colleges')
+          .doc(widget.clg)
+          .collection('departments')
+          .doc(widget.dept)
           .collection('messages')
           .doc(groupChatId)
           .collection('chats')
@@ -740,7 +765,7 @@ class _ChatScreenState extends State<ChatScreen> {
 // Send PDF message: Upload the PDF and then save the message with metadata.
   Future<void> _sendPdfMessage(File pdfFile) async {
     try {
-      String path = 'messages/pdf/$groupChatId/${DateTime.now().millisecondsSinceEpoch}';
+      String path = '${widget.clg}/${widget.dept}/messages/pdf/$groupChatId/${DateTime.now().millisecondsSinceEpoch}';
       String pdfUrl = await uploadFileWithProgress(
         context: context,
         file: pdfFile,
@@ -754,9 +779,13 @@ class _ChatScreenState extends State<ChatScreen> {
       String pdfSize = "${sizeInMB.toStringAsFixed(2)} MB";
 
       DocumentReference messageRef = FirebaseFirestore.instance
+          .collection('colleges')
+          .doc(widget.clg)
+          .collection('departments')
+          .doc(widget.dept)
           .collection('messages')
           .doc(groupChatId)
-          .collection("chats")
+          .collection('chats')
           .doc(DateTime.now().millisecondsSinceEpoch.toString());
 
       await messageRef.set({
@@ -1233,6 +1262,10 @@ class _ChatScreenState extends State<ChatScreen> {
         }
         // Delete the Firestore document regardless.
         await FirebaseFirestore.instance
+            .collection('colleges')
+            .doc(widget.clg)
+            .collection('departments')
+            .doc(widget.dept)
             .collection('messages')
             .doc(groupChatId)
             .collection('chats')

@@ -20,6 +20,7 @@ class GiveAttendance extends StatefulWidget {
   final String created;
   final String optionalSubject;
   final String fullName;
+  final String clg;
 
   const GiveAttendance({
     super.key,
@@ -34,6 +35,7 @@ class GiveAttendance extends StatefulWidget {
     required this.fullName,
     required this.dept,
     required this.ay,
+    required this.clg
   });
 
   @override
@@ -131,27 +133,33 @@ class _GiveAttendanceState extends State<GiveAttendance> {
       DocumentReference attendanceDocRef;
       if (widget.subjectName.startsWith('DLOC') || widget.subjectName.startsWith('ILOC')) {
         attendanceDocRef = FirebaseFirestore.instance
-            .collection('attendance_record')
+            .collection('colleges')
+            .doc(widget.clg)
+            .collection('departments')
             .doc(widget.dept)
-            .collection(widget.ay)
-            .doc(widget.year)
-            .collection(widget.sem)
-            .doc(widget.subjectName)
-            .collection(widget.optionalSubject)
-            .doc(widget.type)
-            .collection('lecture')
+            .collection('attendance_record')
+            .doc(widget.ay)
+            .collection(widget.year)
+            .doc(widget.sem)
+            .collection(widget.subjectName)
+            .doc(widget.optionalSubject)
+            .collection(widget.type)
             .doc(widget.created)
             .collection('rollNumbers')
             .doc(widget.rollNo);
       } else {
         attendanceDocRef = FirebaseFirestore.instance
-            .collection('attendance_record')
+            .collection('colleges')
+            .doc(widget.clg)
+            .collection('departments')
             .doc(widget.dept)
-            .collection(widget.ay)
-            .doc(widget.year)
-            .collection(widget.sem)
-            .doc(widget.subjectName)
-            .collection(widget.type)
+            .collection('attendance_record')
+            .doc(widget.ay)
+            .collection(widget.year)
+            .doc(widget.sem)
+            .collection(widget.subjectName)
+            .doc(widget.type)
+            .collection('lecture')
             .doc(widget.created)
             .collection('rollNumbers')
             .doc(widget.rollNo);
@@ -172,12 +180,12 @@ class _GiveAttendanceState extends State<GiveAttendance> {
       String filePath;
       if (widget.subjectName.startsWith('DLOC') || widget.subjectName.startsWith('ILOC')) {
         if (widget.optionalSubject != 'N/A') {
-          filePath = 'attendance_record/${widget.dept}/${widget.ay}/${widget.year}/${widget.sem}/${widget.subjectName}/${widget.optionalSubject}/${widget.type}/${widget.created}/${widget.rollNo}/attendance.jpg';
+          filePath = '${widget.clg}/${widget.dept}/attendance_record/${widget.ay}/${widget.year}/${widget.sem}/${widget.subjectName}/${widget.optionalSubject}/${widget.type}/${widget.created}/${widget.rollNo}.jpg';
         } else {
-          filePath = 'attendance_record/${widget.dept}/${widget.ay}/${widget.year}/${widget.sem}/${widget.subjectName}/${widget.type}/${widget.created}/${widget.rollNo}/attendance.jpg';
+          filePath = '${widget.clg}/${widget.dept}/attendance_record/${widget.ay}/${widget.year}/${widget.sem}/${widget.subjectName}/${widget.type}/${widget.created}/${widget.rollNo}.jpg';
         }
       } else {
-        filePath = 'attendance_record/${widget.dept}/${widget.ay}/${widget.year}/${widget.sem}/${widget.subjectName}/${widget.type}/${widget.created}/${widget.rollNo}/attendance.jpg';
+        filePath = '${widget.clg}/${widget.dept}/attendance_record/${widget.ay}/${widget.year}/${widget.sem}/${widget.subjectName}/${widget.type}/${widget.created}/${widget.rollNo}.jpg';
       }
 
       await FirebaseStorage.instance.ref(filePath).putFile(compressedImageFile);
@@ -186,26 +194,32 @@ class _GiveAttendanceState extends State<GiveAttendance> {
       CollectionReference attendanceCollection;
       if (widget.subjectName.startsWith('DLOC') || widget.subjectName.startsWith('ILOC')) {
         attendanceCollection = FirebaseFirestore.instance
-            .collection('attendance_record')
+            .collection('colleges')
+            .doc(widget.clg)
+            .collection('departments')
             .doc(widget.dept)
-            .collection(widget.ay)
-            .doc(widget.year)
-            .collection(widget.sem)
-            .doc(widget.subjectName)
-            .collection(widget.optionalSubject)
-            .doc(widget.type)
-            .collection('lecture')
+            .collection('attendance_record')
+            .doc(widget.ay)
+            .collection(widget.year)
+            .doc(widget.sem)
+            .collection(widget.subjectName)
+            .doc(widget.optionalSubject)
+            .collection(widget.type)
             .doc(widget.created)
             .collection('rollNumbers');
       } else {
         attendanceCollection = FirebaseFirestore.instance
-            .collection('attendance_record')
+            .collection('colleges')
+            .doc(widget.clg)
+            .collection('departments')
             .doc(widget.dept)
-            .collection(widget.ay)
-            .doc(widget.year)
-            .collection(widget.sem)
-            .doc(widget.subjectName)
-            .collection(widget.type)
+            .collection('attendance_record')
+            .doc(widget.ay)
+            .collection(widget.year)
+            .doc(widget.sem)
+            .collection(widget.subjectName)
+            .doc(widget.type)
+            .collection('lecture')
             .doc(widget.created)
             .collection('rollNumbers');
       }
@@ -223,6 +237,7 @@ class _GiveAttendanceState extends State<GiveAttendance> {
         'imageUrl': downloadUrl,
         'approvalStatus': 'pending',
         'fullName': widget.fullName,
+        'clg': widget.clg
       });
 
       setState(() {
@@ -267,7 +282,7 @@ class _GiveAttendanceState extends State<GiveAttendance> {
                 Navigator.of(context).pop();
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => StudentInternal(year: widget.year, sem: widget.sem, dept: widget.dept, ay: widget.ay,)),
+                  MaterialPageRoute(builder: (context) => StudentInternal(year: widget.year, sem: widget.sem, dept: widget.dept, ay: widget.ay, clg: widget.clg,)),
                 );
               },
             ),

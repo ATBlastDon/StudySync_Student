@@ -12,6 +12,7 @@ class DeleteAccount extends StatefulWidget {
   final String rollNo;
   final String ay;
   final String dept;
+  final String clg;
 
   const DeleteAccount({
     super.key,
@@ -20,6 +21,7 @@ class DeleteAccount extends StatefulWidget {
     required this.rollNo,
     required this.ay,
     required this.dept,
+    required this.clg
   });
 
   @override
@@ -181,35 +183,27 @@ class _DeleteAccountState extends State<DeleteAccount> {
     });
 
     try {
-      // 1. Get current user.
       User? user = FirebaseAuth.instance.currentUser;
       if (!mounted) return;
       if (user == null) {
-        throw FirebaseAuthException(
-            message: "No user is currently signed in.", code: "no-user");
+        throw FirebaseAuthException(message: "No user is currently signed in.", code: "no-user");
       }
 
-      // 2. Prompt for re-authentication.
       final passwordInput = await _showPasswordInputDialog(context);
       if (passwordInput == null || passwordInput.isEmpty) {
         setState(() {
           _isDeleting = false;
         });
-        if(!mounted) return;
-        // Show a snack-bar that operation is cancelled.
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-              "Operation cancelled.",
-              style: TextStyle(fontFamily: "Outfit"),
-            ),
+            content: Text("Operation cancelled.", style: TextStyle(fontFamily: "Outfit")),
             backgroundColor: Colors.orange,
           ),
         );
-        return; // Cancel deletion if no password is provided.
+        return;
       }
 
-      // 3. Attempt re-authentication.
       AuthCredential credential = EmailAuthProvider.credential(
         email: user.email!,
         password: passwordInput,
@@ -224,32 +218,60 @@ class _DeleteAccountState extends State<DeleteAccount> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-              "Re-Authentication failed. Account deletion cancelled.",
-              style: TextStyle(fontFamily: "Outfit"),
-            ),
+            content: Text("Re-Authentication failed. Account deletion cancelled.", style: TextStyle(fontFamily: "Outfit")),
             backgroundColor: Colors.red,
           ),
         );
         return;
       }
 
-      // 4. Proceed with deletion if re-authentication is successful.
-      // Delete profile photo from Firebase Storage.
+      // Delete profile photo
       final storageRef = FirebaseStorage.instance
           .ref()
-          .child('Profile_Photos/Student/${widget.dept}/${widget.ay}/${widget.year}/${widget.sem}/${widget.rollNo}.jpg');
+          .child('${widget.clg}/${widget.dept}/student/${widget.ay}/${widget.year}/${widget.sem}/${widget.rollNo}.jpg');
       await storageRef.delete().catchError((error) {
         debugPrint('Error deleting profile photo: $error');
       });
 
-      // Delete the nested optional subjects document.
-      final optionalSubjectsDocRef = FirebaseFirestore.instance
-          .collection('students')
+      // Delete dynamic file if type is 1 or 2 (image/pdf file uploaded to Firebase)
+      final studentDocSnapshot = await FirebaseFirestore.instance
+          .collection('colleges')
+          .doc(widget.clg)
+          .collection('departments')
           .doc(widget.dept)
-          .collection(widget.ay)
-          .doc(widget.year)
-          .collection(widget.sem)
+          .collection('students')
+          .doc(widget.ay)
+          .collection(widget.year)
+          .doc(widget.sem)
+          .collection('details')
+          .doc(widget.rollNo)
+          .get();
+
+      if (studentDocSnapshot.exists) {
+        final data = studentDocSnapshot.data();
+        if (data != null && (data['type'] == 1 || data['type'] == 2)) {
+          String fileUrl = data['content'];
+          try {
+            debugPrint("Attempting to delete file at URL: $fileUrl");
+            await FirebaseStorage.instance.refFromURL(fileUrl).delete();
+            debugPrint("File deleted successfully.");
+          } catch (e) {
+            debugPrint("Error deleting file from storage: $e");
+          }
+        }
+      }
+
+      // 🗑 Delete optional subjects
+      final optionalSubjectsDocRef = FirebaseFirestore.instance
+          .collection('colleges')
+          .doc(widget.clg)
+          .collection('departments')
+          .doc(widget.dept)
+          .collection('students')
+          .doc(widget.ay)
+          .collection(widget.year)
+          .doc(widget.sem)
+          .collection('details')
           .doc(widget.rollNo)
           .collection('optional_subjects')
           .doc(widget.sem);
@@ -257,35 +279,34 @@ class _DeleteAccountState extends State<DeleteAccount> {
         debugPrint('Error deleting optional subjects: $error');
       });
 
-      // Delete the student document from Firestore.
+      // 🧾 Delete student document
       final studentDocRef = FirebaseFirestore.instance
-          .collection('students')
+          .collection('colleges')
+          .doc(widget.clg)
+          .collection('departments')
           .doc(widget.dept)
-          .collection(widget.ay)
-          .doc(widget.year)
-          .collection(widget.sem)
+          .collection('students')
+          .doc(widget.ay)
+          .collection(widget.year)
+          .doc(widget.sem)
+          .collection('details')
           .doc(widget.rollNo);
       await studentDocRef.delete();
 
-      // Finally, delete the user account.
+      // 🚫 Delete Firebase user account
       await user.delete();
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            "Account deleted successfully!",
-            style: TextStyle(fontFamily: "Outfit"),
-          ),
+          content: Text("Account deleted successfully!", style: TextStyle(fontFamily: "Outfit")),
           backgroundColor: Colors.green,
         ),
       );
 
-      // Clear SharedPreferences.
       final prefs = await SharedPreferences.getInstance();
       await prefs.clear();
 
-      // Navigate to the home screen.
       if (!mounted) return;
       Navigator.pushAndRemoveUntil(
         context,
@@ -295,10 +316,7 @@ class _DeleteAccountState extends State<DeleteAccount> {
     } on FirebaseAuthException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            e.message ?? "An error occurred.",
-            style: const TextStyle(fontFamily: "Outfit"),
-          ),
+          content: Text(e.message ?? "An error occurred.", style: const TextStyle(fontFamily: "Outfit")),
           backgroundColor: Colors.red,
         ),
       );
@@ -306,10 +324,7 @@ class _DeleteAccountState extends State<DeleteAccount> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            e.toString(),
-            style: const TextStyle(fontFamily: "Outfit"),
-          ),
+          content: Text(e.toString(), style: const TextStyle(fontFamily: "Outfit")),
           backgroundColor: Colors.red,
         ),
       );

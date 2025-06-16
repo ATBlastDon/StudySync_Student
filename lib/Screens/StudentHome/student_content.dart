@@ -16,8 +16,12 @@ String generateGroupChatId(String currentUserEmail, String peerUserEmail) {
 }
 
 /// Helper: Mark unread messages as read in a given conversation.
-Future<void> markMessagesAsRead(String groupChatId, String currentUserEmail) async {
+Future<void> markMessagesAsRead(String clg, String dept, String groupChatId, String currentUserEmail) async {
   QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+      .collection('colleges')
+      .doc(clg)
+      .collection('departments')
+      .doc(dept)
       .collection('messages')
       .doc(groupChatId)
       .collection('chats')
@@ -34,23 +38,36 @@ Future<void> markMessagesAsRead(String groupChatId, String currentUserEmail) asy
 
 
 class StudentsContent extends StatelessWidget {
-  final String _email;
+  final String email;
   final String year;
   final String sem;
   final String ay;
   final String dept;
+  final String clg;
 
-  const StudentsContent(this._email, this.year, {super.key, required this.sem, required this.ay, required this.dept});
+  const StudentsContent({
+    super.key,
+    required this.email,
+    required this.year,
+    required this.sem,
+    required this.ay,
+    required this.dept,
+    required this.clg
+  });
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
-          .collection('students')
+          .collection('colleges')
+          .doc(clg)
+          .collection('departments')
           .doc(dept)
-          .collection(ay)
-          .doc(year)
-          .collection(sem)
+          .collection('students')
+          .doc(ay)
+          .collection(year)
+          .doc(sem)
+          .collection('details')
           .where('approvalStatus', isEqualTo: 'approved')
           .snapshots(),
       builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
@@ -68,7 +85,7 @@ class StudentsContent extends StatelessWidget {
         final allDocs = snapshot.data!.docs;
         final filteredDocs = allDocs.where((doc) {
           final data = doc.data() as Map<String, dynamic>;
-          return data['email'] != _email;
+          return data['email'] != email;
         }).toList();
 
         if (filteredDocs.isEmpty) {
@@ -112,6 +129,10 @@ class StudentsContent extends StatelessWidget {
                     ),
                     subtitle: StreamBuilder<QuerySnapshot>(
                       stream: FirebaseFirestore.instance
+                          .collection('colleges')
+                          .doc(clg)
+                          .collection('departments')
+                          .doc(dept)
                           .collection('messages')
                           .doc(groupChatId)
                           .collection('chats')
@@ -145,6 +166,10 @@ class StudentsContent extends StatelessWidget {
                     ),
                     trailing: StreamBuilder<QuerySnapshot>(
                       stream: FirebaseFirestore.instance
+                          .collection('colleges')
+                          .doc(clg)
+                          .collection('departments')
+                          .doc(dept)
                           .collection('messages')
                           .doc(groupChatId)
                           .collection('chats')
@@ -179,7 +204,7 @@ class StudentsContent extends StatelessWidget {
                       },
                     ),
                     onTap: () {
-                      _openChatScreen(context, studentDocument.id, _email, peerEmail, fullName, year, sem, ay, dept);
+                      _openChatScreen(context, studentDocument.id, email, peerEmail, fullName, year, sem, ay, dept, clg);
                     },
                   ),
                   if (index != filteredDocs.length - 1)
@@ -196,10 +221,10 @@ class StudentsContent extends StatelessWidget {
 
 
 void _openChatScreen(BuildContext context, String chatUserId, String currentUserEmail,
-    String chatUserEmail, String chatUserName, String year, String sem, String ay, String dept) async {
+    String chatUserEmail, String chatUserName, String year, String sem, String ay, String dept, String clg) async {
   final navigator = Navigator.of(context);
   final groupChatId = generateGroupChatId(currentUserEmail, chatUserEmail);
-  await markMessagesAsRead(groupChatId, currentUserEmail);
+  await markMessagesAsRead(clg, dept, groupChatId, currentUserEmail);
   navigator.push(
     MaterialPageRoute(
       builder: (context) => ChatScreen(
@@ -210,6 +235,7 @@ void _openChatScreen(BuildContext context, String chatUserId, String currentUser
         sem: sem,
         ay: ay,
         dept: dept,
+        clg: clg
       ),
     ),
   );

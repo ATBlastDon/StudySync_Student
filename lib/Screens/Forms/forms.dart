@@ -9,6 +9,7 @@ class Forms extends StatefulWidget {
   final String sem;
   final String ay;
   final String dept;
+  final String clg;
 
   const Forms({
     super.key,
@@ -17,6 +18,7 @@ class Forms extends StatefulWidget {
     required this.sem,
     required this.ay,
     required this.dept,
+    required this.clg,
   });
 
   @override
@@ -144,13 +146,15 @@ class _FormsState extends State<Forms> {
         ),
         child: StreamBuilder(
           stream: FirebaseFirestore.instance
-              .collection('leave_forms')
+              .collection('colleges')
+              .doc(widget.clg)
+              .collection('departments')
               .doc(widget.dept)
-              .collection(widget.ay)
-              .doc(widget.year)
-              .collection(widget.sem)
-              .doc('forms')
-              .collection('details')
+              .collection('leave_forms')
+              .doc(widget.ay)
+              .collection(widget.year)
+              .doc(widget.sem)
+              .collection('requests')
               .where('rollNo', isEqualTo: widget.rollNo)
               .snapshots(),
           builder: (context, snapshot) {
@@ -637,13 +641,15 @@ class _FormsState extends State<Forms> {
   Future<void> _editLeaveRequest(String docId, String newReason) async {
     try {
       final docRef = FirebaseFirestore.instance
-          .collection('leave_forms')
+          .collection('colleges')
+          .doc(widget.clg)
+          .collection('departments')
           .doc(widget.dept)
-          .collection(widget.ay)
-          .doc(widget.year)
-          .collection(widget.sem)
-          .doc('forms')
-          .collection('details')
+          .collection('leave_forms')
+          .doc(widget.ay)
+          .collection(widget.year)
+          .doc(widget.sem)
+          .collection('requests')
           .doc(docId);
 
       await docRef.update({'reason': newReason});

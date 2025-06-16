@@ -15,6 +15,7 @@ class ParticularSheet extends StatefulWidget {
   final String optionalSubject;
   final String ay;
   final String dept;
+  final String clg;
   final String batch;
   final DateTime fromDate;
   final DateTime toDate;
@@ -36,6 +37,7 @@ class ParticularSheet extends StatefulWidget {
     required this.fullName,
     required this.ay,
     required this.dept,
+    required this.clg,
   });
 
   @override
@@ -70,13 +72,17 @@ class _ParticularSheetState extends State<ParticularSheet> {
         if (widget.type.toLowerCase() == 'lab') {
           // For Lab, filter by batch.
           docSnapshot = await FirebaseFirestore.instance
-              .collection('optional_subjects')
+              .collection('colleges')
+              .doc(widget.clg)
+              .collection('departments')
               .doc(widget.dept)
-              .collection(widget.ay)
-              .doc(widget.year)
-              .collection(widget.sem)
-              .doc(widget.sub)
-              .collection(widget.optionalSubject)
+              .collection('optional_subjects')
+              .doc(widget.ay)
+              .collection(widget.year)
+              .doc(widget.sem)
+              .collection(widget.sub)
+              .doc(widget.optionalSubject)
+              .collection('students')
               .doc(widget.rollNo)
               .get();
 
@@ -92,35 +98,47 @@ class _ParticularSheetState extends State<ParticularSheet> {
         } else {
           // For Theory, no batch filtering is needed.
           docSnapshot = await FirebaseFirestore.instance
-              .collection('optional_subjects')
+              .collection('colleges')
+              .doc(widget.clg)
+              .collection('departments')
               .doc(widget.dept)
-              .collection(widget.ay)
-              .doc(widget.year)
-              .collection(widget.sem)
-              .doc(widget.sub)
-              .collection(widget.optionalSubject)
+              .collection('optional_subjects')
+              .doc(widget.ay)
+              .collection(widget.year)
+              .doc(widget.sem)
+              .collection(widget.sub)
+              .doc(widget.optionalSubject)
+              .collection('students')
               .doc(widget.rollNo)
               .get();
         }
         // If the student isn’t found in optional_subjects, fallback to main students.
         if (!docSnapshot!.exists) {
           docSnapshot = await FirebaseFirestore.instance
-              .collection('students')
+              .collection('colleges')
+              .doc(widget.clg)
+              .collection('departments')
               .doc(widget.dept)
-              .collection(widget.ay)
-              .doc(widget.year)
-              .collection(widget.sem)
+              .collection('students')
+              .doc(widget.ay)
+              .collection(widget.year)
+              .doc(widget.sem)
+              .collection('details')
               .doc(widget.rollNo)
               .get();
         }
       } else {
         // No optional subject; fetch from main 'students' collection.
         docSnapshot = await FirebaseFirestore.instance
-            .collection('students')
+            .collection('colleges')
+            .doc(widget.clg)
+            .collection('departments')
             .doc(widget.dept)
-            .collection(widget.ay)
-            .doc(widget.year)
-            .collection(widget.sem)
+            .collection('students')
+            .doc(widget.ay)
+            .collection(widget.year)
+            .doc(widget.sem)
+            .collection('details')
             .doc(widget.rollNo)
             .get();
       }
@@ -188,29 +206,33 @@ class _ParticularSheetState extends State<ParticularSheet> {
     if (subject.startsWith("DLOC")) {
       // For DLOC subjects
       docRef = firestore
-          .collection('attendance_record')
+          .collection('colleges')
+          .doc(widget.clg)
+          .collection('departments')
           .doc(widget.dept)
-          .collection(widget.ay)
-          .doc(widget.year)
-          .collection(widget.sem)
-          .doc(widget.sub)
-          .collection(widget.optionalSubject) // For example, SME
-          .doc(widget.type)
-          .collection('lecture')
+          .collection("attendance_record")
+          .doc(widget.ay)
+          .collection(widget.year)
+          .doc(widget.sem)
+          .collection(widget.sub) // The base optional subject key.
+          .doc(widget.optionalSubject) // The chosen optional subject.
+          .collection(widget.type)
           .doc(DateFormat('yyyy-MM-dd HH:mm:ss').format(lectureDate))
           .collection('rollNumbers')
           .doc(studentRollNo);
     } else if (subject.startsWith("ILOC")) {
       // For ILOC subjects
       docRef = firestore
-          .collection('attendance_record')
+          .collection('colleges')
+          .doc(widget.clg)
+          .collection('departments')
           .doc(widget.dept)
-          .collection(widget.ay)
-          .doc(widget.year)
-          .collection(widget.sem)
-          .doc(widget.sub)
-          .collection(widget.optionalSubject)
-          .doc(widget.type)
+          .collection("attendance_record")
+          .doc(widget.ay)
+          .collection(widget.year)
+          .doc(widget.sem)
+          .collection(widget.sub) // The base optional subject key.
+          .doc(widget.type) // The chosen optional subject.
           .collection('lecture')
           .doc(DateFormat('yyyy-MM-dd HH:mm:ss').format(lectureDate))
           .collection('rollNumbers')
@@ -218,13 +240,17 @@ class _ParticularSheetState extends State<ParticularSheet> {
     } else {
       // For regular subjects
       docRef = firestore
-          .collection('attendance_record')
+          .collection('colleges')
+          .doc(widget.clg)
+          .collection('departments')
           .doc(widget.dept)
-          .collection(widget.ay)
-          .doc(widget.year)
-          .collection(widget.sem)
-          .doc(widget.sub)
-          .collection(widget.type)
+          .collection("attendance_record")
+          .doc(widget.ay)
+          .collection(widget.year)
+          .doc(widget.sem)
+          .collection(widget.sub) // The base optional subject key.
+          .doc(widget.type) // The chosen optional subject.
+          .collection('lecture')
           .doc(DateFormat('yyyy-MM-dd HH:mm:ss').format(lectureDate))
           .collection('rollNumbers')
           .doc(studentRollNo);

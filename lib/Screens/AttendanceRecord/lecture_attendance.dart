@@ -12,6 +12,7 @@ class LectureAttendance extends StatefulWidget {
   final String batch;
   final String ay;
   final String dept;
+  final String clg;
 
   const LectureAttendance({
     super.key,
@@ -22,6 +23,7 @@ class LectureAttendance extends StatefulWidget {
     required this.fullName,
     required this.ay,
     required this.dept,
+    required this.clg
   });
 
   @override
@@ -51,8 +53,12 @@ class _LectureAttendanceState extends State<LectureAttendance> {
   Future<void> _fetchSubjectsMapping() async {
     try {
       DocumentSnapshot snapshot = await FirebaseFirestore.instance
-          .collection('subjects')
+          .collection('colleges')
+          .doc(widget.clg)
+          .collection('departments')
           .doc(widget.dept)
+          .collection('subjects')
+          .doc('details')
           .get();
       if (snapshot.exists) {
         setState(() {
@@ -120,25 +126,31 @@ class _LectureAttendanceState extends State<LectureAttendance> {
             selectedOptionalSubject != null) {
           // Path: attendance/{year}/{sem}/{subject}/{optionalSubject}/{lab_or_theory}
           attendanceQuery = FirebaseFirestore.instance
-              .collection("attendance")
+              .collection('colleges')
+              .doc(widget.clg)
+              .collection('departments')
               .doc(widget.dept)
-              .collection(widget.ay)
-              .doc(widget.year)
-              .collection(widget.sem)
-              .doc(selectedSubject!) // The base optional subject key.
-              .collection(selectedOptionalSubject!) // The chosen optional subject.
-              .doc(selectedLabOrTheory!)
-              .collection("lecture");
+              .collection("attendance")
+              .doc(widget.ay)
+              .collection(widget.year)
+              .doc(widget.sem)
+              .collection(selectedSubject!) // The base optional subject key.
+              .doc(selectedOptionalSubject) // The chosen optional subject.
+              .collection(selectedLabOrTheory!);
         } else {
           // Default path: attendance/{year}/{sem}/{subject}/{lab_or_theory}
           attendanceQuery = FirebaseFirestore.instance
-              .collection("attendance")
+              .collection('colleges')
+              .doc(widget.clg)
+              .collection('departments')
               .doc(widget.dept)
-              .collection(widget.ay)
-              .doc(widget.year)
-              .collection(widget.sem)
-              .doc(selectedSubject!)
-              .collection(selectedLabOrTheory!);
+              .collection("attendance")
+              .doc(widget.ay)
+              .collection(widget.year)
+              .doc(widget.sem)
+              .collection(selectedSubject!)
+              .doc(selectedLabOrTheory)
+              .collection('lecture');
         }
 
         // If Lab is selected, filter by batch.
@@ -170,6 +182,7 @@ class _LectureAttendanceState extends State<LectureAttendance> {
               'batch': data['batch'],
               'created_at': createdAt,
               'expires_at': expiresAt,
+              'clg': widget.clg,
             });
           }
 
@@ -500,6 +513,7 @@ class _LectureAttendanceState extends State<LectureAttendance> {
                                       batch: widget.batch,
                                       ay: widget.ay,
                                       dept: widget.dept,
+                                      clg: widget.clg,
                                     ),
                                   ),
                                 );

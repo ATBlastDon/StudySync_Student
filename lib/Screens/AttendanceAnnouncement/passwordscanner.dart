@@ -16,6 +16,7 @@ class Passwordscanner extends StatefulWidget {
   final String created;
   final String optionalSubject;
   final String fullName;
+  final String clg;
 
   const Passwordscanner({
     super.key,
@@ -30,6 +31,7 @@ class Passwordscanner extends StatefulWidget {
     required this.fullName,
     required this.dept,
     required this.ay,
+    required this.clg
   });
 
   @override
@@ -318,6 +320,7 @@ class _PasswordscannerState extends State<Passwordscanner> {
                           created: widget.created,
                           fullName: widget.fullName,
                           ay: widget.ay,
+                          clg: widget.clg
                         ),
                       ),
                     );

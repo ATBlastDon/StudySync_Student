@@ -26,6 +26,8 @@ class _StudentLoginState extends State<StudentLogin> {
   String? _selectedSemester;
   String? _selectedDepartment;
   String? _selectedAcademicYear;
+  String? _selectedClg;
+
 
   // Map for semester options based on year
   final Map<String, List<String>> semesterOptions = {
@@ -34,6 +36,11 @@ class _StudentLoginState extends State<StudentLogin> {
     "SE": ["3", "4"],
   };
 
+  // For College and Department Lists
+  List<String> _departmentList = [];
+  List<String> _collegeList = [];
+
+
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   late SharedPreferences _prefs;
 
@@ -41,7 +48,20 @@ class _StudentLoginState extends State<StudentLogin> {
   void initState() {
     super.initState();
     _initSharedPreferences();
+    fetchCollegeNames();
   }
+
+
+  /// Fetch college names from Firebase Firestore.
+  Future<void> fetchCollegeNames() async {
+    final snapshot = await FirebaseFirestore.instance.collection('colleges').get();
+    final names = snapshot.docs.map((doc) => doc['name'] as String).toList();
+
+    setState(() {
+      _collegeList = names;
+    });
+  }
+
 
   Future<void> _initSharedPreferences() async {
     _prefs = await SharedPreferences.getInstance();
@@ -52,14 +72,15 @@ class _StudentLoginState extends State<StudentLogin> {
   void checkIfLoggedIn() {
     bool isLoggedIn = _prefs.getBool("isLoggedIn") ?? false;
     if (isLoggedIn) {
+      String? clg = _prefs.getString("clg");
       String? year = _prefs.getString("year");
       String? sem = _prefs.getString("sem");
       String? dept = _prefs.getString("dept");
       String? ay = _prefs.getString("ay");
 
-      if (dept != null && ay != null && year != null && year.isNotEmpty && sem!.isNotEmpty) {
+      if (clg != null && dept != null && ay != null && year != null && year.isNotEmpty && sem!.isNotEmpty) {
         if (!mounted) return;
-        _navigateToStudentInternal(context, year, sem, dept, ay);
+        _navigateToStudentInternal(context, year, sem, dept, ay, clg);
       }
     }
   }
@@ -140,203 +161,96 @@ class _StudentLoginState extends State<StudentLogin> {
                   padding: const EdgeInsets.symmetric(horizontal: 40),
                   child: Column(
                     children: <Widget>[
+
+                      // College Dropdown
+                      buildDropdown(
+                        label: "College",
+                        hint: "Select College",
+                        value: _selectedClg,
+                        items: _collegeList,
+                        onChanged: (newValue) async {
+                          setState(() {
+                            _selectedClg = newValue;
+                            _selectedDepartment = null;
+                            _departmentList = [];
+                          });
+                          if (newValue != null) {
+                            final snapshot = await FirebaseFirestore.instance
+                                .collection('colleges')
+                                .doc(newValue)
+                                .collection('departments')
+                                .get();
+                            final departments = snapshot.docs.map((doc) => doc.id).toList();
+
+                            setState(() {
+                              _departmentList = departments;
+                            });
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 5),
+
                       // Department Dropdown
-                      FadeInUp(
-                        duration: const Duration(milliseconds: 1000),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              "Department",
-                              style: TextStyle(
-                                fontFamily: 'Outfit',
-                                fontSize: 15,
-                                fontWeight: FontWeight.w400,
-                                color: Colors.black87,
-                              ),
-                            ),
-                            const SizedBox(height: 5),
-                            DropdownButtonFormField<String>(
-                              value: _selectedDepartment,
-                              style: const TextStyle(fontFamily: "Outfit", color: Colors.black),
-                              decoration: InputDecoration(
-                                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
-                                enabledBorder: OutlineInputBorder(
-                                  borderSide: BorderSide(color: Colors.grey.shade400),
-                                ),
-                                border: OutlineInputBorder(
-                                  borderSide: BorderSide(color: Colors.grey.shade400),
-                                ),
-                              ),
-                              hint: const Text("Select Department", style: TextStyle(fontFamily: "Outfit")),
-                              onChanged: (String? newValue) {
-                                setState(() {
-                                  _selectedDepartment = newValue;
-                                });
-                              },
-                              items: [
-                                "CSE(AIML)",
-                                "Mechanical",
-                                "Chemical",
-                                "IT",
-                                "EXTC",
-                                "Electrical"
-                              ].map((String department) {
-                                return DropdownMenuItem<String>(
-                                  value: department,
-                                  child: Text(department, style: const TextStyle(fontFamily: "Outfit")),
-                                );
-                              }).toList(),
-                            ),
-                          ],
-                        ),
+                      buildDropdown(
+                        label: "Department",
+                        hint: "Select Department",
+                        value: _selectedDepartment,
+                        items: _departmentList,
+                        onChanged: (newValue) {
+                          setState(() {
+                            _selectedDepartment = newValue;
+                          });
+                        },
                       ),
-                      const SizedBox(height: 5),
+                      const SizedBox(height: 5,),
+
                       // Academic Year Dropdown
-                      FadeInUp(
-                        duration: const Duration(milliseconds: 1000),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              "Academic Year",
-                              style: TextStyle(
-                                fontFamily: 'Outfit',
-                                fontSize: 15,
-                                fontWeight: FontWeight.w400,
-                                color: Colors.black87,
-                              ),
-                            ),
-                            const SizedBox(height: 5),
-                            DropdownButtonFormField<String>(
-                              value: _selectedAcademicYear,
-                              style: const TextStyle(fontFamily: "Outfit", color: Colors.black),
-                              decoration: InputDecoration(
-                                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
-                                enabledBorder: OutlineInputBorder(
-                                  borderSide: BorderSide(color: Colors.grey.shade400),
-                                ),
-                                border: OutlineInputBorder(
-                                  borderSide: BorderSide(color: Colors.grey.shade400),
-                                ),
-                              ),
-                              hint: const Text("Select Academic Year", style: TextStyle(fontFamily: "Outfit")),
-                              onChanged: (String? newValue) {
-                                setState(() {
-                                  _selectedAcademicYear = newValue;
-                                });
-                              },
-                              items: (() {
-                                final int currentYear = DateTime.now().year;
-                                final int startYear = currentYear - 5;
-                                final int totalYears = 11;
-                                return List.generate(totalYears, (index) {
-                                  int year = startYear + index;
-                                  String academicYear = "$year-${year + 1}";
-                                  return DropdownMenuItem<String>(
-                                    value: academicYear,
-                                    child: Text(academicYear, style: const TextStyle(fontFamily: "Outfit")),
-                                  );
-                                });
-                              }()),
-                            ),
-                          ],
-                        ),
+                      buildDropdown(
+                        label: "Academic Year",
+                        hint: "Select Academic Year",
+                        value: _selectedAcademicYear,
+                        items: List.generate(11, (index) {
+                          final int year = DateTime.now().year - 5 + index;
+                          return "$year-${year + 1}";
+                        }),
+                        onChanged: (newValue) {
+                          setState(() {
+                            _selectedAcademicYear = newValue;
+                          });
+                        },
                       ),
-                      const SizedBox(height: 5),
+                      const SizedBox(height: 5,),
+
                       // Year Dropdown
-                      FadeInUp(
-                        duration: const Duration(milliseconds: 1000),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              "Year",
-                              style: TextStyle(
-                                fontFamily: 'Outfit',
-                                fontSize: 15,
-                                fontWeight: FontWeight.w400,
-                                color: Colors.black87,
-                              ),
-                            ),
-                            const SizedBox(height: 5),
-                            DropdownButtonFormField<String>(
-                              value: _selectedYear,
-                              style: const TextStyle(fontFamily: "Outfit", color: Colors.black),
-                              decoration: InputDecoration(
-                                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
-                                enabledBorder: OutlineInputBorder(
-                                  borderSide: BorderSide(color: Colors.grey.shade400),
-                                ),
-                                border: OutlineInputBorder(
-                                  borderSide: BorderSide(color: Colors.grey.shade400),
-                                ),
-                              ),
-                              hint: const Text("Select Year", style: TextStyle(fontFamily: "Outfit")),
-                              onChanged: (String? newValue) {
-                                setState(() {
-                                  _selectedYear = newValue;
-                                  _selectedSemester = null;
-                                });
-                              },
-                              items: ["BE", "TE", "SE"].map((String year) {
-                                return DropdownMenuItem<String>(
-                                  value: year,
-                                  child: Text(year, style: const TextStyle(fontFamily: "Outfit")),
-                                );
-                              }).toList(),
-                            ),
-                          ],
-                        ),
+                      buildDropdown(
+                        label: "Year",
+                        hint: "Select Year",
+                        value: _selectedYear,
+                        items: ["BE", "TE", "SE"],
+                        onChanged: (newValue) {
+                          setState(() {
+                            _selectedYear = newValue;
+                            _selectedSemester = null;
+                          });
+                        },
                       ),
-                      const SizedBox(height: 5),
-                      // Semester Dropdown (dependent on Year)
-                      FadeInUp(
-                        duration: const Duration(milliseconds: 1000),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              "Semester",
-                              style: TextStyle(
-                                fontFamily: 'Outfit',
-                                fontSize: 15,
-                                fontWeight: FontWeight.w400,
-                                color: Colors.black87,
-                              ),
-                            ),
-                            const SizedBox(height: 5),
-                            DropdownButtonFormField<String>(
-                              value: _selectedSemester,
-                              style: const TextStyle(fontFamily: "Outfit", color: Colors.black),
-                              decoration: InputDecoration(
-                                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
-                                enabledBorder: OutlineInputBorder(
-                                  borderSide: BorderSide(color: Colors.grey.shade400),
-                                ),
-                                border: OutlineInputBorder(
-                                  borderSide: BorderSide(color: Colors.grey.shade400),
-                                ),
-                              ),
-                              hint: const Text("Select Semester", style: TextStyle(fontFamily: "Outfit")),
-                              onChanged: (String? newValue) {
-                                setState(() {
-                                  _selectedSemester = newValue;
-                                });
-                              },
-                              items: _selectedYear == null
-                                  ? []
-                                  : semesterOptions[_selectedYear]!.map((String sem) {
-                                return DropdownMenuItem<String>(
-                                  value: sem,
-                                  child: Text(sem, style: const TextStyle(fontFamily: "Outfit")),
-                                );
-                              }).toList(),
-                            ),
-                          ],
-                        ),
+                      const SizedBox(height: 5,),
+
+                      // Semester Dropdown
+                      buildDropdown(
+                        label: "Semester",
+                        hint: "Select Semester",
+                        value: _selectedSemester,
+                        items: _selectedYear == null ? [] : semesterOptions[_selectedYear]!,
+                        onChanged: (newValue) {
+                          setState(() {
+                            _selectedSemester = newValue;
+                          });
+                        },
                       ),
-                      const SizedBox(height: 5),
+                      const SizedBox(height: 5,),
+
+                      // Email TextField
                       FadeInUp(
                         duration: const Duration(milliseconds: 1000),
                         child: makeInput(
@@ -345,6 +259,8 @@ class _StudentLoginState extends State<StudentLogin> {
                           hintText: "Enter Your Email",
                         ),
                       ),
+
+                      // Password TextField
                       FadeInUp(
                         duration: const Duration(milliseconds: 1000),
                         child: PasswordField(
@@ -473,6 +389,66 @@ class _StudentLoginState extends State<StudentLogin> {
     );
   }
 
+
+  /// Dropdown Design
+  Widget buildDropdown({
+    required String label,
+    required String hint,
+    required String? value,
+    required List<String> items,
+    required Function(String?) onChanged,
+  }) {
+    return FadeInUp(
+      duration: const Duration(milliseconds: 1000),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontFamily: 'Outfit',
+              fontSize: 15,
+              fontWeight: FontWeight.w400,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 5),
+          DropdownButtonFormField<String>(
+            value: value,
+            style: const TextStyle(fontFamily: "Outfit", color: Colors.black),
+            decoration: InputDecoration(
+              contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
+              enabledBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.grey.shade400),
+              ),
+              border: OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.grey.shade400),
+              ),
+            ),
+            hint: Text(hint, style: const TextStyle(fontFamily: "Outfit")),
+            onChanged: onChanged,
+            items: items.map((String item) {
+              return DropdownMenuItem<String>(
+                value: item,
+                child: SizedBox(
+                  width: 250,
+                  child: Text(
+                    item,
+                    style: const TextStyle(fontFamily: "Outfit"),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  /// Input Design
   Widget makeInput({required String label, required TextEditingController controller, required String hintText}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -508,15 +484,18 @@ class _StudentLoginState extends State<StudentLogin> {
     );
   }
 
+
+  /// Sign in Student Logic
   void signInStudent() async {
     final String? year = _selectedYear;
     final String? sem = _selectedSemester;
     final String? dept = _selectedDepartment;
     final String? ay = _selectedAcademicYear;
+    final String? clg = _selectedClg;
     final String email = _emailController.text.trim();
     final String password = _passwordController.text.trim();
 
-    if (ay == null || dept == null || year == null || sem == null || email.isEmpty || password.isEmpty) {
+    if (clg == null || ay == null || dept == null || year == null || sem == null || email.isEmpty || password.isEmpty) {
       showMessage('Please fill all fields and select Year & Semester');
       return;
     }
@@ -533,11 +512,15 @@ class _StudentLoginState extends State<StudentLogin> {
 
     try {
       CollectionReference studentsRef = FirebaseFirestore.instance
-          .collection("students")
+          .collection('colleges')
+          .doc(clg)
+          .collection('departments')
           .doc(dept)
-          .collection(ay)
-          .doc(year)
-          .collection(sem);
+          .collection("students")
+          .doc(ay)
+          .collection(year)
+          .doc(sem)
+          .collection('details');
       QuerySnapshot querySnapshot =
       await studentsRef.where("email", isEqualTo: email).get();
 
@@ -555,13 +538,14 @@ class _StudentLoginState extends State<StudentLogin> {
         bool isApproved = await checkApprovalStatus(email);
         if (isApproved) {
           await _saveLoginStatus(true);
+          await _prefs.setString('clg', clg);
           await _prefs.setString('year', year);
           await _prefs.setString('sem', sem);
           await _prefs.setString('dept', dept);
           await _prefs.setString('ay', ay);
           if (!mounted) return;
           Navigator.pop(context);
-          _navigateToStudentInternal(context, year, sem, dept, ay);
+          _navigateToStudentInternal(context, year, sem, dept, ay, clg);
         } else {
           if (!mounted) return;
           Navigator.pop(context);
@@ -581,8 +565,18 @@ class _StudentLoginState extends State<StudentLogin> {
     final String sem = _selectedSemester!;
     final String dept = _selectedDepartment!;
     final String ay = _selectedAcademicYear!;
+    final String clg = _selectedClg!;
     CollectionReference studentsRef =
-    FirebaseFirestore.instance.collection("students").doc(dept).collection(ay).doc(year).collection(sem);
+    FirebaseFirestore.instance
+        .collection('colleges')
+        .doc(clg)
+        .collection('departments')
+        .doc(dept)
+        .collection("students")
+        .doc(ay)
+        .collection(year)
+        .doc(sem)
+        .collection('details');
     QuerySnapshot querySnapshot =
     await studentsRef.where("email", isEqualTo: email).get();
 
@@ -605,10 +599,10 @@ class _StudentLoginState extends State<StudentLogin> {
     return false;
   }
 
-  void _navigateToStudentInternal(BuildContext context, String year, String sem, String dept, String ay) {
+  void _navigateToStudentInternal(BuildContext context, String year, String sem, String dept, String ay, String clg) {
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => StudentInternal(year: year, sem: sem, dept: dept, ay: ay)),
+      MaterialPageRoute(builder: (context) => StudentInternal(year: year, sem: sem, dept: dept, ay: ay, clg:clg)),
     );
   }
 

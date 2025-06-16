@@ -14,6 +14,7 @@ class ParticularLecture extends StatefulWidget {
   final String rollNo;
   final String ay;
   final String dept;
+  final String clg;
   final String optionalSubject; // Pass empty string if not applicable
 
   const ParticularLecture({
@@ -28,6 +29,7 @@ class ParticularLecture extends StatefulWidget {
     required this.fullName,
     required this.ay,
     required this.dept,
+    required this.clg
   });
 
   @override
@@ -87,28 +89,34 @@ class _ParticularLectureState extends State<ParticularLecture> {
 
       if (isDLOCOrILOC) {
         query = firestore
-            .collection('attendance')
+            .collection('colleges')
+            .doc(widget.clg)
+            .collection('departments')
             .doc(widget.dept)
-            .collection(widget.ay)
-            .doc(widget.year)
-            .collection(widget.sem)
-            .doc(widget.sub)
-            .collection(widget.optionalSubject)
-            .doc(widget.type)
-            .collection('lecture')
+            .collection("attendance")
+            .doc(widget.ay)
+            .collection(widget.year)
+            .doc(widget.sem)
+            .collection(widget.sub) // The base optional subject key.
+            .doc(widget.optionalSubject) // The chosen optional subject.
+            .collection(widget.type)
             .where('created_at',
             isGreaterThanOrEqualTo: Timestamp.fromDate(fromDate!))
             .where('created_at',
             isLessThanOrEqualTo: Timestamp.fromDate(toDate!));
       } else {
         query = firestore
-            .collection('attendance')
+            .collection('colleges')
+            .doc(widget.clg)
+            .collection('departments')
             .doc(widget.dept)
-            .collection(widget.ay)
-            .doc(widget.year)
-            .collection(widget.sem)
-            .doc(widget.sub)
-            .collection(widget.type)
+            .collection("attendance")
+            .doc(widget.ay)
+            .collection(widget.year)
+            .doc(widget.sem)
+            .collection(widget.sub)
+            .doc(widget.type)
+            .collection('lecture')
             .where('created_at',
             isGreaterThanOrEqualTo: Timestamp.fromDate(fromDate!))
             .where('created_at',
@@ -193,6 +201,7 @@ class _ParticularLectureState extends State<ParticularLecture> {
           fullName: widget.fullName,
           ay: widget.ay,
           dept: widget.dept,
+          clg: widget.clg,
         ),
       ),
     );

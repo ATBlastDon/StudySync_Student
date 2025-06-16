@@ -11,6 +11,7 @@ class AttendanceAnnouncement extends StatefulWidget {
   final String ay;
   final String dept;
   final String fullName;
+  final String clg;
 
   const AttendanceAnnouncement({
     super.key,
@@ -21,6 +22,7 @@ class AttendanceAnnouncement extends StatefulWidget {
     required this.fullName,
     required this.dept,
     required this.ay,
+    required this.clg,
 
   });
 
@@ -56,8 +58,12 @@ class _AttendanceAnnouncementState extends State<AttendanceAnnouncement> {
     setState(() => isLoading = true);
     try {
       DocumentSnapshot snapshot = await FirebaseFirestore.instance
-          .collection('subjects')
+          .collection('colleges')
+          .doc(widget.clg)
+          .collection('departments')
           .doc(widget.dept)
+          .collection('subjects')
+          .doc('details')
           .get();
       if (snapshot.exists) {
         setState(() {
@@ -84,11 +90,15 @@ class _AttendanceAnnouncementState extends State<AttendanceAnnouncement> {
     try {
       DocumentSnapshot<Map<String, dynamic>> snapshot =
       await FirebaseFirestore.instance
-          .collection('students')
+          .collection('colleges')
+          .doc(widget.clg)
+          .collection('departments')
           .doc(widget.dept)
-          .collection(widget.ay)
-          .doc(widget.classYear)
-          .collection(widget.sem)
+          .collection('students')
+          .doc(widget.ay)
+          .collection(widget.classYear)
+          .doc(widget.sem)
+          .collection('details')
           .doc(widget.rollNo)
           .collection('optional_subjects')
           .doc(widget.sem)
@@ -166,25 +176,31 @@ class _AttendanceAnnouncementState extends State<AttendanceAnnouncement> {
           selectedOptionalSubject != null) {
         // Path: attendance/{classYear}/{sem}/{selectedSubject}/{selectedOptionalSubject}/{selectedType}/lecture
         attendanceQuery = FirebaseFirestore.instance
-            .collection("attendance")
+            .collection('colleges')
+            .doc(widget.clg)
+            .collection('departments')
             .doc(widget.dept)
-            .collection(widget.ay)
-            .doc(widget.classYear)
-            .collection(widget.sem)
-            .doc(selectedSubject!) // Base optional subject key.
-            .collection(selectedOptionalSubject!) // Chosen optional subject.
-            .doc(selectedType!) // Optional grouping document.
-            .collection("lecture");
+            .collection("attendance")
+            .doc(widget.ay)
+            .collection(widget.classYear)
+            .doc(widget.sem)
+            .collection(selectedSubject!)
+            .doc(selectedOptionalSubject!) // Base optional subject key.
+            .collection(selectedType!); // Chosen optional subject.
       } else {
         // Default path: attendance/{classYear}/{sem}/{selectedSubject}/{selectedType}
         attendanceQuery = FirebaseFirestore.instance
-            .collection("attendance")
+            .collection('colleges')
+            .doc(widget.clg)
+            .collection('departments')
             .doc(widget.dept)
-            .collection(widget.ay)
-            .doc(widget.classYear)
-            .collection(widget.sem)
-            .doc(selectedSubject!)
-            .collection(selectedType!);
+            .collection('attendance')
+            .doc(widget.ay)
+            .collection(widget.classYear)
+            .doc(widget.sem)
+            .collection(selectedSubject!)
+            .doc(selectedType!)
+            .collection('lecture');
       }
 
       // If Lab is selected, filter by the student's batch.
@@ -211,6 +227,7 @@ class _AttendanceAnnouncementState extends State<AttendanceAnnouncement> {
           'subject': selectedSubject,
           'fullName': widget.fullName,
           'dept': widget.dept,
+          'clg': widget.clg,
           'ay': widget.ay,
           'optional_sub': selectedOptionalSubject ?? "N/A",
           'type': selectedType,

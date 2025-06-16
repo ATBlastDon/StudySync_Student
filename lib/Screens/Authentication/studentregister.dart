@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'dart:typed_data';
-
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:animate_do/animate_do.dart';
@@ -20,6 +19,7 @@ class StudentRegister extends StatefulWidget {
   State<StudentRegister> createState() => _StudentRegisterState();
 }
 
+
 class _StudentRegisterState extends State<StudentRegister> {
   final TextEditingController _fnameController = TextEditingController();
   final TextEditingController _mnameController = TextEditingController();
@@ -31,6 +31,7 @@ class _StudentRegisterState extends State<StudentRegister> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
 
+  String? _selectedClg;
   String? _selectedYear;
   String? _selectedSemester;
   String? _selectedDepartment;
@@ -44,7 +45,30 @@ class _StudentRegisterState extends State<StudentRegister> {
     "SE": ["3", "4"],
   };
 
-  // TextStyle with 'Outfit' font family
+  // Lists for College and Department
+  List<String> _departmentList = [];
+  List<String> _collegeList = [];
+
+
+  @override
+  void initState() {
+    super.initState();
+    fetchCollegeNames();
+  }
+
+
+  /// Fetch college names from Firebase Firestore.
+  Future<void> fetchCollegeNames() async {
+    final snapshot = await FirebaseFirestore.instance.collection('colleges').get();
+    final names = snapshot.docs.map((doc) => doc['name'] as String).toList();
+
+    setState(() {
+      _collegeList = names;
+    });
+  }
+
+
+  /// TextStyle with 'Outfit' font family
   final TextStyle _outfitTextStyle = const TextStyle(
     fontFamily: 'Outfit',
     fontSize: 15,
@@ -159,14 +183,70 @@ class _StudentRegisterState extends State<StudentRegister> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      "Department",
-                                      style: _outfitTextStyle,
+                                    Text("College", style: _outfitTextStyle),
+                                    const SizedBox(height: 5),
+                                    DropdownButtonFormField<String>(
+                                      value: _selectedClg,
+                                      style: const TextStyle(fontFamily: "Outfit", color: Colors.black),
+                                      decoration: InputDecoration(
+                                        contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderSide: BorderSide(color: Colors.grey.shade400),
+                                        ),
+                                        border: OutlineInputBorder(
+                                          borderSide: BorderSide(color: Colors.grey.shade400),
+                                        ),
+                                      ),
+                                      hint: const Text("Select College", style: TextStyle(fontFamily: "Outfit")),
+                                      onChanged: (String? newValue) async {
+                                        setState(() {
+                                          _selectedClg = newValue;
+                                          _selectedDepartment = null;
+                                          _departmentList = [];
+                                        });
+
+                                        if (newValue != null) {
+                                          final snapshot = await FirebaseFirestore.instance
+                                              .collection('colleges')
+                                              .doc(newValue)
+                                              .collection('departments')
+                                              .get();
+
+                                          final departments = snapshot.docs.map((doc) => doc.id).toList();
+
+                                          setState(() {
+                                            _departmentList = departments;
+                                          });
+                                        }
+                                      },
+                                      items: _collegeList.map((String college) {
+                                        return DropdownMenuItem<String>(
+                                          value: college,
+                                          child: SizedBox(
+                                            width: 250, // fixed width to avoid overflow
+                                            child: Text(
+                                              college,
+                                              style: const TextStyle(fontFamily: "Outfit"),
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 1,
+                                            ),
+                                          ),
+                                        );
+                                      }).toList(),
                                     ),
+                                  ],
+                                ),
+                              ),
+                              FadeInUp(
+                                duration: const Duration(milliseconds: 1000),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text("Department", style: _outfitTextStyle),
                                     const SizedBox(height: 5),
                                     DropdownButtonFormField<String>(
                                       value: _selectedDepartment,
-                                      style: const TextStyle(fontFamily: "Outfit", color: Colors.black),
+                                      style: const TextStyle(fontFamily: "Outfit", color: Colors.black, overflow: TextOverflow.ellipsis),
                                       decoration: InputDecoration(
                                         contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
                                         enabledBorder: OutlineInputBorder(
@@ -182,17 +262,13 @@ class _StudentRegisterState extends State<StudentRegister> {
                                           _selectedDepartment = newValue;
                                         });
                                       },
-                                      items: [
-                                        "CSE(AIML)",
-                                        "Mechanical",
-                                        "Chemical",
-                                        "IT",
-                                        "EXTC",
-                                        "Electrical"
-                                      ].map((String department) {
+                                      items: _departmentList.map((String department) {
                                         return DropdownMenuItem<String>(
                                           value: department,
-                                          child: Text(department, style: const TextStyle(fontFamily: "Outfit")),
+                                          child: Text(
+                                            department,
+                                            style: const TextStyle(fontFamily: "Outfit", overflow: TextOverflow.ellipsis),
+                                          ),
                                         );
                                       }).toList(),
                                     ),
@@ -578,6 +654,7 @@ class _StudentRegisterState extends State<StudentRegister> {
       String email = _emailController.text.trim();
       String year = _selectedYear!;
       String sem = _selectedSemester!;
+      String clg = _selectedClg!;
       String dept = _selectedDepartment!;
       String ay = _selectedAcademicYear!;
       String rollNo = _rollNoController.text.trim();
@@ -587,11 +664,15 @@ class _StudentRegisterState extends State<StudentRegister> {
 
       // Check if email exists
       QuerySnapshot emailSnapshot = await FirebaseFirestore.instance
+          .collection('colleges')
+          .doc(_selectedClg)
+          .collection('departments')
+          .doc(_selectedDepartment)
           .collection("students")
-          .doc(dept)
-          .collection(ay)
-          .doc(year)
-          .collection(sem)
+          .doc(ay)
+          .collection(year)
+          .doc(sem)
+          .collection('details')
           .where("email", isEqualTo: email)
           .get();
       if (emailSnapshot.docs.isNotEmpty) {
@@ -603,11 +684,15 @@ class _StudentRegisterState extends State<StudentRegister> {
       }
 
       QuerySnapshot regSnapshot = await FirebaseFirestore.instance
+          .collection('colleges')
+          .doc(_selectedClg)
+          .collection('departments')
+          .doc(_selectedDepartment)
           .collection("students")
-          .doc(dept)
-          .collection(ay)
-          .doc(year)
-          .collection(sem)
+          .doc(ay)
+          .collection(year)
+          .doc(sem)
+          .collection('details')
           .where("regNo", isEqualTo: regNo)
           .get();
       if (regSnapshot.docs.isNotEmpty) {
@@ -620,11 +705,15 @@ class _StudentRegisterState extends State<StudentRegister> {
 
       // Check if roll number exists
       DocumentSnapshot rollNoSnapshot = await FirebaseFirestore.instance
+          .collection('colleges')
+          .doc(_selectedClg)
+          .collection('departments')
+          .doc(_selectedDepartment)
           .collection("students")
-          .doc(dept)
-          .collection(ay)
-          .doc(year) // Check the specific class (e.g., BE, TE, SE)
-          .collection(sem)
+          .doc(ay)
+          .collection(year)
+          .doc(sem)
+          .collection('details')
           .doc(rollNo) // Check the specific roll number
           .get();
 
@@ -644,7 +733,7 @@ class _StudentRegisterState extends State<StudentRegister> {
       if (userCredential.user != null) {
         // Upload profile photo
         await _uploadProfilePhoto(
-            _selectedImage!, rollNo, fname, mname, sname, email,dept, ay, year, sem, regNo, phoneNo);
+            _selectedImage!, rollNo, fname, mname, sname, email,dept, ay, year, sem, regNo, phoneNo, clg);
         if(context.mounted){
           Navigator.of(context).pop(); // Dismiss loading dialog
         }
@@ -690,6 +779,7 @@ class _StudentRegisterState extends State<StudentRegister> {
     String email = _emailController.text.trim();
     String year = _selectedYear!;
     String sem = _selectedSemester!;
+    String clg = _selectedClg!;
     String dept = _selectedDepartment!;
     String ay = _selectedAcademicYear!;
     String rollNo = _rollNoController.text.trim();
@@ -702,6 +792,7 @@ class _StudentRegisterState extends State<StudentRegister> {
         mname.isEmpty ||
         sname.isEmpty ||
         email.isEmpty ||
+        clg.isEmpty ||
         dept.isEmpty ||
         ay.isEmpty ||
         year.isEmpty ||
@@ -729,7 +820,7 @@ class _StudentRegisterState extends State<StudentRegister> {
   }
 
   Future<void> _uploadProfilePhoto(File profilePhotoUri, String rollNo,
-      String fname, mname, sname, String email,String dept, String ay, String year, String sem, String regNo, String phoneNo) async {
+      String fname, mname, sname, String email,String dept, String ay, String year, String sem, String regNo, String phoneNo, String clg) async {
 
     try {
       // Read image as bytes
@@ -748,7 +839,7 @@ class _StudentRegisterState extends State<StudentRegister> {
 
       // Upload to Firebase Storage
       final storageRef = FirebaseStorage.instance.ref()
-          .child("Profile_Photos/Student/$dept/$ay/$year/$sem")
+          .child("$clg/$dept/student/$ay/$year/$sem")
           .child("$rollNo.jpg");
       final uploadTask = storageRef.putData(
         compressedBytes,
@@ -761,7 +852,18 @@ class _StudentRegisterState extends State<StudentRegister> {
       final downloadURL = await storageRef.getDownloadURL();
 
       // Save profile details to Firestore
-      await FirebaseFirestore.instance.collection("students").doc(dept).collection(ay).doc(year).collection(sem).doc(rollNo).set({
+      await FirebaseFirestore.instance
+          .collection('colleges')
+          .doc(clg)
+          .collection('departments')
+          .doc(dept)
+          .collection("students")
+          .doc(ay)
+          .collection(year)
+          .doc(sem)
+          .collection('details')
+          .doc(rollNo)
+          .set({
         "fname": fname,
         "mname": mname,
         "sname": sname,
@@ -770,6 +872,7 @@ class _StudentRegisterState extends State<StudentRegister> {
         "rollNo": rollNo,
         "dept": dept,
         "ay": ay,
+        "clg": clg,
         "year": year,
         "semester": sem,
         "phoneNo": phoneNo,

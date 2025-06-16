@@ -10,6 +10,7 @@ class SelectionSubjects extends StatefulWidget {
   final String batch;
   final String dept;
   final String ay;
+  final String clg;
 
   const SelectionSubjects({
     super.key,
@@ -19,6 +20,7 @@ class SelectionSubjects extends StatefulWidget {
     required this.batch,
     required this.dept,
     required this.ay,
+    required this.clg,
   });
 
   @override
@@ -51,8 +53,12 @@ class _SelectionSubjectsState extends State<SelectionSubjects> {
   Future<void> _fetchSubjectsMapping() async {
     try {
       DocumentSnapshot snapshot = await FirebaseFirestore.instance
-          .collection('subjects')
+          .collection('colleges')
+          .doc(widget.clg)
+          .collection('departments')
           .doc(widget.dept)
+          .collection('subjects')
+          .doc('details')
           .get();
       if (snapshot.exists) {
         setState(() {
@@ -80,13 +86,18 @@ class _SelectionSubjectsState extends State<SelectionSubjects> {
     final String rollNo = widget.rollNo;
     final String dept = widget.dept;
     final String ay = widget.ay;
+    final String clg = widget.clg;
 
     final docRef = FirebaseFirestore.instance
-        .collection("students")
+        .collection('colleges')
+        .doc(clg)
+        .collection('departments')
         .doc(dept)
-        .collection(ay)
-        .doc(year)
-        .collection(sem)
+        .collection('students')
+        .doc(ay)
+        .collection(year)
+        .doc(sem)
+        .collection('details')
         .doc(rollNo)
         .collection("optional_subjects")
         .doc(sem);
@@ -118,14 +129,19 @@ class _SelectionSubjectsState extends State<SelectionSubjects> {
     final String sem = widget.sem;
     final String rollNo = widget.rollNo;
     final String dept = widget.dept;
+    final String clg = widget.clg;
     final String ay = widget.ay;
 
     final docRef = FirebaseFirestore.instance
-        .collection("students")
+        .collection('colleges')
+        .doc(clg)
+        .collection('departments')
         .doc(dept)
-        .collection(ay)
-        .doc(year)
-        .collection(sem)
+        .collection('students')
+        .doc(ay)
+        .collection(year)
+        .doc(sem)
+        .collection('details')
         .doc(rollNo)
         .collection("optional_subjects")
         .doc(sem);
@@ -149,6 +165,7 @@ class _SelectionSubjectsState extends State<SelectionSubjects> {
     final String rollNo = widget.rollNo;
     final String dept = widget.dept;
     final String ay = widget.ay;
+    final String clg = widget.clg;
 
     for (final entry in selectedSubjects.entries) {
       final String optionalKey = entry.key;
@@ -158,13 +175,17 @@ class _SelectionSubjectsState extends State<SelectionSubjects> {
       // If there is an old selection that differs from the new one, remove the rollNo.
       if (oldSubject != null && oldSubject != newSubject) {
         final oldDocRef = FirebaseFirestore.instance
-            .collection("optional_subjects")
+            .collection('colleges')
+            .doc(clg)
+            .collection('departments')
             .doc(dept)
-            .collection(ay)
-            .doc(year)
-            .collection(sem)
-            .doc(optionalKey)
-            .collection(oldSubject)
+            .collection("optional_subjects")
+            .doc(ay)
+            .collection(year)
+            .doc(sem)
+            .collection(optionalKey)
+            .doc(oldSubject)
+            .collection('students')
             .doc(rollNo);
         try {
           await oldDocRef.delete();
@@ -175,13 +196,17 @@ class _SelectionSubjectsState extends State<SelectionSubjects> {
 
       // Add (or update) the new selection.
       final newDocRef = FirebaseFirestore.instance
-          .collection("optional_subjects")
+          .collection('colleges')
+          .doc(clg)
+          .collection('departments')
           .doc(dept)
-          .collection(ay)
-          .doc(year)
-          .collection(sem)
-          .doc(optionalKey)
-          .collection(newSubject)
+          .collection("optional_subjects")
+          .doc(ay)
+          .collection(year)
+          .doc(sem)
+          .collection(optionalKey)
+          .doc(newSubject)
+          .collection('students')
           .doc(rollNo);
 
       await newDocRef.set({

@@ -13,6 +13,7 @@ class CumulativeSheet extends StatefulWidget {
   final String batch;
   final String ay;
   final String dept;
+  final String clg;
   /// Teacher‐selected subjects (a combined list of regular subjects and optional subject category keys)
   final List<String> selectedSubjects;
 
@@ -26,6 +27,7 @@ class CumulativeSheet extends StatefulWidget {
     required this.batch,
     required this.ay,
     required this.dept,
+    required this.clg,
   });
 
   @override
@@ -67,8 +69,12 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
   Future<void> _fetchSubjectsMapping() async {
     try {
       DocumentSnapshot snapshot = await FirebaseFirestore.instance
-          .collection('subjects')
+          .collection('colleges')
+          .doc(widget.clg)
+          .collection('departments')
           .doc(widget.dept)
+          .collection('subjects')
+          .doc('details')
           .get();
       if (snapshot.exists) {
         setState(() {
@@ -117,13 +123,17 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
             continue;
           }
           QuerySnapshot lecturesSnapshot = await firestore
-              .collection('attendance')
+              .collection('colleges')
+              .doc(widget.clg)
+              .collection('departments')
               .doc(widget.dept)
-              .collection(widget.ay)
-              .doc(widget.selectedClass)
-              .collection(widget.selectedSem)
-              .doc(subject)
-              .collection(mode)
+              .collection('attendance')
+              .doc(widget.ay)
+              .collection(widget.selectedClass)
+              .doc(widget.selectedSem)
+              .collection(subject)
+              .doc(mode)
+              .collection('lecture')
               .get();
 
           int totalLectures = 0;
@@ -138,13 +148,17 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
             }
             totalLectures++; // Count valid lecture.
             DocumentSnapshot presentSnapshot = await firestore
-                .collection('attendance_record')
+                .collection('colleges')
+                .doc(widget.clg)
+                .collection('departments')
                 .doc(widget.dept)
-                .collection(widget.ay)
-                .doc(widget.selectedClass)
-                .collection(widget.selectedSem)
-                .doc(subject)
-                .collection(mode)
+                .collection('attendance_record')
+                .doc(widget.ay)
+                .collection(widget.selectedClass)
+                .doc(widget.selectedSem)
+                .collection(subject)
+                .doc(mode)
+                .collection('lecture')
                 .doc(lectureDoc.id)
                 .collection('rollNumbers')
                 .doc(rollNo)
@@ -174,11 +188,16 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
     String rollNo = widget.rollNo;
     try {
       DocumentSnapshot doc = await firestore
-          .collection('students')
+          .collection('colleges')
+          .doc(widget.clg)
+          .collection('departments')
           .doc(widget.dept)
-          .collection(widget.ay)
-          .doc(widget.selectedClass)
-          .collection(widget.selectedSem)
+
+          .collection('students')
+          .doc(widget.ay)
+          .collection(widget.selectedClass)
+          .doc(widget.selectedSem)
+          .collection('details')
           .doc(rollNo)
           .collection('optional_subjects')
           .doc(widget.selectedSem)
@@ -224,15 +243,17 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
         int totalLectures = 0;
         try {
           QuerySnapshot lecturesSnapshot = await firestore
-              .collection('attendance')
+              .collection('colleges')
+              .doc(widget.clg)
+              .collection('departments')
               .doc(widget.dept)
-              .collection(widget.ay)
-              .doc(widget.selectedClass)
-              .collection(widget.selectedSem)
-              .doc(category)
-              .collection(chosenSubject)
-              .doc(mode)
-              .collection('lecture')
+              .collection('attendance')
+              .doc(widget.ay)
+              .collection(widget.selectedClass)
+              .doc(widget.selectedSem)
+              .collection(category)
+              .doc(chosenSubject)
+              .collection(mode)
               .get();
           for (var lectureDoc in lecturesSnapshot.docs) {
             // For Lab mode, validate the lecture's batch.
@@ -244,15 +265,17 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
             }
             totalLectures++;
             DocumentSnapshot presentDoc = await firestore
-                .collection('attendance_record')
+                .collection('colleges')
+                .doc(widget.clg)
+                .collection('departments')
                 .doc(widget.dept)
-                .collection(widget.ay)
-                .doc(widget.selectedClass)
-                .collection(widget.selectedSem)
-                .doc(category)
-                .collection(chosenSubject)
-                .doc(mode)
-                .collection('lecture')
+                .collection('attendance')
+                .doc(widget.ay)
+                .collection(widget.selectedClass)
+                .doc(widget.selectedSem)
+                .collection(category)
+                .doc(chosenSubject)
+                .collection(mode)
                 .doc(lectureDoc.id)
                 .collection('rollNumbers')
                 .doc(rollNo)
@@ -323,13 +346,15 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
       studentRecord['overall'] = overallPercentage;
 
       await firestore
-          .collection("students")
+          .collection('colleges')
+          .doc(widget.clg)
+          .collection('departments')
           .doc(widget.dept)
-          .collection(widget.ay)
-          .doc(widget.selectedClass)
-          .collection(widget.selectedSem)
-          .doc("records")
-          .collection("rollno")
+          .collection("students")
+          .doc(widget.ay)
+          .collection(widget.selectedClass)
+          .doc(widget.selectedSem)
+          .collection('records')
           .doc(rollNo)
           .set(studentRecord, SetOptions(merge: true));
     }

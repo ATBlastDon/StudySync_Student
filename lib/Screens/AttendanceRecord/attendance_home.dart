@@ -11,6 +11,7 @@ class AttendanceHome extends StatefulWidget {
   final String ay;
   final String dept;
   final String fullName;
+  final String clg;
 
 
   const AttendanceHome({
@@ -22,6 +23,7 @@ class AttendanceHome extends StatefulWidget {
     required this.fullName,
     required this.ay,
     required this.dept,
+    required this.clg
 
   });
 
@@ -165,6 +167,7 @@ class _AttendanceHomeState extends State<AttendanceHome> {
                                   fullName: widget.fullName,
                                   ay: widget.ay,
                                   dept: widget.dept,
+                                  clg: widget.clg
                                 ),
                               ),
                             );
@@ -225,6 +228,7 @@ class _AttendanceHomeState extends State<AttendanceHome> {
                                   fullName: widget.fullName,
                                   ay: widget.ay,
                                   dept: widget.dept,
+                                  clg: widget.clg
                                 ),
                               ),
                             );

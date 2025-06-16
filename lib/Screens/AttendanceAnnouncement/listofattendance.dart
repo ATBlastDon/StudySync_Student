@@ -229,6 +229,7 @@ class ListOfAttendance extends StatelessWidget {
                                 batch: announcement['batch'],
                                 rollNo: announcement['rollNo'],
                                 dept: announcement['dept'],
+                                clg: announcement['clg'],
                                 ay: announcement['ay'],
                                 year: announcement['year'],
                                 optionalSubject: announcement['optional_sub'],

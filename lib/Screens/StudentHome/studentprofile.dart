@@ -15,6 +15,7 @@ class StudentProfile extends StatefulWidget {
   final String dept;
   final String ay;
   final String sem;
+  final String clg;
 
   const StudentProfile({
     super.key,
@@ -23,6 +24,7 @@ class StudentProfile extends StatefulWidget {
     required this.sem,
     required this.dept,
     required this.ay,
+    required this.clg,
   });
 
   @override
@@ -68,8 +70,11 @@ class _StudentProfileState extends State<StudentProfile> {
     setState(() => loadingTeachers = true);
     try {
       QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+          .collection('colleges')
+          .doc(widget.clg)
+          .collection('departments')
+          .doc(widget.dept)
           .collection('teachers')
-          .where('dept', isEqualTo: widget.dept)
           .get();
 
       teachers = querySnapshot.docs.map((doc) {
@@ -93,11 +98,15 @@ class _StudentProfileState extends State<StudentProfile> {
     try {
       QuerySnapshot<Map<String, dynamic>> querySnapshot =
       await FirebaseFirestore.instance
-          .collection('students')
+          .collection('colleges')
+          .doc(widget.clg)
+          .collection('departments')
           .doc(widget.dept)
-          .collection(widget.ay)
-          .doc(widget.studentyear)
-          .collection(widget.sem)
+          .collection('students')
+          .doc(widget.ay)
+          .collection(widget.studentyear)
+          .doc(widget.sem)
+          .collection('details')
           .where('email', isEqualTo: widget.studentmail)
           .get();
 
@@ -270,11 +279,15 @@ class _StudentProfileState extends State<StudentProfile> {
     if (rollNoController.text.isEmpty) return;
 
     final rollNoQuerySnapshot = await FirebaseFirestore.instance
-        .collection('students')
+        .collection('colleges')
+        .doc(widget.clg)
+        .collection('departments')
         .doc(widget.dept)
-        .collection(widget.ay)
-        .doc(widget.studentyear)
-        .collection(widget.sem)
+        .collection('students')
+        .doc(widget.ay)
+        .collection(widget.studentyear)
+        .doc(widget.sem)
+        .collection('details')
         .where('rollNo', isEqualTo: rollNoController.text)
         .get();
 
@@ -293,21 +306,29 @@ class _StudentProfileState extends State<StudentProfile> {
     showConfirmationDialog(() async {
       try {
         DocumentReference newDocRef = FirebaseFirestore.instance
-            .collection('students')
+            .collection('colleges')
+            .doc(widget.clg)
+            .collection('departments')
             .doc(widget.dept)
-            .collection(widget.ay)
-            .doc(widget.studentyear)
-            .collection(widget.sem)
+            .collection('students')
+            .doc(widget.ay)
+            .collection(widget.studentyear)
+            .doc(widget.sem)
+            .collection('details')
             .doc(rollNoController.text);
 
         await newDocRef.set(studentData!);
 
         await FirebaseFirestore.instance
-            .collection('students')
+            .collection('colleges')
+            .doc(widget.clg)
+            .collection('departments')
             .doc(widget.dept)
-            .collection(widget.ay)
-            .doc(widget.studentyear)
-            .collection(widget.sem)
+            .collection('students')
+            .doc(widget.ay)
+            .collection(widget.studentyear)
+            .doc(widget.sem)
+            .collection('details')
             .doc(studentData!['rollNo'])
             .delete();
 
@@ -347,11 +368,15 @@ class _StudentProfileState extends State<StudentProfile> {
     showConfirmationDialog(() async {
       try {
         DocumentReference studentDocRef = FirebaseFirestore.instance
-            .collection('students')
+            .collection('colleges')
+            .doc(widget.clg)
+            .collection('departments')
             .doc(widget.dept)
-            .collection(widget.ay)
-            .doc(widget.studentyear)
-            .collection(widget.sem)
+            .collection('students')
+            .doc(widget.ay)
+            .collection(widget.studentyear)
+            .doc(widget.sem)
+            .collection('details')
             .doc(rollNoController.text);
 
         await studentDocRef.update({
@@ -387,11 +412,15 @@ class _StudentProfileState extends State<StudentProfile> {
     showConfirmationDialog(() async {
       try {
         DocumentReference studentDocRef = FirebaseFirestore.instance
-            .collection('students')
+            .collection('colleges')
+            .doc(widget.clg)
+            .collection('departments')
             .doc(widget.dept)
-            .collection(widget.ay)
-            .doc(widget.studentyear)
-            .collection(widget.sem)
+            .collection('students')
+            .doc(widget.ay)
+            .collection(widget.studentyear)
+            .doc(widget.sem)
+            .collection('details')
             .doc(rollNoController.text);
 
         await studentDocRef.update({
@@ -434,14 +463,19 @@ class _StudentProfileState extends State<StudentProfile> {
         final String year = studentData!['year'];
         final String sem = studentData!['semester'];
         final String rollNo = studentData!['rollNo'];
+        final String clg = studentData!['clg'];
 
         // Create a new document reference under the new Academic Year.
         DocumentReference newDocRef = FirebaseFirestore.instance
-            .collection("students")
+            .collection('colleges')
+            .doc(clg)
+            .collection('departments')
             .doc(dept)
-            .collection(newAcademicYear)
-            .doc(year)
-            .collection(sem)
+            .collection('students')
+            .doc(newAcademicYear)
+            .collection(year)
+            .doc(sem)
+            .collection('details')
             .doc(rollNo);
 
         // Prepare updated student data with the new academic year.
@@ -453,15 +487,19 @@ class _StudentProfileState extends State<StudentProfile> {
 
         // Build a reference to the old student document.
         DocumentReference oldDocRef = FirebaseFirestore.instance
-            .collection("students")
+            .collection('colleges')
+            .doc(clg)
+            .collection('departments')
             .doc(dept)
-            .collection(oldAy)
-            .doc(year)
-            .collection(sem)
+            .collection('students')
+            .doc(oldAy)
+            .collection(year)
+            .doc(sem)
+            .collection('details')
             .doc(rollNo);
 
         // Delete external optional subjects mappings (and the mapping document) from the old document.
-        await deleteOptionalSubjects(oldDocRef, dept, oldAy, year, sem, rollNo);
+        await deleteOptionalSubjects(oldDocRef, dept, oldAy, year, sem, rollNo, clg);
 
         // Delete the old student document.
         await oldDocRef.delete();
@@ -515,11 +553,15 @@ class _StudentProfileState extends State<StudentProfile> {
 
         // Create a new document reference using the new semester value.
         DocumentReference newDocRef = FirebaseFirestore.instance
-            .collection('students')
+            .collection('colleges')
+            .doc(widget.clg)
+            .collection('departments')
             .doc(widget.dept)
-            .collection(widget.ay)
-            .doc(oldYear)
-            .collection(semController.text)
+            .collection('students')
+            .doc(widget.ay)
+            .collection(oldYear)
+            .doc(semController.text)
+            .collection('details')
             .doc(studentData!['rollNo']);
 
         // Set the new document with the current student data.
@@ -527,11 +569,15 @@ class _StudentProfileState extends State<StudentProfile> {
 
         // Build a reference to the old student document.
         DocumentReference oldDocRef = FirebaseFirestore.instance
-            .collection('students')
+            .collection('colleges')
+            .doc(widget.clg)
+            .collection('departments')
             .doc(widget.dept)
-            .collection(widget.ay)
-            .doc(oldYear)
-            .collection(oldSem)
+            .collection('students')
+            .doc(widget.ay)
+            .collection(oldYear)
+            .doc(oldSem)
+            .collection('details')
             .doc(studentData!['rollNo']);
 
         // Delete the student's external optional subjects and mapping.
@@ -542,6 +588,7 @@ class _StudentProfileState extends State<StudentProfile> {
           oldYear,
           oldSem,
           studentData!['rollNo'],
+          widget.clg
         );
 
         // Delete the old student document.
@@ -618,14 +665,19 @@ class _StudentProfileState extends State<StudentProfile> {
         final String oldAy = studentData!['ay'];
         final String dept = studentData!['dept'];
         final String rollNo = studentData!['rollNo'];
+        final String clg = studentData!['clg'];
 
         // Create a new document reference under the new Academic Year.
         DocumentReference newDocRef = FirebaseFirestore.instance
-            .collection("students")
+            .collection('colleges')
+            .doc(clg)
+            .collection('departments')
             .doc(dept)
-            .collection(newAcademicYear)
-            .doc(yearController.text) // new year value from the controller
-            .collection(newSemester)
+            .collection("students")
+            .doc(newAcademicYear)
+            .collection(yearController.text)
+            .doc(newSemester) // new year value from the controller
+            .collection('details')
             .doc(rollNo);
 
         // Prepare updated student data with new year, class, semester, and academic year.
@@ -640,15 +692,19 @@ class _StudentProfileState extends State<StudentProfile> {
 
         // Build a reference to the old student document.
         DocumentReference oldDocRef = FirebaseFirestore.instance
-            .collection("students")
+            .collection('colleges')
+            .doc(clg)
+            .collection('departments')
             .doc(dept)
-            .collection(oldAy)
-            .doc(oldYear)
-            .collection(oldSem)
+            .collection("students")
+            .doc(oldAy)
+            .collection(oldYear)
+            .doc(oldSem)
+            .collection('details')
             .doc(rollNo);
 
         // Delete the student's external optional subjects and mapping.
-        await deleteOptionalSubjects(oldDocRef, dept, oldAy, oldYear, oldSem, rollNo);
+        await deleteOptionalSubjects(oldDocRef, dept, oldAy, oldYear, oldSem, rollNo, clg);
 
         // Delete the old student document.
         await oldDocRef.delete();
@@ -701,6 +757,7 @@ class _StudentProfileState extends State<StudentProfile> {
       String year,
       String sem,
       String rollNo,
+      String clg
       ) async {
     // 1. Fetch the student's mapping document.
     DocumentReference mappingDocRef = studentDocRef.collection('optional_subjects').doc(sem);
@@ -717,13 +774,17 @@ class _StudentProfileState extends State<StudentProfile> {
           // Build the external document path:
           // /optional_subjects/{dept}/{ay}/{year}/{sem}/{subjectKey}/{optionalSubjectValue}/{rollNo}
           DocumentReference externalDocRef = FirebaseFirestore.instance
-              .collection('optional_subjects')
+              .collection('colleges')
+              .doc(clg)
+              .collection('departments')
               .doc(dept)
-              .collection(ay)
-              .doc(year)
-              .collection(sem)
-              .doc(subjectKey)
-              .collection(optionalSubjectValue)
+              .collection('optional_subjects')
+              .doc(ay)
+              .collection(year)
+              .doc(sem)
+              .collection(subjectKey)
+              .doc(optionalSubjectValue)
+              .collection('students')
               .doc(rollNo);
 
           batch.delete(externalDocRef);
@@ -943,7 +1004,7 @@ class _StudentProfileState extends State<StudentProfile> {
         }
         // Prepare new file name and storage path.
         String fileName = '${studentData!['rollNo']}.jpg';
-        String storagePath = 'Profile_Photos/Student/${widget.dept}/${widget.ay}/${widget.studentyear}/${widget.sem}/$fileName';
+        String storagePath = '${widget.clg}/${widget.dept}/student/${widget.ay}/${widget.studentyear}/${widget.sem}/$fileName';
         firebase_storage.Reference ref =
         firebase_storage.FirebaseStorage.instance.ref().child(storagePath);
         // Upload the file.
@@ -951,11 +1012,15 @@ class _StudentProfileState extends State<StudentProfile> {
         String newUrl = await ref.getDownloadURL();
         // Update Firestore record.
         await FirebaseFirestore.instance
-            .collection('students')
+            .collection('colleges')
+            .doc(widget.clg)
+            .collection('departments')
             .doc(widget.dept)
-            .collection(widget.ay)
-            .doc(widget.studentyear)
-            .collection(widget.sem)
+            .collection('students')
+            .doc(widget.ay)
+            .collection(widget.studentyear)
+            .doc(widget.sem)
+            .collection('details')
             .doc(studentData!['rollNo'])
             .update({'profilePhotoUrl': newUrl});
         setState(() {

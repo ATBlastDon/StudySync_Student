@@ -19,17 +19,56 @@ class _ForgotPasswordState extends State<ForgotPassword> {
   String? _selectedAcademicYear;
   String? _selectedYear;
   String? _selectedSemester;
+  String? _selectedClg;
 
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
-  final CollectionReference _studentRef =
-  FirebaseFirestore.instance.collection("students");
-
+  final CollectionReference _studentRef = FirebaseFirestore.instance.collection('colleges');
   // Map to hold semester options based on selected year.
   final Map<String, List<String>> semesterOptions = {
     "BE": ["7", "8"],
     "TE": ["5", "6"],
     "SE": ["3", "4"],
   };
+
+  // For College and Department Lists
+  List<String> _departmentList = [];
+  List<String> _collegeList = [];
+
+  
+  @override
+  void initState() {
+    super.initState();
+    fetchCollegeNames();
+  }
+
+
+  /// Fetch college names from Firebase Firestore.
+  Future<void> fetchCollegeNames() async {
+    final snapshot = await FirebaseFirestore.instance.collection('colleges').get();
+    final names = snapshot.docs.map((doc) => doc['name'] as String).toList();
+
+    setState(() {
+      _collegeList = names;
+    });
+  }
+
+
+  /// Styling for Dropdowns and TextFields fields.
+  static InputDecoration standardBoxDecoration = InputDecoration(
+    labelStyle: TextStyle(
+      fontFamily: 'Outfit',
+      fontSize: 18,
+      fontWeight: FontWeight.w400,
+      color: Colors.black,
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderSide: BorderSide(color: Colors.black),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderSide: BorderSide(color: Colors.black),
+    ),
+  );
+
 
   @override
   Widget build(BuildContext context) {
@@ -81,45 +120,88 @@ class _ForgotPasswordState extends State<ForgotPassword> {
                 ),
               ),
               const SizedBox(height: 30),
+              // College Dropdown
+              FadeInUp(
+                duration: const Duration(milliseconds: 1000),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 5),
+                    DropdownButtonFormField<String>(
+                      value: _selectedClg,
+                      style: const TextStyle(fontFamily: "Outfit", color: Colors.black),
+                      decoration: standardBoxDecoration.copyWith(labelText: 'College'),
+                      onChanged: (String? newValue) async {
+                        setState(() {
+                          _selectedClg = newValue;
+                          _selectedDepartment = null;
+                          _departmentList = [];
+                        });
+
+                        if (newValue != null) {
+                          final snapshot = await FirebaseFirestore.instance
+                              .collection('colleges')
+                              .doc(newValue)
+                              .collection('departments')
+                              .get();
+
+                          final departments = snapshot.docs.map((doc) => doc.id).toList();
+
+                          setState(() {
+                            _departmentList = departments;
+                          });
+                        }
+                      },
+                      items: _collegeList.map((String college) {
+                        return DropdownMenuItem<String>(
+                          value: college,
+                          child: SizedBox(
+                            width: 250, // fixed width to avoid overflow
+                            child: Text(
+                              college,
+                              style: const TextStyle(fontFamily: "Outfit"),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
               // Department Dropdown
               FadeInUp(
                 duration: const Duration(milliseconds: 1000),
-                child: DropdownButtonFormField<String>(
-                  value: _selectedDepartment,
-                  style: const TextStyle(fontFamily: "Outfit", color: Colors.black),
-                  decoration: const InputDecoration(
-                    labelText: 'Department',
-                    labelStyle: TextStyle(
-                      fontFamily: 'Outfit',
-                      fontSize: 18,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.black,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    DropdownButtonFormField<String>(
+                      value: _selectedDepartment,
+                      style: const TextStyle(
+                        fontFamily: "Outfit",
+                        color: Colors.black,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      decoration: standardBoxDecoration.copyWith(labelText: 'Departments'),
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          _selectedDepartment = newValue;
+                        });
+                      },
+                      items: _departmentList.map((String department) {
+                        return DropdownMenuItem<String>(
+                          value: department,
+                          child: Text(
+                            department,
+                            style: const TextStyle(
+                                fontFamily: "Outfit", overflow: TextOverflow.ellipsis),
+                          ),
+                        );
+                      }).toList(),
                     ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.black),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.black),
-                    ),
-                  ),
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      _selectedDepartment = newValue;
-                    });
-                  },
-                  items: [
-                    "CSE(AIML)",
-                    "Mechanical",
-                    "Chemical",
-                    "IT",
-                    "EXTC",
-                    "Electrical"
-                  ].map((String department) {
-                    return DropdownMenuItem<String>(
-                      value: department,
-                      child: Text(department, style: const TextStyle(fontFamily: "Outfit")),
-                    );
-                  }).toList(),
+                  ],
                 ),
               ),
               const SizedBox(height: 20),
@@ -129,21 +211,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
                 child: DropdownButtonFormField<String>(
                   value: _selectedAcademicYear,
                   style: const TextStyle(fontFamily: "Outfit", color: Colors.black),
-                  decoration: const InputDecoration(
-                    labelText: 'Academic Year',
-                    labelStyle: TextStyle(
-                      fontFamily: 'Outfit',
-                      fontSize: 18,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.black,
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.black),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.black),
-                    ),
-                  ),
+                  decoration: standardBoxDecoration.copyWith(labelText: 'Academic Year'),
                   onChanged: (String? newValue) {
                     setState(() {
                       _selectedAcademicYear = newValue;
@@ -171,21 +239,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
                 child: DropdownButtonFormField<String>(
                   value: _selectedYear,
                   style: const TextStyle(fontFamily: "Outfit", color: Colors.black),
-                  decoration: const InputDecoration(
-                    labelText: 'Year',
-                    labelStyle: TextStyle(
-                      fontFamily: 'Outfit',
-                      fontSize: 18,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.black,
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.black),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.black),
-                    ),
-                  ),
+                  decoration: standardBoxDecoration.copyWith(labelText: 'Year'),
                   onChanged: (String? newValue) {
                     setState(() {
                       _selectedYear = newValue;
@@ -208,21 +262,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
                 child: DropdownButtonFormField<String>(
                   value: _selectedSemester,
                   style: const TextStyle(fontFamily: "Outfit", color: Colors.black),
-                  decoration: const InputDecoration(
-                    labelText: 'Semester',
-                    labelStyle: TextStyle(
-                      fontFamily: 'Outfit',
-                      fontSize: 18,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.black,
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.black),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.black),
-                    ),
-                  ),
+                  decoration: standardBoxDecoration.copyWith(labelText: 'Semester'),
                   onChanged: (String? newValue) {
                     setState(() {
                       _selectedSemester = newValue;
@@ -236,7 +276,6 @@ class _ForgotPasswordState extends State<ForgotPassword> {
                     );
                   }).toList()
                       : null,
-                  hint: const Text("Select Year first", style: TextStyle(fontFamily: "Outfit")),
                 ),
               ),
               const SizedBox(height: 20),
@@ -246,21 +285,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
                 child: TextFormField(
                   controller: _emailController,
                   style: TextStyle(fontFamily: "Outfit"),
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    labelStyle: TextStyle(
-                      fontFamily: 'Outfit',
-                      fontSize: 18,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.black,
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.black),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.black),
-                    ),
-                  ),
+                  decoration: standardBoxDecoration.copyWith(labelText: 'Email'),
                 ),
               ),
               const SizedBox(height: 20),
@@ -316,6 +341,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
     String ay = _selectedAcademicYear ?? "";
     String year = _selectedYear ?? "";
     String sem = _selectedSemester ?? "";
+    String clg = _selectedClg ?? "";
 
     if (email.isEmpty || dept.isEmpty || ay.isEmpty || year.isEmpty || sem.isEmpty) {
       Fluttertoast.showToast(
@@ -333,10 +359,14 @@ class _ForgotPasswordState extends State<ForgotPassword> {
     // Assuming your Firestore structure is:
     // students -> Department -> Academic Year -> Year -> Semester -> (student documents)
     _studentRef
+        .doc(clg)
+        .collection('departments')
         .doc(dept)
-        .collection(ay)
-        .doc(year)
-        .collection(sem)
+        .collection('students')
+        .doc(ay)
+        .collection(year)
+        .doc(sem)
+        .collection('details')
         .where("email", isEqualTo: email)
         .get()
         .then((querySnapshot) {

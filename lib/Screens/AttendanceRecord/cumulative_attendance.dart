@@ -12,6 +12,7 @@ class CumulativeAttendance extends StatefulWidget {
   final String fullName;
   final String ay;
   final String dept;
+  final String clg;
 
   const CumulativeAttendance({
     super.key,
@@ -22,6 +23,7 @@ class CumulativeAttendance extends StatefulWidget {
     required this.sem,
     required this.ay,
     required this.dept,
+    required this.clg,
   });
 
   @override
@@ -52,8 +54,12 @@ class _CumulativeAttendanceState extends State<CumulativeAttendance> {
     setState(() => isMappingLoading = true);
     try {
       DocumentSnapshot snapshot = await FirebaseFirestore.instance
-          .collection('subjects')
+          .collection('colleges')
+          .doc(widget.clg)
+          .collection('departments')
           .doc(widget.dept)
+          .collection('subjects')
+          .doc('details')
           .get();
       if (snapshot.exists) {
         setState(() {
@@ -131,11 +137,15 @@ class _CumulativeAttendanceState extends State<CumulativeAttendance> {
     List<Map<String, dynamic>> fetchedStudents = [];
     try {
       QuerySnapshot querySnapshot = await FirebaseFirestore.instance
-          .collection('students')
+          .collection('colleges')
+          .doc(widget.clg)
+          .collection('departments')
           .doc(widget.dept)
-          .collection(widget.ay)
-          .doc(year)
-          .collection(sem)
+          .collection('students')
+          .doc(widget.ay)
+          .collection(year)
+          .doc(sem)
+          .collection('details')
           .where('approvalStatus', isEqualTo: 'approved')
           .get();
 
@@ -185,6 +195,7 @@ class _CumulativeAttendanceState extends State<CumulativeAttendance> {
             ay: widget.ay,
             dept: widget.dept,
             batch: widget.batch,
+            clg: widget.clg,
           ),
         ),
       );

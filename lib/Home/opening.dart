@@ -102,11 +102,12 @@ class _OpeningScreenState extends State<OpeningScreen> {
     String sem = prefs.getString("sem") ?? '';
     String dept = prefs.getString("dept") ?? '';
     String ay = prefs.getString("ay") ?? '';
+    String clg = prefs.getString("clg") ?? '';
 
     if (!mounted) return;
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => StudentInternal(year: year, sem: sem, dept: dept, ay: ay)),
+      MaterialPageRoute(builder: (context) => StudentInternal(year: year, sem: sem, dept: dept, ay: ay, clg: clg)),
     );
   }
 

@@ -13,13 +13,16 @@ class NoticeBoard extends StatefulWidget {
   final String dept;
   final String ay;
   final String rollNo;
+  final String clg;
 
   const NoticeBoard({
     super.key,
     required this.year,
     required this.dept,
     required this.ay,
-    required this.rollNo});
+    required this.rollNo,
+    required this.clg
+  });
 
   @override
   State<NoticeBoard> createState() => _NoticeBoardState();
@@ -44,6 +47,7 @@ class _NoticeBoardState extends State<NoticeBoard> {
         .doc("noticeboard")
         .collection("notices")
         .where('dept', isEqualTo: widget.dept)
+        .where('clg', isEqualTo: widget.clg)
         .where('ay', isEqualTo: widget.ay)
         .where('batch', whereIn: [widget.year, 'ALL'])
         .get();
@@ -136,20 +140,24 @@ class _NoticeBoardState extends State<NoticeBoard> {
   Widget _buildNoticeList() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
-          .collection('notices')
+          .collection('colleges')
+          .doc(widget.clg)
+          .collection('departments')
           .doc(widget.dept)
-          .collection(widget.ay)
-          .doc('ALL') // Fetch ALL notices
-          .collection('details')
+          .collection('notices')
+          .doc(widget.ay)
+          .collection('ALL')
           .snapshots(),
       builder: (context, allSnapshot) {
         return StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
-              .collection('notices')
+              .collection('colleges')
+              .doc(widget.clg)
+              .collection('departments')
               .doc(widget.dept)
-              .collection(widget.ay)
-              .doc(widget.year) // Fetch Batch notices (BE, SE, TE)
-              .collection('details')
+              .collection('notices')
+              .doc(widget.ay)
+              .collection(widget.year)
               .snapshots(),
           builder: (context, batchSnapshot) {
             if (allSnapshot.connectionState == ConnectionState.waiting ||

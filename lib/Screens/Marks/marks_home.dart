@@ -10,6 +10,7 @@ class MarksHome extends StatefulWidget {
   final String batch;
   final String fullName;
   final String ay;
+  final String clg;
   final String dept;
 
   const MarksHome({
@@ -21,6 +22,7 @@ class MarksHome extends StatefulWidget {
     required this.fullName,
     required this.ay,
     required this.dept,
+    required this.clg,
   });
 
   @override
@@ -135,6 +137,7 @@ class _MarksHomeState extends State<MarksHome> {
                       fullName: widget.fullName,
                       dept: widget.dept,
                       ay: widget.ay,
+                      clg: widget.clg,
                     ),
                   ),
                 ),
@@ -155,6 +158,7 @@ class _MarksHomeState extends State<MarksHome> {
                       fullName: widget.fullName,
                       dept: widget.dept,
                       ay: widget.ay,
+                      clg: widget.clg
                     ),
                   ),
                 ),

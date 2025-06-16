@@ -18,6 +18,7 @@ class _SplashScreenState extends State<SplashScreen> {
   String sem = "";
   String dept = "";
   String ay = "";
+  String clg = "";
 
   @override
   void initState() {
@@ -34,13 +35,14 @@ class _SplashScreenState extends State<SplashScreen> {
       sem = prefs.getString('sem') ?? "";
       dept = prefs.getString('dept') ?? "";
       ay = prefs.getString('ay') ?? "";
+      clg = prefs.getString('clg') ?? "";
 
       // User is already logged in, navigate to StudentInternal screen
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => StudentInternal(year: year, sem: sem, dept: dept, ay: ay),
+          builder: (context) => StudentInternal(year: year, sem: sem, dept: dept, ay: ay, clg: clg),
         ),
       );
     } else {
