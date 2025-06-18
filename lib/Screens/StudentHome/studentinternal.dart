@@ -316,7 +316,6 @@ class _StudentInternalState extends State<StudentInternal> {
     );
   }
 
-  // Removed the dialog-based attendance alert function
 
   @override
   Widget build(BuildContext context) {

@@ -192,7 +192,6 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
           .doc(widget.clg)
           .collection('departments')
           .doc(widget.dept)
-
           .collection('students')
           .doc(widget.ay)
           .collection(widget.selectedClass)
@@ -269,7 +268,7 @@ class _CumulativeSheetState extends State<CumulativeSheet> {
                 .doc(widget.clg)
                 .collection('departments')
                 .doc(widget.dept)
-                .collection('attendance')
+                .collection('attendance_record')
                 .doc(widget.ay)
                 .collection(widget.selectedClass)
                 .doc(widget.selectedSem)

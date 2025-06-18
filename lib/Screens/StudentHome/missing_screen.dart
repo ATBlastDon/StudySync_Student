@@ -13,11 +13,11 @@ class MissingRequirementsScreen extends StatefulWidget {
   final String rollNo;
   final String batch;
   final String dept;
-  final String clg;
   final String ay;
   final String studentEmail;
   final VoidCallback? onRequirementsUpdated;
   final List<String> missingRequirements;
+  final String clg;
 
   const MissingRequirementsScreen({
     super.key,
@@ -98,7 +98,7 @@ class _MissingRequirementsScreenState extends State<MissingRequirementsScreen> {
         }
         // For non-SE years, check if optional subjects (dloc) are filled.
         if (widget.year != "SE") {
-          bool hasDloc = await _checkOptionalSubjects(widget.dept, widget.ay, widget.year, widget.sem, widget.rollNo, widget.clg);
+          bool hasDloc = await _checkOptionalSubjects(widget.clg, widget.dept, widget.ay, widget.year, widget.sem, widget.rollNo);
           if (!hasDloc) missingReq.add('dloc');
         }
       }
@@ -323,7 +323,7 @@ class _MissingRequirementsScreenState extends State<MissingRequirementsScreen> {
                       sem: widget.sem,
                       dept: widget.dept,
                       ay: widget.ay,
-                      clg: widget.clg
+                      clg: widget.clg,
                     ),
                   ),
                 );
@@ -476,7 +476,7 @@ class _MissingRequirementsScreenState extends State<MissingRequirementsScreen> {
               sem: widget.sem,
               dept: widget.dept,
               ay: widget.ay,
-              clg: widget.clg
+              clg: widget.clg,
             ),
           ),
         );
@@ -492,7 +492,7 @@ class _MissingRequirementsScreenState extends State<MissingRequirementsScreen> {
               batch: widget.batch,
               dept: widget.dept,
               ay: widget.ay,
-              clg: widget.clg
+              clg: widget.clg,
             ),
           ),
         );

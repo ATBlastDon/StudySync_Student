@@ -76,6 +76,7 @@ class _StudentRegisterState extends State<StudentRegister> {
     color: Colors.black87,
   );
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -620,6 +621,8 @@ class _StudentRegisterState extends State<StudentRegister> {
     );
   }
 
+
+  /// Registration Logic
   Future<void> _register(BuildContext context) async {
     // Validate input fields
     if (!_validateFields()) {
@@ -882,7 +885,7 @@ class _StudentRegisterState extends State<StudentRegister> {
         "mentor":"none",
       });
 
-      await _notificationAdd(dept, ay, year, sem, rollNo);
+      await _notificationAdd(clg, dept, ay, year, sem, rollNo);
 
       logger.i("Profile photo uploaded successfully for roll number: $rollNo");
     } catch (e, stackTrace) {
@@ -932,14 +935,13 @@ class _StudentRegisterState extends State<StudentRegister> {
     );
   }
 
-  Future<void> _notificationAdd(String dept, String ay, String year, String sem, String rollNo) async {
-    String notificationId = FirebaseFirestore.instance.collection('notifications').doc().id;
+  Future<void> _notificationAdd(String clg, String dept, String ay, String year, String sem, String rollNo) async {
     String fullName = "${_fnameController.text.trim()} ${_mnameController.text.trim()} ${_snameController.text.trim()}";
     await FirebaseFirestore.instance
         .collection('notifications')
         .doc("ApproveStudent")
         .collection("requests")
-        .doc(notificationId)
+        .doc(rollNo)
         .set({
       'title': 'Notification of Student Approval Request',
       'name': fullName,
@@ -950,10 +952,7 @@ class _StudentRegisterState extends State<StudentRegister> {
       'sem': sem,
       'rollNo': rollNo,
       'status': 'pending',
-      'notificationId': notificationId,
+      'clg': clg,
     });
   }
-
-
-
 }

@@ -245,8 +245,7 @@ class _IaMarksState extends State<IaMarks> {
     // or exactly "DLOC5", "DLOC6", or any subject starting with "ILOC".
     allSubjects.removeWhere((subject) =>
     subject.toLowerCase().contains("major project") ||
-        subject.toUpperCase() == "DLOC5" ||
-        subject.toUpperCase() == "DLOC6" ||
+        subject.toUpperCase().startsWith("DLOC") ||
         subject.toUpperCase().startsWith("ILOC")
     );
 
