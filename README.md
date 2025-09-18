@@ -107,3 +107,21 @@ If you find this project useful, consider supporting the development:
 
 Thank you for using StudySync Student—your academic progress made smarter!
 
+---
+
+## 🖼️ Screenshots — StudySync Student
+
+Here are some images showcasing **StudySync Student** and its features:
+
+<p float="left">
+  <img src="./images_readme/image0.jpg" width="200" />
+  <img src="./images_readme/image1.jpg" width="200" />
+  <img src="./images_readme/image2.jpg" width="200" />
+</p>
+
+<p float="left">
+  <img src="./images_readme/image3.jpg" width="200" />
+  <img src="./images_readme/image4.jpg" width="200" />
+  <img src="./images_readme/image5.jpg" width="200" />
+</p>
+
